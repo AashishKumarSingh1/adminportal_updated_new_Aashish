@@ -108,6 +108,7 @@ export const AddForm = ({ handleClose, modal }) => {
                         <MenuItem value="B.Arch">B.Arch</MenuItem>
                         <MenuItem value="M.Arch">M.Arch</MenuItem>
                         <MenuItem value="MCA">MCA</MenuItem>
+                        <MenuItem value="MURP">MURP</MenuItem>
                         <MenuItem value="Other">Other</MenuItem>
                     </Select>
                     <TextField
@@ -260,6 +261,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
                         <MenuItem value="PhD">PhD</MenuItem>
                         <MenuItem value="MSC">MSC</MenuItem>
                         <MenuItem value="MCA">MCA</MenuItem>
+                        <MenuItem value="MURP">MURP</MenuItem>
                         <MenuItem value="Other">Other</MenuItem>
                     </Select>
                     <TextField

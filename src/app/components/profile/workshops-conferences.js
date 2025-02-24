@@ -114,6 +114,7 @@ export const AddForm = ({ handleClose, modal }) => {
                         fullWidth
                         required
                     >
+                        <MenuItem value="Faculty Development Programme">Faculty Development Programme</MenuItem>
                         <MenuItem value="Workshop">Workshop</MenuItem>
                         <MenuItem value="Conference">Conference</MenuItem>
                         <MenuItem value="Seminar">Seminar</MenuItem>
@@ -269,6 +270,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
                         value={content.event_type}
                         onChange={handleChange}
                     >
+                        <MenuItem value="Faculty Development Programme">Faculty Development Programme</MenuItem>
                         <MenuItem value="Workshop">Workshop</MenuItem>
                         <MenuItem value="Conference">Conference</MenuItem>
                         <MenuItem value="Seminar">Seminar</MenuItem>

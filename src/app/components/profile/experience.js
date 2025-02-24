@@ -54,13 +54,19 @@ export function ExperiencePage() {
 
     const handleSave = async (newExperience) => {
         try {
-            const res = newExperience.id
+            const adjustedExperience = {
+                ...newExperience,
+                start_date: new Date(newExperience.start_date).toISOString().split('T')[0],
+                end_date: newExperience.end_date === 'continue' ? 'continue' : new Date(newExperience.end_date).toISOString().split('T')[0],
+            };
+
+            const res = adjustedExperience.id
                 ? await fetch('/api/experience', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
                           email: session?.user?.email,
-                          ...newExperience,
+                          ...adjustedExperience,
                       }),
                   })
                 : await fetch('/api/experience', {
@@ -68,20 +74,20 @@ export function ExperiencePage() {
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
                           email: session?.user?.email,
-                          ...newExperience,
+                          ...adjustedExperience,
                       }),
                   });
 
             if (!res.ok) throw new Error('Failed to save experience data');
 
-            if (newExperience.id) {
+            if (adjustedExperience.id) {
                 setExperienceData(
-                    experienceData.map((exp) => (exp.id === newExperience.id ? newExperience : exp))
+                    experienceData.map((exp) => (exp.id === adjustedExperience.id ? adjustedExperience : exp))
                 );
             } else {
-                setExperienceData([...experienceData, newExperience]);
+                setExperienceData([...experienceData, adjustedExperience]);
             }
-            window.location.reload()
+            window.location.reload();
         } catch (error) {
             console.error('Error saving experience data:', error);
         }
@@ -207,8 +213,8 @@ function EditExperienceDialog({ open, onClose, onSave, experience, session }) {
         const newExperience = {
             work_experience: workExperience,
             institute,
-            start_date: startDate,
-            end_date: isContinuing ? 'continue' : endDate,
+            start_date: new Date(startDate).toISOString().split('T')[0],
+            end_date: isContinuing ? 'continue' : new Date(endDate).toISOString().split('T')[0],
             id: experience ? experience.id : undefined, 
         };
 
