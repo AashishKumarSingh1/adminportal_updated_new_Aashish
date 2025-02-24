@@ -68,19 +68,24 @@ export const AddForm = ({ handleClose, modal }) => {
         e.preventDefault()
 
         try {
+            const adjustedContent = {
+                ...content,
+                completion_year: content.completion_year ? new Date(content.completion_year).toISOString().split('T')[0] : '',
+            };
+
             const result = await fetch('/api/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     type: 'phd_candidates',
-                    ...content,
+                    ...adjustedContent,
                     id: Date.now().toString(),
                     email: session?.user?.email
                 }),
             })
 
             if (!result.ok) throw new Error('Failed to create')
-            
+
             handleClose()
             refreshData()
             setContent(initialState)
@@ -189,6 +194,7 @@ export const AddForm = ({ handleClose, modal }) => {
                         <MenuItem value="Presubmission">Presubmission</MenuItem>
                         <MenuItem value="Thesis_Submitted">Thesis Submitted</MenuItem>
                         <MenuItem value="Awarded">Awarded</MenuItem>
+                        <MenuItem value="Registered">Registered</MenuItem>
                         {/* <MenuItem value="Completed">Completed</MenuItem>
                         <MenuItem value="Discontinued">Discontinued</MenuItem> */}
                     </Select>
@@ -258,6 +264,10 @@ export const EditForm = ({ handleClose, modal, values }) => {
         setSubmitting(true)
 
         try {
+            const adjustedContent = {
+                ...content,
+                completion_year: content.completion_year ? new Date(content.completion_year).toISOString().split('T')[0] : '',
+            };
             const result = await fetch('/api/update', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -265,7 +275,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
                     type: 'phd_candidates',
                     id: values.id,
                     email: session?.user?.email,
-                    ...content
+                    ...adjustedContent
                 }),
             })
 
@@ -369,6 +379,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
                     >
                         <MenuItem value="Ongoing">Ongoing</MenuItem>
                         <MenuItem value="Awarded">Awarded</MenuItem>
+                        <MenuItem value="Registered">Registered</MenuItem>
                         {/* <MenuItem value="Discontinued">Discontinued</MenuItem> */}
                     </TextField>
                     {content.current_status === 'Awarded' && (
