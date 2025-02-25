@@ -57,7 +57,7 @@ export default function Page() {
     }
 
     // Handle authenticated state
-    if (session?.user?.role === "SUPER_ADMIN") {
+    if (session?.user?.role === "SUPER_ADMIN"||session?.user?.role === "ACADEMIC_ADMIN") {
         return (
             <Layout>
                 <Wrap>

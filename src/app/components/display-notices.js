@@ -99,7 +99,8 @@ const Notice = ({ detail }) => {
                             <VisibilityIcon />
                         </IconButton>
                     </Tooltip>
-                    {session?.user?.role === 'SUPER_ADMIN' && (
+                    {(session?.user?.role === 'SUPER_ADMIN' || 
+                      (session?.user?.role === 'ACADEMIC_ADMIN' && detail.notice_type === 'academics')) && (
                         <Tooltip title="Edit Notice">
                             <IconButton 
                                 size="small" 
@@ -127,14 +128,12 @@ const Notice = ({ detail }) => {
     )
 }
 
-function DataDisplay({ data: initialData }) {
+const DataDisplay = ({ data }) => {
+    const { data: session } = useSession()
+    const [details, setDetails] = useState([])
+    const [initialData, setInitialData] = useState(data)
     const [page, setPage] = useState(0)
     const [rowsPerPage, setRowsPerPage] = useState(15)
-    const [details, setDetails] = useState(
-        initialData ? 
-        [...initialData].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)) 
-        : []
-    )
     const [filterQuery, setFilterQuery] = useState(null)
     const [addModal, setAddModal] = useState(false)
 
@@ -148,20 +147,29 @@ function DataDisplay({ data: initialData }) {
                 body: JSON.stringify({
                     from: page * rowsPerPage,
                     to: (page + 1) * rowsPerPage,
-                    type: 'between'
+                    type: 'between',
+                    notice_type: session?.user?.role === 'ACADEMIC_ADMIN' ? 'academics' : undefined
                 })
             })
             .then(res => res.json())
             .then(data => {
-                const sortedData = [...data].sort((a, b) => 
+                let filteredData = data;
+                if (session?.user?.role === 'ACADEMIC_ADMIN') {
+                    filteredData = data.filter(notice => notice.notice_type === 'academics');
+                }
+                
+                const sortedData = [...filteredData].sort((a, b) => 
                     new Date(b.updatedAt) - new Date(a.updatedAt)
                 );
                 setDetails(sortedData);
             })
             .catch(err => console.error('Error fetching notices:', err));
         } else if (filterQuery) {
-            let filteredData = [...initialData];             
-            if (filterQuery.notice_type && filterQuery.notice_type !== 'all') {
+            let filteredData = [...initialData];
+            
+            if (session?.user?.role === 'ACADEMIC_ADMIN') {
+                filteredData = filteredData.filter(notice => notice.notice_type === 'academics');
+            } else if (filterQuery.notice_type && filterQuery.notice_type !== 'all') {
                 filteredData = filteredData.filter(notice => notice.notice_type === filterQuery.notice_type);
             }
             
@@ -176,13 +184,13 @@ function DataDisplay({ data: initialData }) {
             const sortedFilterData = filteredData.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
             setDetails(sortedFilterData);
         }
-    }, [page, rowsPerPage, filterQuery, initialData]);
+    }, [page, rowsPerPage, filterQuery, initialData, session]);
     
     return (
         <Box sx={{ p: 3 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
                 <Typography variant="h4">
-                    Recent Notices
+                    {session?.user?.role === 'ACADEMIC_ADMIN' ? 'Academic Notices' : 'Recent Notices'}
                 </Typography>
                 
                 <Box>
@@ -193,7 +201,9 @@ function DataDisplay({ data: initialData }) {
                     >
                         ADD +
                     </Button>
-                    <Filter type="notice" setEntries={setFilterQuery} />
+                    {session?.user?.role !== 'ACADEMIC_ADMIN' && (
+                        <Filter type="notice" setEntries={setFilterQuery} />
+                    )}
                 </Box>
             </Box>
 

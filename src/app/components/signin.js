@@ -3,54 +3,96 @@
 import styled from 'styled-components'
 import Image from 'next/image'
 import { signIn } from 'next-auth/react'
-import { Button } from '@mui/material'
+import { Button, Paper, Typography, Box } from '@mui/material'
+import { Google as GoogleIcon } from '@mui/icons-material'
 
 const SigninContainer = styled.div`
-    width: 100%;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #f5f5f5;
-`;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+`
 
-const SigninCard = styled.div`
-    padding: 2rem;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+const SigninCard = styled(Paper)`
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  
+  .logo-container {
+    width: 120px;
+    height: 120px;
+    position: relative;
+    margin-bottom: 1rem;
+  }
+  
+  .title {
+    color: #1a237e;
+    font-weight: 600;
     text-align: center;
+    margin-bottom: 1rem;
+  }
+  
+  .subtitle {
+    color: #546e7a;
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+`
 
-    .logo {
-        margin-bottom: 1rem;
-    }
-
-    .title {
-        margin-bottom: 2rem;
-        color: #333;
-    }
-`;
+const StyledButton = styled(Button)`
+  padding: 0.8rem 2rem;
+  text-transform: none;
+  font-size: 1rem;
+  border-radius: 50px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  
+  .MuiSvgIcon-root {
+    margin-right: 8px;
+  }
+`
 
 export default function Sign() {
-    return (
-        <SigninContainer>
-            <SigninCard>
-                <Image 
-                    src="/logo.jpg" 
-                    alt="NITP Logo" 
-                    width={100} 
-                    height={100} 
-                    priority={true}
-                />
-                <h1 className="title">Admin Portal</h1>
-                <Button 
-                    variant="contained" 
-                    color="primary"
-                    onClick={() => signIn('google')}
-                >
-                    Sign in with Google
-                </Button>
-            </SigninCard>
-        </SigninContainer>
-    )
+  return (
+    <SigninContainer>
+      <SigninCard elevation={0}>
+        <div className="logo-container">
+          <Image
+            src="/logo.jpg" 
+            alt="NITP Logo"
+            fill
+            style={{ objectFit: 'contain' }}
+            priority
+          />
+        </div>
+        
+        <Box>
+          <Typography variant="h4" className="title">
+            Admin Portal
+          </Typography>
+          <Typography variant="body1" className="subtitle">
+            National Institute of Technology Patna
+          </Typography>
+        </Box>
+
+        <StyledButton
+          variant="contained"
+          color="primary"
+          onClick={() => signIn('google')}
+          startIcon={<GoogleIcon />}
+        >
+          Sign in with Google
+        </StyledButton>
+      </SigninCard>
+    </SigninContainer>
+  )
 }
