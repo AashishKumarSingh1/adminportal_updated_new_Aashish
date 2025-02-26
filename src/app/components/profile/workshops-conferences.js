@@ -136,6 +136,7 @@ export const AddForm = ({ handleClose, modal }) => {
                         <MenuItem value="Speaker">Speaker</MenuItem>
                         <MenuItem value="Chairman">Chairman</MenuItem>
                         <MenuItem value="Secretary">Secretary</MenuItem>
+                        <MenuItem value="Convenor">Convenor</MenuItem>
                         <MenuItem value="Participant">Participant</MenuItem>
                     </Select>
                     <TextField
@@ -289,9 +290,12 @@ export const EditForm = ({ handleClose, modal, values }) => {
                         onChange={handleChange}
                     >
                         <MenuItem value="Organizer">Organizer</MenuItem>
-                        <MenuItem value="Participant">Participant</MenuItem>
+                        <MenuItem value="Coordinator">Coordinator</MenuItem>
                         <MenuItem value="Speaker">Speaker</MenuItem>
-                        <MenuItem value="Other">Other</MenuItem>
+                        <MenuItem value="Chairman">Chairman</MenuItem>
+                        <MenuItem value="Secretary">Secretary</MenuItem>
+                        <MenuItem value="Convenor">Convenor</MenuItem>
+                        <MenuItem value="Participant">Participant</MenuItem>
                     </TextField>
                     <TextField
                         margin="dense"
