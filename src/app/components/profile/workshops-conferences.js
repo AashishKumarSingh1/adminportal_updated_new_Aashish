@@ -116,11 +116,11 @@ export const AddForm = ({ handleClose, modal }) => {
                     >
                         <MenuItem value="Faculty Development Programme">Faculty Development Programme</MenuItem>
                         <MenuItem value="Workshop">Workshop</MenuItem>
-                        <MenuItem value="Conference">Conference</MenuItem>
+                        {/* <MenuItem value="Conference">Conference</MenuItem> */}
                         <MenuItem value="Seminar">Seminar</MenuItem>
                         <MenuItem value="Symposium">Symposium</MenuItem>
-                        <MenuItem value="National">National</MenuItem>
-                        <MenuItem value="International">International</MenuItem>
+                        <MenuItem value="National">National Conference</MenuItem>
+                        <MenuItem value="International">International Conference</MenuItem>
                     </Select>
                     <InputLabel id="role">Role</InputLabel>
                     <Select
@@ -273,10 +273,10 @@ export const EditForm = ({ handleClose, modal, values }) => {
                     >
                         <MenuItem value="Faculty Development Programme">Faculty Development Programme</MenuItem>
                         <MenuItem value="Workshop">Workshop</MenuItem>
-                        <MenuItem value="Conference">Conference</MenuItem>
+                        {/* <MenuItem value="Conference">Conference</MenuItem> */}
                         <MenuItem value="Seminar">Seminar</MenuItem>
-                        <MenuItem value="National">National</MenuItem>
-                        <MenuItem value="International">International</MenuItem>
+                        <MenuItem value="National">National Conference</MenuItem>
+                        <MenuItem value="International">International Conference</MenuItem>
                         <MenuItem value="Other">Other</MenuItem>
                     </TextField>
                     <TextField
