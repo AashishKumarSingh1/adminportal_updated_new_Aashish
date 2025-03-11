@@ -1,13 +1,14 @@
-const mysql = require('serverless-mysql');
+import mysql from 'mysql2/promise';
 
-const db = mysql({
-  config: {
-    host: process.env.MYSQL_HOST,
-    database: process.env.MYSQL_DATABASE,
-    user: process.env.MYSQL_USERNAME,
-    password: process.env.MYSQL_PASSWORD,
-    port: parseInt(process.env.MYSQL_PORT, 10),
-  },
+const pool = mysql.createPool({
+  host: process.env.MYSQL_HOST,
+  user: process.env.MYSQL_USERNAME,
+  password: process.env.MYSQL_PASSWORD,
+  database: process.env.MYSQL_DATABASE,
+  port: process.env.MYSQL_PORT,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
 // Validate environment variables at startup
@@ -23,34 +24,27 @@ if (
 
 /**
  * Executes a MySQL query.
- * @param {string} q - The SQL query string.
- * @param {Array<string|number>} [values=[]] - Query parameters to be escaped.
+ * @param {string} sql - The SQL query string.
+ * @param {Array<string|number>} values - Query parameters to be escaped.
  * @returns {Promise<any>} - The query result.
  */
-async function query(q, values = []) {
+export async function query(sql, values) {
   try {
-    const results = await db.query(q, values);
+    const [results] = await pool.execute(sql, values);
     return results;
-  } catch (e) {
-    console.error('Database Query Error:', e);
-    throw new Error(`Database query failed: ${e.message}`);
+  } catch (error) {
+    console.error('Database query error:', error);
+    throw new Error('Database query failed: ' + error.message);
   }
 }
 
-/**
- * Closes the MySQL connection.
- * Use this explicitly if required in your workflow.
- */
-async function closeConnection() {
+// Add a health check function
+export async function checkConnection() {
   try {
-    await db.end();
-  } catch (e) {
-    console.error('Error closing MySQL connection:', e);
+    await pool.query('SELECT 1');
+    return true;
+  } catch (error) {
+    console.error('Database connection error:', error);
+    return false;
   }
 }
-
-module.exports = {
-  db,
-  query,
-  closeConnection,
-};
