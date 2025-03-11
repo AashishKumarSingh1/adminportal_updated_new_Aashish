@@ -19,7 +19,7 @@ export const depList = new Map([
   ['ee', 'Electrical Engineering'],
   ['ece', 'Electronics and Communication Engineering'],
   ['hss', 'Humanities & Social Sciences'],
-  ['maths', 'Mathematics and Computing Technology'],
+  ['maths', 'Mathematics and Computation Technology'],
   ['me', 'Mechanical Engineering'],
   ['phy', 'Applied Physics and Material Engineering'],
   ['mae', 'Mechatronics and Automation Engineering'],

@@ -88,19 +88,19 @@ export default function Header() {
 
   const drawerList = () => (
     <div className="drawer-list" role="presentation" onClick={toggleDrawer(false)}>
-      <List>
+            <List>
         {session?.user && (
           <ListItem>
-            <ListItemIcon>
+                        <ListItemIcon>
               <AccountCircleIcon />
-            </ListItemIcon>
+                        </ListItemIcon>
             <ListItemText 
               primary={session.user.name}
               secondary={session.user.role}
             />
-          </ListItem>
-        )}
-        <Divider />
+                    </ListItem>
+                )}
+            <Divider />
         {getMenuItems().map((item) => (
           <Link href={item.href} key={item.text} style={{ textDecoration: 'none', color: 'inherit' }}>
             <ListItem button>
@@ -108,32 +108,32 @@ export default function Header() {
                 {item.icon}
               </ListItemIcon>
               <ListItemText primary={item.text} />
-            </ListItem>
-          </Link>
+                    </ListItem>
+                                      </Link>
         ))}
         <Divider />
         <ListItem button onClick={() => signOut()}>
-          <ListItemIcon>
-            <ExitToAppIcon />
-          </ListItemIcon>
+                    <ListItemIcon>
+                        <ExitToAppIcon />
+                    </ListItemIcon>
           <ListItemText primary="Sign Out" />
-        </ListItem>
-      </List>
-    </div>
-  )
+                </ListItem>
+            </List>
+        </div>
+    )
 
-  return (
+    return (
     <StyledHeader>
       <AppBar position="static" style={{backgroundColor:"#2563EB"}}>
         <Toolbar className="toolbar">
           <div className="logo-section">
-            <IconButton
+                    <IconButton
               color="inherit"
               onClick={toggleDrawer(true)}
-              edge="start"
-            >
+                        edge="start"
+                    >
               <MenuIcon style={{color:"white"}} />
-            </IconButton>
+                    </IconButton>
             <Image 
               src="/logo.jpg" 
               alt="NITP Logo" 
@@ -142,7 +142,7 @@ export default function Header() {
             />
             <Typography variant="h6" className="title">
               NITP Admin Portal
-            </Typography>
+                    </Typography>
           </div>
           {session && (
             <Button 
@@ -153,8 +153,8 @@ export default function Header() {
               Sign Out
             </Button>
           )}
-        </Toolbar>
-      </AppBar>
+                </Toolbar>
+            </AppBar>
 
       <Drawer
         anchor="left"
@@ -164,5 +164,5 @@ export default function Header() {
         {drawerList()}
       </Drawer>
     </StyledHeader>
-  )
+    )
 }

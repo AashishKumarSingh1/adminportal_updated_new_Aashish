@@ -43,7 +43,7 @@ export async function POST(request) {
     params.data.openDate,
     params.data.closeDate,
     params.data.important || 0,
-    params.data.isVisible || 1,
+    params.data.isVisible === undefined ? 1 : Number(params.data.isVisible),
     JSON.stringify(params.data.attachments),
     params.data.email,
     params.data.isDept || 0,

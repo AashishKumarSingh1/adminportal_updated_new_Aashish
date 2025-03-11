@@ -95,7 +95,7 @@ export async function PUT(request) {
               params.data.important || 0,
               JSON.stringify(params.data.attachments),
               params.data.notice_link || null,
-              params.data.isVisible || 0,
+              params.data.isVisible === undefined ? 1 : Number(params.data.isVisible),
               session.user.email,
               params.data.notice_type || null,
               params.data.department || null,

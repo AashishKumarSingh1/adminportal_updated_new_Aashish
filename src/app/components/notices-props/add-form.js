@@ -64,7 +64,7 @@ export const AddForm = ({ handleClose, modal }) => {
                 title: content.title,
                 openDate: new Date(content.openDate).getTime(),
                 closeDate: new Date(content.closeDate).getTime(),
-               
+                isVisible: 1,
                 notice_type: content.type,
                 category: content.category,
                 timestamp: Date.now(),

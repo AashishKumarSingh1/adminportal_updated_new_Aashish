@@ -29,7 +29,7 @@ export const EditForm = ({ data, handleClose, modal }) => {
     const [content, setContent] = useState({
         id: data.id,
         title: data.title,
-        
+        isVisible: 1,
         openDate: dateformatter(data.openDate),
         closeDate: dateformatter(data.closeDate),
         type: data.notice_type || 'general',
