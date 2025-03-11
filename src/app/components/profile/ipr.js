@@ -97,6 +97,7 @@ export const AddForm = ({ handleClose, modal }) => {
                 const errorData = await response.json();
                 alert(`Failed to create record: ${errorData.message || 'Unknown error'}`);
             }
+            window.location.reload()
         } catch (error) {
             console.error('An unexpected error occurred:', error);
             alert('An unexpected error occurred. Please try again.');
@@ -250,6 +251,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
 
             handleClose();
             refreshData();
+            window.location.reload()
         } catch (error) {
             console.error('Error:', error);
         } finally {
