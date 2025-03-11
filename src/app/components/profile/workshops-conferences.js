@@ -116,11 +116,11 @@ export const AddForm = ({ handleClose, modal }) => {
                     >
                         <MenuItem value="Faculty Development Programme">Faculty Development Programme</MenuItem>
                         <MenuItem value="Workshop">Workshop</MenuItem>
-                        {/* <MenuItem value="Conference">Conference</MenuItem> */}
+                        <MenuItem value="Conference">Conference</MenuItem>
                         <MenuItem value="Seminar">Seminar</MenuItem>
                         <MenuItem value="Symposium">Symposium</MenuItem>
-                        <MenuItem value="National">National Conference</MenuItem>
-                        <MenuItem value="International">International Conference</MenuItem>
+                        <MenuItem value="National">National</MenuItem>
+                        <MenuItem value="International">International</MenuItem>
                     </Select>
                     <InputLabel id="role">Role</InputLabel>
                     <Select
@@ -136,7 +136,6 @@ export const AddForm = ({ handleClose, modal }) => {
                         <MenuItem value="Speaker">Speaker</MenuItem>
                         <MenuItem value="Chairman">Chairman</MenuItem>
                         <MenuItem value="Secretary">Secretary</MenuItem>
-                        <MenuItem value="Convenor">Convenor</MenuItem>
                         <MenuItem value="Participant">Participant</MenuItem>
                     </Select>
                     <TextField
@@ -273,10 +272,10 @@ export const EditForm = ({ handleClose, modal, values }) => {
                     >
                         <MenuItem value="Faculty Development Programme">Faculty Development Programme</MenuItem>
                         <MenuItem value="Workshop">Workshop</MenuItem>
-                        {/* <MenuItem value="Conference">Conference</MenuItem> */}
+                        <MenuItem value="Conference">Conference</MenuItem>
                         <MenuItem value="Seminar">Seminar</MenuItem>
-                        <MenuItem value="National">National Conference</MenuItem>
-                        <MenuItem value="International">International Conference</MenuItem>
+                        <MenuItem value="National">National</MenuItem>
+                        <MenuItem value="International">International</MenuItem>
                         <MenuItem value="Other">Other</MenuItem>
                     </TextField>
                     <TextField
@@ -290,12 +289,9 @@ export const EditForm = ({ handleClose, modal, values }) => {
                         onChange={handleChange}
                     >
                         <MenuItem value="Organizer">Organizer</MenuItem>
-                        <MenuItem value="Coordinator">Coordinator</MenuItem>
-                        <MenuItem value="Speaker">Speaker</MenuItem>
-                        <MenuItem value="Chairman">Chairman</MenuItem>
-                        <MenuItem value="Secretary">Secretary</MenuItem>
-                        <MenuItem value="Convenor">Convenor</MenuItem>
                         <MenuItem value="Participant">Participant</MenuItem>
+                        <MenuItem value="Speaker">Speaker</MenuItem>
+                        <MenuItem value="Other">Other</MenuItem>
                     </TextField>
                     <TextField
                         margin="dense"

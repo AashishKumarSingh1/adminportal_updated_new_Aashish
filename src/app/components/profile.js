@@ -254,7 +254,7 @@ export default function Profilepage({ details }) {
                                         <Link href={`${detail?.profile?.cv}`} className='bg-blue-600 text-white px-4 py-2 font-semibold rounded-lg' target='_blank'>View cv</Link>
                                     )
                                 }
-                        <Button
+                            <Button
                                 color="primary"
                                 variant="contained"
                         onClick={() => handleModalOpen('cv')}
@@ -267,11 +267,11 @@ export default function Profilepage({ details }) {
                         handleClose={() => handleModalClose('cv')}
                         modal={openModals.cv}
                     />
-                                            </div>
-                                        </div>
+                        </div>
+                    </div>
                                         
-            
-            <div className="faculty-details-row">
+
+                    <div className="faculty-details-row">
             <div className="fac-card">
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
                         <div>
@@ -305,20 +305,20 @@ export default function Profilepage({ details }) {
                                 )}
                             </div>
                         </div>
-                        <Button
-                            variant="contained"
+                            <Button
+                                variant="contained"
                             onClick={() => handleModalOpen('editProfile')}
                             sx={{ m: 2 }}
                         >
                             + Edit Details
-                        </Button>
+                            </Button>
                     </Box>
                     <EditProfile
                         handleClose={() => handleModalClose('editProfile')}
                         modal={openModals.editProfile}
                         currentProfile={detail?.profile}
-                    />
-                </div>
+                            />
+                        </div>
 
                 <div className="fac-card">
                     <AboutYouPage />
@@ -326,24 +326,24 @@ export default function Profilepage({ details }) {
                 
                                     <div className="fac-card">
                     <ExperiencePage />
-                                    </div>
+                        </div>
 
                
                 <div className="fac-card">
                     <EducationManagement />
-                                    </div>
+                            </div>
                                     <div className="fac-card">
                 <TeachingEngagementManagement/>
-                            </div>
+                        </div>
                             <div className="fac-card">
                 <MembershipManagement/>
-                        </div>
+                            </div>
                         <div className="fac-card">
                 <PhdCandidateManagement/>
                         </div>
                         <div className="fac-card">
                 <ProjectSupervisionManagement/>
-                        </div>
+                            </div>
                         <div className="fac-card">
                 <SponsoredProjectManagement/>
                         </div>
@@ -361,7 +361,7 @@ export default function Profilepage({ details }) {
                         </div>
                         {/* <div className="fac-card">
                 <PatentManagement/>
-                            </div> */}
+            </div> */}
                             <div className="fac-card">
                 <JournalPaperManagement/>
                             </div>
@@ -370,7 +370,7 @@ export default function Profilepage({ details }) {
                         </div>
                         <div className="fac-card">
                 <BookChapterManagement/>
-                            </div>
+                        </div>
                             <div className="fac-card">
                 <TextbookManagement/>
                             </div>
@@ -379,32 +379,32 @@ export default function Profilepage({ details }) {
                         </div>
                 <div className="fac-card">
                     <WorkshopConferenceManagement/>
-                                </div>
+                        </div>
                
                                 <div className="fac-card">
                     <InstituteActivityManagement/>
-                        </div>
+                            </div>
                 <div className="fac-card">
                     <DepartmentActivityManagement/>
-                    </div>
-                
-                
-              
-                
-               
-                
-               
-                
-               
-               
-              
-               
-               
-                
-
-
-
                         </div>
+
+                
+              
+                
+               
+                
+               
+                
+               
+               
+              
+               
+               
+                
+
+
+
+                            </div>
 
           
 

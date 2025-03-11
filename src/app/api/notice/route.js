@@ -1,15 +1,9 @@
 import { NextResponse } from 'next/server'
-import { query, checkConnection } from '@/lib/db'
+import { query } from '@/lib/db'
 import { administrationList, depList } from '@/lib/const'
 
 export async function GET(request) {
   try {
-    // Check database connection first
-    const isConnected = await checkConnection()
-    if (!isConnected) {
-      throw new Error('Database connection failed')
-    }
-
     const { searchParams } = new URL(request.url)
     const type = searchParams.get('type')
     const now = new Date().getTime()
@@ -105,12 +99,6 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
-    // Check database connection first
-    const isConnected = await checkConnection()
-    if (!isConnected) {
-      throw new Error('Database connection failed')
-    }
-
     const body = await request.json()
     let { 
       type,

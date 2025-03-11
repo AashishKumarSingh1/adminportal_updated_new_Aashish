@@ -97,18 +97,18 @@ const Notice = ({ detail }) => {
                     <Tooltip title="View Details">
                         <IconButton size="small" color="primary" onClick={() => setViewModal(true)}>
                             <VisibilityIcon />
-                        </IconButton>
+            </IconButton>
                     </Tooltip>
                     {(session?.user?.role === 'SUPER_ADMIN' || 
                       (session?.user?.role === 'ACADEMIC_ADMIN' && detail.notice_type === 'academics')) && (
                         <Tooltip title="Edit Notice">
-                            <IconButton 
+            <IconButton
                                 size="small" 
                                 color="primary" 
                                 onClick={() => setEditModal(true)}
                             >
                                 <EditIcon />
-                            </IconButton>
+            </IconButton>
                         </Tooltip>
                     )}
                 </CardActions>
@@ -185,7 +185,7 @@ const DataDisplay = ({ data }) => {
             setDetails(sortedFilterData);
         }
     }, [page, rowsPerPage, filterQuery, initialData, session]);
-    
+
     return (
         <Box sx={{ p: 3 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
@@ -194,15 +194,15 @@ const DataDisplay = ({ data }) => {
                 </Typography>
                 
                 <Box>
-                    <Button
-                        variant="contained"
+                <Button
+                    variant="contained"
                         onClick={() => setAddModal(true)}
                         sx={{ mr: 2 }}
-                    >
-                        ADD +
-                    </Button>
+                >
+                    ADD +
+                </Button>
                     {session?.user?.role !== 'ACADEMIC_ADMIN' && (
-                        <Filter type="notice" setEntries={setFilterQuery} />
+                <Filter type="notice" setEntries={setFilterQuery} />
                     )}
                 </Box>
             </Box>
@@ -214,19 +214,19 @@ const DataDisplay = ({ data }) => {
             </Grid>
 
             <Box mt={3}>
-                <TablePagination
+                    <TablePagination
                     component="div"
                     count={-1}
                     page={page}
                     onPageChange={(e, newPage) => setPage(newPage)}
-                    rowsPerPage={rowsPerPage}
+                        rowsPerPage={rowsPerPage}
                     onRowsPerPageChange={(e) => {
                         setRowsPerPage(parseInt(e.target.value, 10));
                         setPage(0);
                     }}
                     rowsPerPageOptions={[15, 25, 50, 100]}
-                    ActionsComponent={TablePaginationActions}
-                />
+                        ActionsComponent={TablePaginationActions}
+                    />
             </Box>
 
             <AddForm 
