@@ -49,7 +49,7 @@ export const UplaodCSV = ({ handleClose, modal }) => {
             setFileName(file.name);
             Papa.parse(file, {
                 complete: (result) => {
-                    const parsedData = result.data.map(row => {
+                    const parsedData = result.data.filter(row=>row.title && row.title.trim()!=="").map(row => {
                         if (row.publication_date) {
                             console.log("Before Parsing:", row.publication_date);
 
