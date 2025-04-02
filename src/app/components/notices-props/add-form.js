@@ -64,7 +64,7 @@ export const AddForm = ({ handleClose, modal }) => {
                 title: content.title,
                 openDate: new Date(content.openDate).getTime(),
                 closeDate: new Date(content.closeDate).getTime(),
-               
+                isVisible: 1,
                 notice_type: content.type,
                 category: content.category,
                 timestamp: Date.now(),
@@ -98,6 +98,23 @@ export const AddForm = ({ handleClose, modal }) => {
         } finally {
             setSubmitting(false)
         }
+    }
+
+    const getNoticeTypeOptions = () => {
+        if (session?.user?.role === 'ACADEMIC_ADMIN') {
+            return [
+                <MenuItem key="academics" value="academics">Academics</MenuItem>
+            ];
+        }
+
+        // Create array of menu items including administration list items
+        return [
+            <MenuItem key="general" value="general">General</MenuItem>,
+            <MenuItem key="department" value="department">Department</MenuItem>,
+            ...Array.from(administrationList).map(([key, value]) => (
+                <MenuItem key={key} value={key}>{value}</MenuItem>
+            ))
+        ];
     }
 
     return (
@@ -159,12 +176,9 @@ export const AddForm = ({ handleClose, modal }) => {
                             name="type"
                             value={content.type}
                             onChange={handleChange}
+                            defaultValue={session?.user?.role === 'ACADEMIC_ADMIN' ? 'academics' : 'general'}
                         >
-                            <MenuItem value="general">General</MenuItem>
-                            <MenuItem value="department">Department</MenuItem>
-                            {Array.from(administrationList).map(([key, value]) => (
-                                <MenuItem key={key} value={key}>{value}</MenuItem>
-                            ))}
+                            {getNoticeTypeOptions()}
                         </Select>
                     </FormControl>
                     {content.type === 'department' && (

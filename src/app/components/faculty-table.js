@@ -11,11 +11,11 @@ import {
   TablePagination,
   TableRow,
   IconButton,
-  Button,
+    Button,
   CircularProgress,
   TextField,
   Box,
-  Typography,
+    Typography,
 } from '@mui/material'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -62,14 +62,14 @@ export function FacultyTable() {
     fetchFaculty()
   }, [])
 
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage)
-  }
+    const handleChangePage = (event, newPage) => {
+        setPage(newPage)
+    }
 
-  const handleChangeRowsPerPage = (event) => {
+    const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(+event.target.value)
-    setPage(0)
-  }
+        setPage(0)
+    }
 
   const handleEdit = async (faculty) => {
     try {
@@ -127,7 +127,7 @@ export function FacultyTable() {
       <Box sx={{ mb: 3 }}>
         <Typography variant="h5" component="h2" sx={{ mb: 2 }}>
           Faculty Management
-        </Typography>
+                    </Typography>
         <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
           <TextField
             label="Search by Name"
@@ -140,31 +140,31 @@ export function FacultyTable() {
               startAdornment: <SearchIcon sx={{ color: 'action.active', mr: 1 }} />,
             }}
           />
-          <TextField
+                        <TextField
             label="Search by Email"
-            variant="outlined"
-            size="small"
+                            variant="outlined"
+                            size="small"
             value={emailSearch}
             onChange={(e) => setEmailSearch(e.target.value)}
             sx={{ flexGrow: 1 }}
             InputProps={{
               startAdornment: <SearchIcon sx={{ color: 'action.active', mr: 1 }} />,
             }}
-          />
-          <Button
-            variant="contained"
+                        />
+                        <Button
+                            variant="contained"
             startIcon={<AddIcon />}
             onClick={() => setOpenAdd(true)}
-          >
+                        >
             Add Faculty
-          </Button>
+                        </Button>
         </Box>
       </Box>
 
       <TableContainer sx={{ maxHeight: 'calc(100vh - 300px)' }}>
         <Table stickyHeader aria-label="sticky table">
-          <TableHead>
-            <TableRow>
+                    <TableHead>
+                        <TableRow>
               {columns.map((column) => (
                 <TableCell
                   key={column.id}
@@ -173,9 +173,9 @@ export function FacultyTable() {
                   {column.label}
                 </TableCell>
               ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
             {filteredRows
               .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
               .map((row) => (
@@ -201,17 +201,17 @@ export function FacultyTable() {
                       <DeleteIcon />
                     </IconButton>
                   </TableCell>
-                </TableRow>
+                            </TableRow>
               ))}
-          </TableBody>
+                    </TableBody>
         </Table>
       </TableContainer>
-      <TablePagination
+                            <TablePagination
         rowsPerPageOptions={[10, 25, 50]}
         component="div"
         count={filteredRows.length}
-        rowsPerPage={rowsPerPage}
-        page={page}
+                                rowsPerPage={rowsPerPage}
+                                page={page}
         onPageChange={handleChangePage}
         onRowsPerPageChange={handleChangeRowsPerPage}
       />
@@ -245,5 +245,5 @@ export function FacultyTable() {
         />
       )}
     </Paper>
-  )
+    )
 }

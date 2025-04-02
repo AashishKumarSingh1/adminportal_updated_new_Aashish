@@ -42,6 +42,14 @@ export async function GET(request) {
         )
         break
 
+      case 'academics':
+        results = await query(
+          `SELECT * FROM notices 
+           WHERE notice_type = 'academics'
+           ORDER BY timestamp DESC`
+        )
+        break
+
       default:
         // Check if it's an administration notice type
         if (administrationList.has(type)) {
@@ -102,63 +110,71 @@ export async function POST(request) {
       to,
       keyword = '',
     } = body
-    from=parseInt(from)
-    to=parseInt(to)
+    
+    from = parseInt(from)
+    to = parseInt(to)
     let results
-    switch (type) {
-      case 'range':
-        if (!notice_type) {
-          // Search by keyword only
-          results = await query(
-            `SELECT * FROM notices 
-             WHERE title LIKE ? 
-             ORDER BY openDate DESC 
-             LIMIT ?, ?`,
-            [`%${keyword}%`, from, to - from]
-          )
-        }
-        else if (notice_type !== 'department') {
-          // Search by notice type and date range
-          results = await query(
-            `SELECT * FROM notices 
-             WHERE notice_type = ? 
-             AND closeDate <= ? 
-             AND openDate >= ? 
-             AND title LIKE ? 
-             ORDER BY openDate DESC 
-             LIMIT ?, ?`,
-            [notice_type, end_date, start_date, `%${keyword}%`, from, to - from]
-          )
-        }
-        else {
-          // Search by department and date range
-          results = await query(
-            `SELECT * FROM notices 
-             WHERE closeDate <= ? 
-             AND openDate >= ? 
-             AND department = ? 
-             AND title LIKE ? 
-             ORDER BY openDate DESC 
-             LIMIT ?, ?`,
-            [end_date, start_date, department, `%${keyword}%`, from, to - from]
-          )
-        }
-        break
 
-      case 'between':
-        results = await query(
-          `SELECT * FROM notices 
-           ORDER BY openDate DESC 
-           LIMIT ?, ?`,
-          [from,to-from]
-        )
-        break
+    // For ACADEMIC_ADMIN, always filter for academic notices
+    if (notice_type === 'academics') {
+      results = await query(
+        `SELECT * FROM notices 
+         WHERE notice_type = 'academics'
+         ORDER BY openDate DESC 
+         LIMIT ?, ?`,
+        [from, to - from]
+      )
+    } else {
+      switch (type) {
+        case 'range':
+          if (!notice_type) {
+            results = await query(
+              `SELECT * FROM notices 
+               WHERE title LIKE ? 
+               ORDER BY openDate DESC 
+               LIMIT ?, ?`,
+              [`%${keyword}%`, from, to - from]
+            )
+          } else if (notice_type !== 'department') {
+            results = await query(
+              `SELECT * FROM notices 
+               WHERE notice_type = ? 
+               AND closeDate <= ? 
+               AND openDate >= ? 
+               AND title LIKE ? 
+               ORDER BY openDate DESC 
+               LIMIT ?, ?`,
+              [notice_type, end_date, start_date, `%${keyword}%`, from, to - from]
+            )
+          } else {
+            results = await query(
+              `SELECT * FROM notices 
+               WHERE closeDate <= ? 
+               AND openDate >= ? 
+               AND department = ? 
+               AND title LIKE ? 
+               ORDER BY openDate DESC 
+               LIMIT ?, ?`,
+              [end_date, start_date, department, `%${keyword}%`, from, to - from]
+            )
+          }
+          break
 
-      default:
-        return NextResponse.json(
-          { message: 'Invalid type parameter' },
-          { status: 400 }
-        )
+        case 'between':
+          results = await query(
+            `SELECT * FROM notices 
+             ORDER BY openDate DESC 
+             LIMIT ?, ?`,
+            [from, to - from]
+          )
+          break
+
+        default:
+          return NextResponse.json(
+            { message: 'Invalid type parameter' },
+            { status: 400 }
+          )
+      }
     }
 
     // Parse attachments JSON for each result

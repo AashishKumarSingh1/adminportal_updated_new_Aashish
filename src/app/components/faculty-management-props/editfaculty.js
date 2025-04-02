@@ -57,32 +57,45 @@ export function EditFaculty({ open, faculty, onClose, onSuccess }) {
     setLoading(true)
 
     try {
-      const res = await fetch('/api/update', {
+      const formattedData = {
+        ...formData,
+        retirement_date: formData.is_retired === "0" ? null : formData.retirement_date,
+      }
+
+      const response = await fetch('/api/update', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           type: 'user',
-          id: faculty.profile.id,
-          ...formData
-        })
+          ...formattedData
+        }),
       })
 
-      if (!res.ok) throw new Error('Failed to update')
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message)
+      }
+
+      const result = await response.json()
       
-      const updatedFaculty = await res.json()
-      onSuccess(updatedFaculty)
       setToast({
         open: true,
         severity: 'success',
-        message: 'Faculty updated successfully!'
+        message: 'Faculty updated successfully'
       })
-      window.location.reload()
+
+      if (onSuccess) {
+        onSuccess(formattedData)
+      }
+
     } catch (error) {
-      console.error('Error updating faculty:', error)
+      console.error('Update error:', error)
       setToast({
         open: true,
         severity: 'error',
-        message: 'Failed to update faculty. Please try again.'
+        message: error.message
       })
     } finally {
       setLoading(false)
@@ -180,7 +193,7 @@ export function EditFaculty({ open, faculty, onClose, onSuccess }) {
                     fullWidth
                     type="date"
                     label="Retirement Date"
-                    value={formData.retirement_date || ''}
+                    value={formData.retirement_date || '2025-02-27'}
                     onChange={(e) => setFormData(prev => ({ ...prev, retirement_date: e.target.value }))}
                     InputLabelProps={{ shrink: true }}
                   />

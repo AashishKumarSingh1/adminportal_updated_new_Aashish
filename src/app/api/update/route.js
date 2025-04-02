@@ -95,7 +95,7 @@ export async function PUT(request) {
               params.data.important || 0,
               JSON.stringify(params.data.attachments),
               params.data.notice_link || null,
-              params.data.isVisible || 0,
+              params.data.isVisible === undefined ? 1 : Number(params.data.isVisible),
               session.user.email,
               params.data.notice_type || null,
               params.data.department || null,
@@ -236,32 +236,45 @@ export async function PUT(request) {
             )
             return NextResponse.json(socialResult)
           } else {
-            const userResult = await query(
+            const {
+              email,
+              name,
+              department,
+              designation,
+              role,
+              ext_no,
+              research_interest,
+              is_retired,
+              retirement_date
+            } = params
+
+            // Format retirement_date for MySQL or set to NULL
+            const formattedRetirementDate = retirement_date ? new Date(retirement_date).toISOString().slice(0, 10) : null
+
+            const facultyResult = await query(
               `UPDATE user SET 
-               name = ?,
-               email = ?,
-               role = ?,
-               department = ?,
-               designation = ?,
-               ext_no = ?,
-               research_interest = ?,
-               is_retired = ?,
-               retirement_date = ?
-               WHERE id = ?`,
+                name = ?,
+                department = ?,
+                designation = ?,
+                role = ?,
+                ext_no = ?,
+                research_interest = ?,
+                is_retired = ?,
+                retirement_date = ?
+              WHERE email = ?`,
               [
-                params.name,
-                params.email,
-                params.role,
-                params.department,
-                params.designation,
-                params.ext_no,
-                params.research_interest,
-                params.is_retired || false,
-                params.retirement_date || null,
-                params.id
+                name,
+                department,
+                designation,
+                role,
+                ext_no,
+                research_interest,
+                is_retired,
+                formattedRetirementDate,
+                email
               ]
             )
-            return NextResponse.json(userResult)
+            return NextResponse.json(facultyResult)
           }
       }
     }
