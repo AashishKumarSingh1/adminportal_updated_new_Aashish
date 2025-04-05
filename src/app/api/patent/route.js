@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-
+import { depList } from '@/lib/const';
 export async function GET(request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -21,10 +21,21 @@ export async function GET(request) {
                 return NextResponse.json(patentCount[0]);
 
             default:
-                return NextResponse.json(
-                    { message: 'Invalid type parameter' },
-                    { status: 400 }
-                );
+                if(depList.has(type)){
+                    results = await query(
+                        `SELECT * FROM user u 
+                         JOIN ipr i 
+                         ON u.email = i.email 
+                         WHERE u.department = ? AND i.type = "patent"`,
+                        [depList.get(type)]
+                    );
+                    return NextResponse.json(results);
+                }else{
+                    return NextResponse.json(
+                        { message: 'Invalid type parameter' },
+                        { status: 400 }
+                    );
+                }
         }
     } catch (error) {
         console.error('Error fetching data:', error);

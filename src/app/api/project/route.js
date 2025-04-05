@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
-
+import { depList } from '@/lib/const'
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -44,10 +44,29 @@ export async function GET(request) {
             projectCount: totalCount 
           });
       default:
-        return NextResponse.json(
-          { message: 'Invalid type parameter' },
-          { status: 400 }
-        )
+        if(depList.has(type)){
+          results = await query(
+            `SELECT * FROM user u 
+             JOIN sponsored_projects sp 
+             ON u.email = sp.email 
+             WHERE u.department = ?`,
+            [depList.get(type)]
+          )
+
+          let consultancy_projects = await query(
+            `SELECT * FROM user u 
+             JOIN consultancy_projects cp 
+             ON u.email = cp.email 
+             WHERE u.department = ?`,
+            [depList.get(type)]
+          )
+          return NextResponse.json([...results, ...consultancy_projects])
+        }else{
+          return NextResponse.json(
+            { message: 'Invalid type parameter' },
+            { status: 400 }
+          )
+        }
     }
 
   } catch (error) {
