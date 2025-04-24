@@ -65,6 +65,9 @@ export const facultyTables = [
   'edited_books',
   'book_chapters',
   "about_me",
+  "talks_and_lectures",
+  "conference_session_chairs",
+  "international_journal_reviewers",
   
   // Projects and Research
   'sponsored_projects',
@@ -87,5 +90,7 @@ export const facultyTables = [
   'education',
   'work_experience',
   'internships'
+
+  
 ]
 
