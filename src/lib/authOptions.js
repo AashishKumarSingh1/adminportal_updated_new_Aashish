@@ -1,5 +1,6 @@
 import GoogleProvider from 'next-auth/providers/google'
 import { ROLES, ROLE_NAMES } from '@/lib/roles'
+import { query } from '@/lib/db'
 export const authOptions = {
     providers: [
       GoogleProvider({
