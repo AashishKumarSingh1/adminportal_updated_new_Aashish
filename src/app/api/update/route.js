@@ -64,13 +64,12 @@ export async function PUT(request) {
 
       return NextResponse.json(result)
     }
-
     // .data updates - Super Admin, Academic Admin, and Department Admin access
     if (
       session.user.role === 'SUPER_ADMIN' ||
       ((session.user.role === 'ACADEMIC_ADMIN' ||
         session.user.role === 'DEPT_ADMIN') &&
-        session.user.email === params.email)
+        session.user.email === params.data.email)
     ) {
       if (type === 'notice') {
         const result = await query(

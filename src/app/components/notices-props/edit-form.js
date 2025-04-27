@@ -36,8 +36,8 @@ export const EditForm = ({ data, handleClose, modal }) => {
         department: data.department || null,
         important: data.important || false,
         department: data.department || null,
-        isDept: data.isDept || 0
-
+        isDept: data.isDept || 0,
+        email:data?.email||null,
         
     })
 
@@ -74,7 +74,7 @@ export const EditForm = ({ data, handleClose, modal }) => {
     const handleSubmit = async (e) => {
         e.preventDefault()
         setSubmitting(true)
-
+       
         try {
             let attachments = [...add_attach]
             if (new_attach.length) {
@@ -91,7 +91,7 @@ export const EditForm = ({ data, handleClose, modal }) => {
             const finaldata = {
                 id: content.id,
                 title: content.title,
-                
+                email:content.email,
                 openDate: new Date(content.openDate).getTime(),
                 closeDate: new Date(content.closeDate).getTime(),
                 notice_type: content.type,
