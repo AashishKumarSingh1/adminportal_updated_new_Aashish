@@ -1,5 +1,5 @@
 import { getServerSession } from 'next-auth'
-import { authOptions } from './api/auth/[...nextauth]/route'
+import { authOptions } from '@/lib/authOptions'
 import Sign from './components/signin'
 import ClientLayout from './components/layout'
 import Profilepage from './components/profile'
