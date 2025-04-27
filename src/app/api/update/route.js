@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getServerSession } from 'next-auth'
 import { ROLES } from '@/lib/roles'
-import { authOptions } from '../auth/[...nextauth]/route' 
+import { authOptions } from '@/lib/authOptions' 
 import { convertToThumbnailUrl } from '@/lib/utils'
 
 export async function PUT(request) {
