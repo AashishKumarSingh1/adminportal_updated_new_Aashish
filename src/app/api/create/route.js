@@ -2,7 +2,8 @@ import { getServerSession } from 'next-auth'
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { ROLES, hasAccess } from '@/lib/roles'
-import { authOptions } from '../auth/[...nextauth]/route'
+// import { authOptions } from '../auth/[...nextauth]/route'
+import { authOptions } from '@/lib/authOptions'
 
 export async function POST(request) {
   const session = await getServerSession(authOptions)
@@ -16,7 +17,7 @@ export async function POST(request) {
 
   try {
     const { type, ...params } = await request.json()
-
+    // console.log(session.user.role,'dkfas;k')
     // Notice handling based on role
     if (type === 'notice') {
       const canCreateNotice = 

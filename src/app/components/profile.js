@@ -33,6 +33,9 @@ import JournalPaperManagement from './profile/journal-papers.js'
 import ConferencePaperManagement from './profile/conference-papers.js'
 import Loading from './loading'
 import { EditProfile } from './profile/edit-profile'
+import JournalReviewersPage from './profile/journalReviewerPage'
+import TalksAndLecturesPage from './profile/talkAndLecture'
+import ConferenceSessionChairsPage from './profile/conferenceSession'
 
 const Profile = styled.div`
     font-family: 'Source Sans Pro';
@@ -79,7 +82,7 @@ const Profile = styled.div`
             padding-top: 50px;
         }
         .fac-card {
-            width: 90%;
+            width: 100%;
             margin-top: 3vh;
             margin-bottom: 3vh;
             background: #ffffff;
@@ -365,9 +368,21 @@ export default function Profilepage({ details }) {
                             <div className="fac-card">
                 <JournalPaperManagement/>
                             </div>
+
+                            <div className="fac-card">
+                <JournalReviewersPage/>
+                            </div>
+
                             <div className="fac-card">
                 <ConferencePaperManagement/>
                         </div>
+                        <div className='fac-card'>
+                            <ConferenceSessionChairsPage />
+                        </div>
+                        <div className='fac-card'>
+                        <TalksAndLecturesPage />
+                        </div>
+                        
                         <div className="fac-card">
                 <BookChapterManagement/>
                         </div>

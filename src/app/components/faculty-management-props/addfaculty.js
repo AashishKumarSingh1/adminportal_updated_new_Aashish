@@ -41,7 +41,7 @@ export function AddFaculty({ open, onClose, onSuccess }) {
         body: JSON.stringify({
           type: 'user',
           ...formData,
-          email: session?.user?.email
+          // email: session?.user?.email
         })
       })
 
