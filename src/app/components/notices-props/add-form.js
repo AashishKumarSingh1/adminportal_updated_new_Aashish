@@ -26,7 +26,7 @@ export const AddForm = ({ handleClose, modal }) => {
         openDate: '',
         closeDate: '',
         
-        type: 'general',
+        type: 'academics',
         category: 'academics',
         important: false,
         department: null,
