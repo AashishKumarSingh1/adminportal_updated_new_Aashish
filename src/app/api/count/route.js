@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/authOptions'
-
+import { depList } from '@/lib/const'
 export async function GET(request) {
+  
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
@@ -12,10 +13,56 @@ export async function GET(request) {
         { status: 401 }
       )
     }
-
+    const type = request.nextUrl.searchParams.get('type') || 'all'
+    const facultyTables = [
+      'about_me',
+      'book_chapters',
+      'conference_papers',
+      'conference_session_chairs',
+      'consultancy_projects',
+      'department_activities',
+      'edited_books',
+      'education',
+      'events',
+      'faculty_image',
+      'innovation',
+      'institute_activities',
+      'international_journal_reviewers',
+      'internships',
+      'ipr',
+      'journal_papers',
+      'memberships',
+      'news',
+      'notices',
+      'patents',
+      'phd_candidates',
+      'project_supervision',
+      'sponsored_projects',
+      'startups',
+      'talks_and_lectures',
+      'teaching_engagement',
+      'textbooks',
+      'webteam',
+      'work_experience',
+      'workshops_conferences'
+    ];
     // Get counts for all tables
     const counts = {}
 
+
+      if (depList.has(type)) {        
+        for (const table of facultyTables) {
+          const tableCount = await query(
+            `SELECT COUNT(*) AS count FROM ${table} AS t 
+             INNER JOIN user AS u ON t.email = u.email 
+             WHERE u.department = ?`,
+            [depList.get(type)]
+          );          
+          counts[table] = tableCount[0].count;
+        }
+      
+        return NextResponse.json(counts);
+      } else if (type === "all"){
     // Faculty counts
     const facultyCount = await query(
       'SELECT COUNT(*) as count FROM user WHERE role IN (3, 4, 5)', // FACULTY, OFFICER, STAFF
@@ -165,6 +212,14 @@ export async function GET(request) {
     }
 
     return NextResponse.json(counts)
+  }
+    else {
+      return NextResponse.json(
+        { message: 'Invalid type',type:type },
+        { status: 400 }
+      )
+    }
+      
 
   } catch (error) {
     console.error('Count API Error:', error)
