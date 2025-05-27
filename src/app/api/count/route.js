@@ -6,13 +6,13 @@ import { depList } from '@/lib/const'
 export async function GET(request) {
   
   try {
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
+    // const session = await getServerSession(authOptions)
+    // if (!session) {
+    //   return NextResponse.json(
+    //     { message: 'Unauthorized' },
+    //     { status: 401 }
+    //   )
+    // }
     const type = request.nextUrl.searchParams.get('type') || 'all'
     const facultyTables = [
       'about_me',
