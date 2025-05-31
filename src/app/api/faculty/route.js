@@ -6,7 +6,6 @@ const allowedOrigins = [
   "https://adminportal-updated-new.vercel.app/",  
   'http://localhost:3000',
   'https://faculty-performance-appraisal-performa.vercel.app/',
-  
   // Add other allowed domains
 ]
 
@@ -33,6 +32,44 @@ export async function GET(request) {
     const origin = request.headers.get('origin')
     const isAllowedOrigin = allowedOrigins.includes(origin)
 
+     const facultyTables = [
+      'about_me',
+      'book_chapters',
+      'conference_papers',
+      'conference_session_chairs',
+      'consultancy_projects',
+      'department_activities',
+      'edited_books',
+      'education',
+      'events',
+      'faculty_image',
+      'innovation',
+      'institute_activities',
+      'international_journal_reviewers',
+      'internships',
+      'ipr',
+      'journal_papers',
+      'memberships',
+      'news',
+      'notices',
+      'patents',
+      'phd_candidates',
+      'project_supervision',
+      'sponsored_projects',
+      'startups',
+      'talks_and_lectures',
+      'teaching_engagement',
+      'textbooks',
+      'webteam',
+      'work_experience',
+      'workshops_conferences',
+      "user"
+    ];
+
+    let subqueries = facultyTables.map(
+            (table) => `(SELECT COUNT(*) FROM ${table} WHERE email = u.email) AS ${table}_count`
+          );
+
     switch (type) {
       case 'all':
         results = await query(
@@ -45,9 +82,10 @@ export async function GET(request) {
               WHEN 4 THEN 'OFFICER'
               WHEN 5 THEN 'STAFF'
               WHEN 6 THEN 'DEPT_ADMIN'
-            END as role_name
-          FROM user u 
-          ORDER BY u.name ASC`
+            END as role_name,
+            ${subqueries.join(',\n    ')}
+              FROM user u 
+              ORDER BY u.name ASC`
         )
         // Transform the results to include role name
         return NextResponse.json(results.map(user => ({
@@ -84,7 +122,11 @@ export async function GET(request) {
         // Check if it's a department query
         if (depList.has(type)) {
           results = await query(
-            `SELECT * FROM user WHERE department = ?`,
+            `SELECT 
+            u.*, 
+            ${subqueries.join(',\n    ')}
+              FROM user u
+              where department = ?`,
             [depList.get(type)]
           )
           return NextResponse.json(results)
