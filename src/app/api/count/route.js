@@ -44,7 +44,8 @@ export async function GET(request) {
       'textbooks',
       'webteam',
       'work_experience',
-      'workshops_conferences'
+      'workshops_conferences',
+      "user"
     ];
     // Get counts for all tables
     const counts = {}
