@@ -3,7 +3,7 @@ name: CI/CD for Nitp-Admin Portal
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   deploy:
