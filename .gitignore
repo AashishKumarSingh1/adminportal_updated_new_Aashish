@@ -1,5 +1,5 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
+# testing for admin portal ci/cd pipeline for ec2 instance
 # dependencies
 /node_modules
 /.pnp
