@@ -12,6 +12,7 @@ export default async function Page() {
     }
 
     // Fetch faculty data using server-side fetch
+    //testing for ci/cd pipeline
     let result = null
     try {
         const res = await fetch(
