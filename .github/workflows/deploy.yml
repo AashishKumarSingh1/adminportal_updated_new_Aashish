@@ -1,0 +1,25 @@
+name: CI/CD for Nitp-Admin Portal
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_nitp_admin
+          chmod 600 ~/.ssh/id_nitp_admin
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to EC2
+        run: |
+          ssh -i ~/.ssh/id_nitp_admin ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} 'sudo bash -c "cd /root && ./latest_admin_deploy.sh"'
