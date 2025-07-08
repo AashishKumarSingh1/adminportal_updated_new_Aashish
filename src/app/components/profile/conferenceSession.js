@@ -94,6 +94,7 @@ export default function ConferenceSessionChairsPage() {
 
   return (
     <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
       <Typography variant="h6" sx={{ m: 2 }}>
         Conference Session Chairs
       </Typography>
@@ -101,10 +102,11 @@ export default function ConferenceSessionChairsPage() {
         variant="contained"
         onClick={() => setOpenDialog(true)}
         sx={{ m: 2 }}
+        style={{ backgroundColor: '#830001', color: 'white' }}
       >
         Add Session Chair
       </Button>
-
+    </div>
       {loading ? (
         <Typography sx={{ m: 2 }}>Loading...</Typography>
       ) : (

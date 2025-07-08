@@ -5,6 +5,7 @@ import {
     Box
 } from '@mui/material'
 import { useSession } from 'next-auth/react'
+import { useFacultyData } from '../../context/FacultyDataContext'
 import React, { useEffect, useState } from 'react'
 import styled from 'styled-components'
 import Link from 'next/link'
@@ -36,12 +37,11 @@ import { EditProfile } from './profile/edit-profile'
 import JournalReviewersPage from './profile/journalReviewerPage'
 import TalksAndLecturesPage from './profile/talkAndLecture'
 import ConferenceSessionChairsPage from './profile/conferenceSession'
+import EditIcon from '@mui/icons-material/Edit'
 
 const Profile = styled.div`
     font-family: 'Source Sans Pro';
-    margin-top: 3vw;
-    display: flex;
-    flex-wrap: wrap;
+    
     justify-content: space-evenly;
     .faculty-img-row {
         margin-top: 5vh;
@@ -58,10 +58,10 @@ const Profile = styled.div`
         font-family: 'Source Sans Pro';
         .faculty-img-wrap {
             overflow: hidden;
-            width: 250px;
-            height: 250px;
-            min-width: 250px;
-            border-radius: 50%;
+            width: 150px;
+            height: 150px;
+            min-width: 150px;
+          
 
             img {
                 width: 100%;
@@ -71,7 +71,7 @@ const Profile = styled.div`
         }
     }
     .faculty-details-row {
-        width: 80%;
+        width: 100%;
         display: flex;
         justify-content: center;
         flex-direction: column;
@@ -163,10 +163,10 @@ const Profile = styled.div`
     }
 `
 
-export default function Profilepage({ details }) {
+export default function Profilepage() {
     const { data: session, status } = useSession()
-    const [detail, setDetails] = useState(details)
-    const [loading, setLoading] = useState(false)
+    const { facultyData, loading, error, getBasicInfo } = useFacultyData()
+    const [detail, setDetails] = useState(null)
     const [openModals, setOpenModals] = useState({
         education: false,
         work: false,
@@ -191,12 +191,12 @@ export default function Profilepage({ details }) {
         // ... other modal states
     })
 
-    // Update state after refreshing data
+    // Update state when context data changes
     useEffect(() => {
-        if (details) {
-            setDetails(details)
+        if (facultyData) {
+            setDetails(facultyData)
         }
-    }, [details])
+    }, [facultyData])
 
     const handleModalOpen = (modalName) => {
         setOpenModals(prev => ({
@@ -218,76 +218,143 @@ export default function Profilepage({ details }) {
     return (
                 <Profile>
             {/* Profile Image Section */}
-                    <div className="faculty-img-row">
-                        <div className="faculty-img-wrap">
-                            <img
-                        src={detail?.profile?.image || '/faculty.png'}
-                                alt="faculty"
-                                style={{ 
-                                    width: '200px', 
-                                    height: '200px',
-                                    objectFit: 'cover',
-                                    borderRadius: '50%'
-                                }}
-                                onError={(e) => {
-                                    e.target.onerror = null
-                                    e.target.src = '/faculty.png'
-                                }}
-                            />
-                        </div>
-                <h2>{detail?.profile?.name}</h2>
-                <h3>{detail?.profile?.designation}</h3>
+                    <div className="faculty-img-row" style={{ 
+    display: 'flex', 
+    flexDirection: 'column',
+    alignItems: 'center', 
+    justifyContent: 'center',
+    gap: '2rem',
+   
+    textAlign: 'center'
+}}>
+    <div className="faculty-img-wrap">
+        <img
+            src={detail?.profile?.image || '/faculty.png'}
+            alt="faculty"
+            style={{ 
+                width: '150px', 
+                height: '150px', 
+                objectFit: 'cover', 
+                borderRadius: '50%',
+                border: '3px solid #830001'
+            }}
+            onError={(e) => {
+                e.target.onerror = null
+                e.target.src = '/faculty.png'
+            }}
+        />
+    </div>
+    
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+        <h2 style={{ margin: '0', fontSize: '1.5rem', fontWeight: 'bold' }}>
+            {detail?.profile?.name}
+        </h2>
+        <h3 style={{ margin: '0', fontSize: '1.2rem', color: '#666', fontWeight: 'normal' }}>
+            {detail?.profile?.designation}
+        </h3>
 
-                {/* Profile Image & CV Upload Buttons */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            <Button
-                                color="primary"
-                                variant="contained"
-                        onClick={() => handleModalOpen('profilePic')}
-                            >
-                                {detail?.profile?.image ? 'Update Photo' : 'Upload Photo'}
-                            </Button>
-                            <AddProfilePic
-                        handleClose={() => handleModalClose('profilePic')}
-                        modal={openModals.profilePic}
-                            />
-                        <div className='flex flex-row gap-4 justify-center items-center'>
-                        {
-                                    detail?.profile?.cv &&(
-                                        <Link href={`${detail?.profile?.cv}`} className='bg-blue-600 text-white px-4 py-2 font-semibold rounded-lg' target='_blank'>View cv</Link>
-                                    )
-                                }
-                            <Button
-                                color="primary"
-                                variant="contained"
-                        onClick={() => handleModalOpen('cv')}
-                        sx={{m: 2 }}
-                            >
-                        {detail?.profile?.cv ? 'Update CV' : 'Upload CV'}
-                            </Button>
-                            </div>
-                            <AddCv
-                        handleClose={() => handleModalClose('cv')}
-                        modal={openModals.cv}
-                    />
-                        </div>
-                    </div>
-                                        
+        {/* Profile Image & CV Upload Buttons */}
+        <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '1rem', 
+            alignItems: 'center',
+            marginTop: '1.5rem'
+        }}>
+            <Button
+                variant="contained"
+                style={{ 
+                    backgroundColor: '#830001', 
+                    color: 'white', 
+                    padding: '4px 8px', 
+                    fontSize: '1rem',
+                    minWidth: '180px',
+                    borderRadius: '8px'
+                }}
+                onClick={() => handleModalOpen('profilePic')}
+            >
+                {detail?.profile?.image ? 'UPDATE PHOTO' : 'UPLOAD PHOTO'}
+            </Button>
+            
+            <AddProfilePic
+                handleClose={() => handleModalClose('profilePic')}
+                modal={openModals.profilePic}
+            />
+            
+            <div style={{ 
+                display: 'flex', 
+                flexDirection: 'row', 
+                gap: '1rem', 
+                alignItems: 'center',
+                justifyContent: 'center'
+            }}>
+                {detail?.profile?.cv && (
+                    <Button
+                        variant="outlined"
+                        style={{
+                            backgroundColor: 'white',
+                            border: '2px solid #830001',
+                            color: '#830001',
+                            padding: '4px 15px',
+                            borderRadius: '8px',
+                            textDecoration: 'none',
+                            fontSize: '0.9rem'
+                        }}
+                        component="a"
+                        href={detail?.profile?.cv}
+                        target="_blank"
+                    >
+                        VIEW CV
+                    </Button>
+                )}
+                
+                <Button
+                    variant="contained"
+                    style={{ 
+                            backgroundColor: '#ffb7b7ff',
+                            color: '#830001',
+                            padding: '4px 10px',
+                            fontSize: '1rem',
+                            minWidth: '180px',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 8px rgba(178, 34, 34, 0.3)',  // subtle shadow for depth
+                            transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
+                            '&:hover': {
+                                backgroundColor: '#8B1A1A',  // darker shade on hover
+                                boxShadow: '0 6px 12px rgba(178, 34, 34, 0.4)'
+                            }
+                        }}
+
+                    onClick={() => handleModalOpen('cv')}
+                >
+                    {detail?.profile?.cv ? 'UPDATE CV' : 'UPLOAD CV'}
+                </Button>
+            </div>
+            
+            <AddCv
+                handleClose={() => handleModalClose('cv')}
+                modal={openModals.cv}
+            />
+        </div>
+    </div>
+</div>
+
+            
 
                     <div className="faculty-details-row">
             <div className="fac-card">
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
                         <div>
-                            <h2 style={{marginTop: '10px'}}>Profile Details</h2>
+                            <h2 style={{marginTop: '10px',fontWeight:'bold',fontSize:'1.5rem'}}>Profile Details</h2>
                             <div style={{ marginTop: '20px' }}>
-                                <h4>Research Interest:</h4>
+                                <h4 style={{marginTop: '10px',fontWeight:'bold'}}>Research Interest:</h4>
                                 <p>{detail?.profile?.research_interest}</p>
-                                
-                                <h4 style={{marginTop: '10px'}}>Contact:</h4>
+
+                                <h4 style={{marginTop: '10px',fontWeight:'bold'}}>Contact:</h4>
                                 <p>Email: {detail?.profile?.email}</p>
                                 <p>Phone: {detail?.profile?.ext_no}</p>
-                                
-                                <h4 style={{marginTop: '10px'}}>Social Media & Academic Links:</h4>
+
+                                <h4 style={{marginTop: '10px',fontWeight:'bold'}}>Social Media & Academic Links:</h4>
                                 {detail?.profile?.linkedin && (
                                     <p>LinkedIn: <a href={detail.profile.linkedin} target="_blank" rel="noopener noreferrer">{detail.profile.linkedin}</a></p>
                                 )}
@@ -310,10 +377,12 @@ export default function Profilepage({ details }) {
                         </div>
                             <Button
                                 variant="contained"
+                                style={{ backgroundColor: '#830001', color: 'white', marginRight: '20px' }}
                             onClick={() => handleModalOpen('editProfile')}
                             sx={{ m: 2 }}
+                             startIcon={<EditIcon />}
                         >
-                            + Edit Details
+                             Edit Details
                             </Button>
                     </Box>
                     <EditProfile

@@ -203,11 +203,11 @@ export const AddForm = ({ handleClose, modal }) => {
                 </DialogContent>
 
                 <DialogActions>
-                    <Button onClick={handleClose}>Cancel</Button>
+                    <Button onClick={handleClose} style={{ color: '#830001' }}>Cancel</Button>
                     <Button 
                         type="submit"
                         variant="contained"
-                        color="primary"
+                        style={{ backgroundColor: '#830001', color: 'white' }}
                         disabled={submitting}
                     >
                         {submitting ? 'Creating...' : 'Create'}

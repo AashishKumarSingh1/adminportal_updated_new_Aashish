@@ -91,6 +91,7 @@ export default function TalksAndLecturesPage() {
 
   return (
     <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
       <Typography variant="h6" sx={{ m: 2 }}>
         Talks and Lectures
       </Typography>
@@ -98,9 +99,10 @@ export default function TalksAndLecturesPage() {
         variant="contained"
         onClick={() => setOpenDialog(true)}
         sx={{ m: 2 }}
+        style={{ backgroundColor: '#830001', color: 'white' }}
       >
         Add Lecture
-      </Button>
+      </Button></div>
 
       {loading ? (
         <Typography sx={{ m: 2 }}>Loading...</Typography>

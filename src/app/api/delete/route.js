@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { ROLES } from '@/lib/roles'
 import { authOptions } from '@/lib/authOptions'
+import { deleteS3File, extractS3KeyFromUrl } from '@/lib/utils'
 
 export async function POST(request) {
   const session = await getServerSession(authOptions)
@@ -21,8 +22,9 @@ export async function POST(request) {
     if (type === 'notice') {
       const canDeleteNotice = 
         session.user.role === 'SUPER_ADMIN' ||
-        (session.user.role === 'DEPT_ADMIN' && params.department === session.user.department) ||
-        session.user.role === 'ACADEMIC_ADMIN'
+        ((session.user.role === 'ACADEMIC_ADMIN' ||
+          session.user.role === 'DEPT_ADMIN') &&
+          session.user.email === params.data?.email)
       
       if (!canDeleteNotice) {
         return NextResponse.json(
@@ -31,6 +33,57 @@ export async function POST(request) {
         )
       }
 
+      // First, get the notice details to delete associated files
+      const notice = await query(
+        `SELECT attachments FROM notices WHERE id = ?`,
+        [params.id]
+      );
+
+      // Delete S3 files if attachments exist
+      if (notice && notice.length > 0 && notice[0].attachments) {
+        try {
+          const attachments = JSON.parse(notice[0].attachments);
+          console.log(`[Notice Deletion] Notice ID ${params.id} has attachments:`, attachments);
+          
+          if (Array.isArray(attachments)) {
+            // Use Promise.all to attempt all deletions concurrently
+            const deletionPromises = attachments.map(async (attachment) => {
+              try {
+                let keyToDelete = null;
+
+                // Case 1: S3 file with explicit key
+                if (attachment.key) {
+                  keyToDelete = attachment.key;
+                  console.log(`[Notice Deletion] Found explicit key: ${keyToDelete}`);
+                } 
+                // Case 2: S3 file with key embedded in URL
+                else if (attachment.url && typeof attachment.url === 'string' && attachment.url.includes('.amazonaws.com')) {
+                  keyToDelete = extractS3KeyFromUrl(attachment.url);
+                  console.log(`[Notice Deletion] Extracted key from URL: ${keyToDelete}`);
+                }
+
+                if (keyToDelete) {
+                  await deleteS3File(keyToDelete);
+                  console.log(`[Notice Deletion] Successfully deleted key: ${keyToDelete}`);
+                } else {
+                  console.log(`[Notice Deletion] No deletable key found for attachment:`, attachment);
+                }
+              } catch (deleteError) {
+                // Log the error for the specific file but don't stop the others
+                console.error(`[Notice Deletion] Failed to delete attachment`, { attachment, error: deleteError.message });
+              }
+            });
+            
+            // Wait for all deletion attempts to complete
+            await Promise.all(deletionPromises);
+          }
+        } catch (error) {
+          // This will catch errors from JSON.parse or other initial setup
+          console.error('[Notice Deletion] Error processing attachments for notice ID ' + params.id, error);
+        }
+      }
+
+      // Now delete the notice from database
       const result = await query(
         `DELETE FROM notices WHERE id = ?`,
         [params.id]

@@ -1,5 +1,6 @@
 const mysql = require('serverless-mysql');
 
+// Create database connection with basic optimization
 const db = mysql({
   config: {
     host: process.env.MYSQL_HOST,
@@ -22,17 +23,29 @@ if (
 }
 
 /**
- * Executes a MySQL query.
+ * Executes a MySQL query with performance monitoring.
  * @param {string} q - The SQL query string.
  * @param {Array<string|number>} [values=[]] - Query parameters to be escaped.
  * @returns {Promise<any>} - The query result.
  */
 async function query(q, values = []) {
   try {
+    const startTime = Date.now();
     const results = await db.query(q, values);
+    const endTime = Date.now();
+    
+    // Log slow queries (> 1 second) in development
+    if (process.env.NODE_ENV === 'development' && (endTime - startTime) > 1000) {
+      //console.warn(`Slow query detected (${endTime - startTime}ms):`, q.substring(0, 100));
+    }
+    
     return results;
   } catch (e) {
-    console.error('Database Query Error:', e);
+    console.error('Database Query Error:', {
+      query: q.substring(0, 100),
+      error: e.message,
+      values: values.length
+    });
     throw new Error(`Database query failed: ${e.message}`);
   }
 }

@@ -23,6 +23,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useSession } from "next-auth/react";
 
+
 export default function JournalReviewersPage() {
   const [reviewers, setReviewers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -88,22 +89,27 @@ export default function JournalReviewersPage() {
 
   return (
     <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
       <Typography variant="h6" sx={{ m: 2 }}>
         International Journal Reviewers
       </Typography>
+       <div className='flex justify-end items-center gap-5'>
       <Button
         variant="contained"
         onClick={() => setOpenDialog(true)}
         sx={{ m: 2 }}
+        startIcon={<EditIcon />}
+        style={{ backgroundColor: "#830001", color: "white" }}
       >
         Add Reviewer
       </Button>
-
+      </div>
+      </div> 
       {loading ? (
         <div>Loading...</div>
       ) : (
         <TableContainer component={Paper} sx={{ m: 2 }}>
-          <Table>
+          <Table style={{ maxWidth: '90%' }}>
             <TableHead>
               <TableRow>
                 <TableCell>Name</TableCell>

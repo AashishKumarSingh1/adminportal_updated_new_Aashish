@@ -95,7 +95,7 @@ const Notice = ({ detail }) => {
                 </CardContent>
                 <CardActions>
                     <Tooltip title="View Details">
-                        <IconButton size="small" color="primary" onClick={() => setViewModal(true)}>
+                        <IconButton size="small" color="primary" onClick={() => setViewModal(true)} style={{ color: '#830001' }}>
                             <VisibilityIcon />
             </IconButton>
                     </Tooltip>
@@ -106,6 +106,7 @@ const Notice = ({ detail }) => {
                                 size="small" 
                                 color="primary" 
                                 onClick={() => setEditModal(true)}
+                                style={{ color: '#830001' }}
                             >
                                 <EditIcon />
             </IconButton>
@@ -198,11 +199,12 @@ const DataDisplay = ({ data }) => {
                     variant="contained"
                         onClick={() => setAddModal(true)}
                         sx={{ mr: 2 }}
+                        style={{ backgroundColor: '#830001', color: 'white' }}
                 >
-                    ADD +
+                    Add New Notice
                 </Button>
                     {session?.user?.role !== 'ACADEMIC_ADMIN' && (
-                <Filter type="notice" setEntries={setFilterQuery} />
+                <Filter type="notice" setEntries={setFilterQuery} style={{ color: '#830001' }}/>
                     )}
                 </Box>
             </Box>

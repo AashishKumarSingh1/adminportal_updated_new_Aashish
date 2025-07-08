@@ -74,8 +74,9 @@ const Filter = ({ type, setEntries }) => {
         <div style={{ display: 'inline', padding: `1rem` }}>
             <Button
                 variant="outlined"
-                color="primary"
+                style={{ color: '#830001', borderColor: '#830001' }}
                 onClick={handleClickOpen}
+               
             >
                 Filter
             </Button>

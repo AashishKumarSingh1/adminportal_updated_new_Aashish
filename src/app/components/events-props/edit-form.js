@@ -257,7 +257,7 @@ export const EditForm = ({ data, handleClose, modal }) => {
             <ConfirmDelete
                 handleClose={() => setVerifyDelete(false)}
                 modal={verifyDelete}
-                id={data.id}
+                event={data}
             />
         </Dialog>
     )

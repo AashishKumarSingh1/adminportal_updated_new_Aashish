@@ -530,14 +530,15 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
       if (loading) return <div>Loading...</div>
   
       return (
-        <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1 rem' }}>
+        <div style={{marginTop: '2rem'}}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '1 rem' }}>
             <Typography variant="h6">Conference Papers</Typography>
             <div className='flex justify-end items-center gap-5'>
             <Button
                 startIcon={<AddIcon />}
                 variant="contained"
                 onClick={() => setOpenAdd(true)}
+                style={{ backgroundColor: '#830001', color: 'white' }}
             >
                 Add Conference Paper
             </Button>
@@ -546,6 +547,7 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                 startIcon={<AddIcon />}
                 variant="contained"
                 onClick={() => setdownloadtemplateOpen(true)}
+                style={{ backgroundColor: '#830001', color: 'white' }}
             >
                 Upload Conference Excel File
             </Button>

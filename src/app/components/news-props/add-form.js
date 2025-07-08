@@ -40,6 +40,11 @@ export const AddForm = ({ handleClose, modal }) => {
             let new_add_attach = []
             if (new_attach.length) {
                 new_add_attach = await handleNewAttachments(new_attach)
+                // Ensure keys are stored
+                new_add_attach = new_add_attach.map(attachment => ({
+                    ...attachment,
+                    id: Date.now() + Math.random()
+                }))
             }
 
             // Handle new images

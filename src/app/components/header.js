@@ -1,10 +1,10 @@
 'use client'
 
-import { AppBar, Toolbar, Typography, Button, IconButton, Drawer, List, ListItem, ListItemIcon, ListItemText, Divider } from '@mui/material'
+import { AppBar, Toolbar, Typography, Button, IconButton, Drawer, List, ListItem, ListItemIcon, ListItemText, Divider, Avatar, Box } from '@mui/material'
 import { signOut, useSession } from 'next-auth/react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import styled from 'styled-components'
 import MenuIcon from '@mui/icons-material/Menu'
 import AccountCircleIcon from '@mui/icons-material/AccountCircle'
@@ -16,6 +16,7 @@ import NewspaperIcon from '@mui/icons-material/Newspaper'
 import LightbulbIcon from '@mui/icons-material/Lightbulb'
 import GroupIcon from '@mui/icons-material/Group'
 import { ROLES } from '@/lib/roles'
+import { useFacultyData } from '@/context/FacultyDataContext'
 
 const StyledHeader = styled.header`
   .toolbar {
@@ -34,10 +35,84 @@ const StyledHeader = styled.header`
   .title {
     color: white;
     font-size: 1.2rem;
+    font-weight: 500;
+    margin-left: 0.5rem;
   }
 
   .drawer-list {
-    width: 250px;
+    width: 280px;
+    height: 100%;
+    background: linear-gradient(to bottom, #f5f5f5, #ffffff);
+  }
+  
+  .drawer-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    
+     justify-content: center; 
+    background-color: #830001;
+    color: white;
+  }
+  
+  .drawer-avatar {
+    width: 90px;
+    height: 90px;
+    border: 4px solid white;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  .drawer-user-name {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  
+  .drawer-user-role {
+    font-size: 0.85rem;
+    opacity: 0.9;
+  }
+  
+  .menu-item {
+    margin: 0.5rem 0.75rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    padding: 0.5rem 0.75rem;
+    
+    &:hover {
+      background-color: rgba(131, 0, 1, 0.08);
+    }
+  }
+  
+  .menu-icon {
+    color: #830001;
+    margin-right: 0.5rem;
+  }
+  
+  .logout-button {
+    margin-top: auto;
+    padding: 1.5rem;
+    display: flex;
+    justify-content: center;
+  }
+  
+  .user-section {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 0.5rem;
+  }
+  
+  .signout-button {
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    transition: all 0.2s ease;
+    padding: 0.5rem 1rem;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-color: white;
+    }
   }
 `
 
@@ -73,6 +148,22 @@ const menuItems = {
 export default function Header() {
   const { data: session } = useSession()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const facultyDataContext = useFacultyData()
+  const [profileImage, setProfileImage] = useState(null)
+  
+  useEffect(() => {
+    if (session?.user?.email && facultyDataContext && typeof facultyDataContext.getBasicInfo === 'function') {
+      try {
+        const basicInfo = facultyDataContext.getBasicInfo()
+        console.log('FacultyDataContext - Basic Info:', basicInfo)
+        if (basicInfo?.image) {
+          setProfileImage(basicInfo.image)
+        }
+      } catch (error) {
+        console.error('Error getting basic info:', error)
+      }
+    }
+  }, [session?.user?.email, facultyDataContext])
 
   const toggleDrawer = (open) => (event) => {
     if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
@@ -86,75 +177,119 @@ export default function Header() {
     return menuItems[session.user.numericRole] || []
   }
 
+  const handleSignOut = () => {
+    signOut()
+  }
+
   const drawerList = () => (
-    <div className="drawer-list" role="presentation" onClick={toggleDrawer(false)}>
-            <List>
-        {session?.user && (
-          <ListItem>
-                        <ListItemIcon>
-              <AccountCircleIcon />
-                        </ListItemIcon>
-            <ListItemText 
-              primary={session.user.name}
-              secondary={session.user.role}
-            />
-                    </ListItem>
-                )}
-            <Divider />
+    <Box 
+      className="drawer-list" 
+      role="presentation" 
+      onClick={toggleDrawer(false)}
+      sx={{ display: 'flex', flexDirection: 'column', height: '100%' , margin:'10px'}}
+    >
+      <div className="drawer-header center text-center justify-center ">
+        <Avatar 
+          src={profileImage} 
+          alt={session?.user?.name || 'User'} 
+          className="drawer-avatar"
+          
+        >
+          {!profileImage && session?.user?.name?.charAt(0)}
+        </Avatar>
+        <Typography variant="h6" className="drawer-user-name">
+          {session?.user?.name}
+        </Typography>
+        <Typography variant="body2" className="drawer-user-role">
+          {session?.user?.role}
+        </Typography>
+      </div>
+      
+      <List sx={{ flexGrow: 1, py: 2 }}>
         {getMenuItems().map((item) => (
           <Link href={item.href} key={item.text} style={{ textDecoration: 'none', color: 'inherit' }}>
-            <ListItem button>
-              <ListItemIcon>
+            <ListItem button className="menu-item">
+              <ListItemIcon className="menu-icon">
                 {item.icon}
               </ListItemIcon>
               <ListItemText primary={item.text} />
-                    </ListItem>
-                                      </Link>
+            </ListItem>
+          </Link>
         ))}
-        <Divider />
-        <ListItem button onClick={() => signOut()}>
-                    <ListItemIcon>
-                        <ExitToAppIcon />
-                    </ListItemIcon>
-          <ListItemText primary="Sign Out" />
-                </ListItem>
-            </List>
-        </div>
-    )
+      </List>
+      
+      <Divider />
+      <Box className="logout-button">
+        <Button 
+          variant="contained" 
+          color="error" 
+          onClick={handleSignOut}
+          startIcon={<ExitToAppIcon />}
+          fullWidth
+          sx={{ 
+            backgroundColor: '#830001', 
+            '&:hover': { backgroundColor: '#9a0000' },
+            padding: '0.75rem'
+          }}
+        >
+          Sign Out
+        </Button>
+      </Box>
+    </Box>
+  )
 
-    return (
+  return (
     <StyledHeader>
-      <AppBar position="static" style={{backgroundColor:"#2563EB"}}>
+      <AppBar position="static" style={{backgroundColor:"#830001"}}>
         <Toolbar className="toolbar">
           <div className="logo-section">
-                    <IconButton
+            <IconButton
               color="inherit"
               onClick={toggleDrawer(true)}
-                        edge="start"
-                    >
+              edge="start"
+              sx={{ mr: 1 }}
+            >
               <MenuIcon style={{color:"white"}} />
-                    </IconButton>
+            </IconButton>
             <Image 
               src="/logo.jpg" 
               alt="NITP Logo" 
-              width={40} 
-              height={40} 
+              width={45} 
+              height={45}
+              style={{borderRadius:"50%", border: "2px solid white"}}
             />
-            <Typography variant="h6" className="title">
-              NITP Admin Portal
-                    </Typography>
+            <Typography variant="h6" className="title" style={{color:"white",fontWeight:"bold"}}>
+              NIT Patna Admin Portal
+            </Typography>
           </div>
+          
           {session && (
-            <Button 
-              color="inherit" 
-              onClick={() => signOut()}
-              style={{color:"white"}}
-            >
-              Sign Out
-            </Button>
+            <div className="user-section">
+              <Avatar 
+                src={profileImage} 
+                alt={session.user.name}
+                sx={{ 
+                  width: 40, 
+                  height: 40, 
+                  border: '2px solid white',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                }}
+              >
+                {!profileImage && session.user.name?.charAt(0)}
+              </Avatar>
+              <Button 
+                variant="outlined" 
+                size="medium"
+                onClick={handleSignOut}
+                startIcon={<ExitToAppIcon />}
+                className="signout-button"
+              >
+                Sign Out
+              </Button>
+            </div>
           )}
-                </Toolbar>
-            </AppBar>
+        </Toolbar>
+      </AppBar>
 
       <Drawer
         anchor="left"
@@ -164,5 +299,5 @@ export default function Header() {
         {drawerList()}
       </Drawer>
     </StyledHeader>
-    )
+  )
 }

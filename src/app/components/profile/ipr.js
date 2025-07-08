@@ -428,6 +428,7 @@ export default function IPRManagement() {
                     startIcon={<AddIcon />}
                     variant="contained"
                     onClick={() => setOpenAdd(true)}
+                    style={{ backgroundColor: '#830001', color: 'white' }}
                 >
                     Add IPR/Patent/Copyright/Trademark
                 </Button>

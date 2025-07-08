@@ -1,7 +1,9 @@
 'use client'
 
 import Header from './header'
+import Footer from './footer'
 import styled from 'styled-components'
+import { FacultyDataProvider } from '../../context/FacultyDataContext'
 
 const Main = styled.main`
   padding: 2rem;
@@ -13,8 +15,10 @@ export default function Layout({ children }) {
   return (
     <>
       <Header />
-      <Main>{children}</Main>
-     
+      <FacultyDataProvider>
+        <Main>{children}</Main>
+      </FacultyDataProvider>
+      <Footer />
     </>
   )
 }

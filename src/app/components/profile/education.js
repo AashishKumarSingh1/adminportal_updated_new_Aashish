@@ -23,31 +23,20 @@ import React, { useState, useEffect } from 'react'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import AddIcon from '@mui/icons-material/Add'
+import { useFacultyData } from '../../../context/FacultyDataContext'
 
 export function EducationManagement() {
     const { data: session } = useSession()
+    const { getEducation, loading, updateFacultySection, refreshFacultyData } = useFacultyData()
     const [educations, setEducations] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedEducation, setSelectedEducation] = useState(null)
-    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const fetchEducation = async () => {
-            try {
-                const res = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                const data = await res.json()
-                setEducations(data.education || [])
-            } catch (error) {
-                console.error('Error fetching education:', error)
-            } finally {
-                setLoading(false)
-            }
-        }
-        if (session?.user?.email) {
-            fetchEducation()
-        }
-    }, [session])
+        const educationData = getEducation()
+        setEducations(educationData)
+    }, [getEducation])
 
     const handleDelete = async (id) => {
         if (!window.confirm('Are you sure you want to delete this education record?')) return
@@ -62,8 +51,11 @@ export function EducationManagement() {
                 })
             })
             if (!res.ok) throw new Error('Failed to delete')
-            setEducations(prev => prev.filter(edu => edu.id !== id))
-            window.location.reload()
+            
+            // Update local state and context
+            const updatedEducations = educations.filter(edu => edu.id !== id)
+            setEducations(updatedEducations)
+            updateFacultySection('education', updatedEducations)
         } catch (error) {
             console.error('Error deleting education:', error)
         }
@@ -73,7 +65,7 @@ export function EducationManagement() {
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
                 <Typography variant="h6">Education</Typography>
-                <Button startIcon={<AddIcon />} variant="contained" onClick={() => setOpenAdd(true)}>
+                <Button startIcon={<AddIcon />} variant="contained" onClick={() => setOpenAdd(true)} style={{ backgroundColor: '#830001', color: 'white' }}>
                     Add Education
                 </Button>
             </div>
@@ -102,7 +94,7 @@ export function EducationManagement() {
                                         <IconButton onClick={() => { setSelectedEducation(edu); setOpenEdit(true) }}>
                                             <EditIcon />
                                         </IconButton>
-                                        <IconButton onClick={() => handleDelete(edu.id)}>
+                                        <IconButton onClick={() => handleDelete(edu.id)} color="error">
                                             <DeleteIcon />
                                         </IconButton>
                                     </TableCell>
@@ -144,7 +136,8 @@ export function AddEducation({ open, onClose, onSuccess }) {
             if (!res.ok) throw new Error('Failed to add education')
             const newEducation = await res.json()
             onSuccess(newEducation)
-            window.location.reload()
+            // Refresh context data instead of page reload
+            refreshFacultyData()
         } catch (error) {
             console.error('Error adding education:', error)
         }
@@ -213,10 +206,11 @@ export function EditEducation({ open, onClose, education, onSuccess }) {
 
             const updatedEducation = await res.json()
             onSuccess(updatedEducation)
+            // Refresh context data instead of page reload
+            refreshFacultyData()
         } catch (error) {
             console.error('Error updating education:', error)
         } finally {
-            window.location.reload()
             setSubmitting(false)
         }
     }

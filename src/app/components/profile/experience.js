@@ -128,6 +128,7 @@ export function ExperiencePage() {
                     startIcon={<EditIcon />}
                     variant="contained"
                     onClick={() => setOpenEdit(true)}
+                    style={{ backgroundColor: '#830001', color: 'white' }}
                 >
                     Add Experience
                 </Button>
@@ -159,7 +160,7 @@ export function ExperiencePage() {
                                             <IconButton onClick={() => handleEdit(exp)} color="primary">
                                                 <EditIcon />
                                             </IconButton>
-                                            <IconButton onClick={() => handleDelete(exp.id)} color="secondary">
+                                            <IconButton onClick={() => handleDelete(exp.id)} color="error">
                                                 <DeleteIcon />
                                             </IconButton>
                                         </TableCell>
