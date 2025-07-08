@@ -24,7 +24,7 @@ export async function middleware(request) {
   const { pathname } = request.nextUrl
   
   // Skip auth check for public API routes
-  const publicRoutes = ['/api/auth', '/api/webteam', '/api/events/active']
+  const publicRoutes = ['/api/auth', '/api/webteam', '/api/events/*','/api/notice/*','/api/faculty/*']
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
   
   if (isPublicRoute) {
