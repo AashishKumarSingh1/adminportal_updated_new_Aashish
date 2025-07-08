@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { getServerSession } from 'next-auth'
-import { ROLES } from '@/lib/roles'
-import { authOptions } from '@/lib/authOptions' 
-import { convertToThumbnailUrl } from '@/lib/utils'
+import { authOptions } from '@/lib/authOptions'
 
 export async function PUT(request) {
   try {
+    // Use original authentication for now
     const session = await getServerSession(authOptions)
     
     if (!session) {
@@ -64,14 +63,23 @@ export async function PUT(request) {
 
       return NextResponse.json(result)
     }
-    // .data updates - Super Admin, Academic Admin, and Department Admin access
-    if (
-      session.user.role === 'SUPER_ADMIN' ||
-      ((session.user.role === 'ACADEMIC_ADMIN' ||
-        session.user.role === 'DEPT_ADMIN') &&
-        session.user.email === params.data.email)
-    ) {
-      if (type === 'notice') {
+
+    // Notice updates - Super Admin, Academic Admin, and Department Admin access
+    if (type === 'notice') {
+      if (
+        session.user.role === 'SUPER_ADMIN' ||
+        ((session.user.role === 'ACADEMIC_ADMIN' ||
+          session.user.role === 'DEPT_ADMIN') &&
+          session.user.email === params.data.email)
+      ) {
+        // Log any attachments for debugging
+        if (params.data.attachments) {
+          console.log(`Notice update ID ${params.data.id}: Attachments:`, 
+            typeof params.data.attachments === 'string' 
+              ? params.data.attachments 
+              : JSON.stringify(params.data.attachments));
+        }
+        
         const result = await query(
           `UPDATE notices SET 
               title = ?,
@@ -100,7 +108,7 @@ export async function PUT(request) {
               params.data.department || null,
               params.data.id
           ]
-      )      
+        )      
         return NextResponse.json(result)
       }
     }
@@ -142,21 +150,20 @@ export async function PUT(request) {
           )
           return NextResponse.json(eventResult)
 
-          case 'patents':
-            const patentResult = await query(
-                `UPDATE patents
-                SET title = ?, description = ?, patent_date = ?, email = ?
-                WHERE id = ?`,
-                [
-                    params.title,
-                    params.description,
-                    params.patent_date,
-                    params.email,
-                    params.id 
-                ]
-            );
-            return NextResponse.json(patentResult);
-
+        case 'patents':
+          const patentResult = await query(
+              `UPDATE patents
+              SET title = ?, description = ?, patent_date = ?, email = ?
+              WHERE id = ?`,
+              [
+                  params.title,
+                  params.description,
+                  params.patent_date,
+                  params.email,
+                  params.id 
+              ]
+          );
+          return NextResponse.json(patentResult);
 
         case 'innovation':
           const innovationResult = await query(
@@ -280,7 +287,6 @@ export async function PUT(request) {
 
     // User specific updates (email matches)
     if (session.user.email === params.email) {
-      
       switch (type) {
         // Academic Records
         case 'phd_candidates':
@@ -602,50 +608,50 @@ export async function PUT(request) {
           )
           return NextResponse.json(teachingResult)
 
-          case 'memberships':
-            const membershipUpdateResult = await query(
-                `UPDATE memberships 
-                SET email = ?, 
-                    membership_id = ?, 
-                    membership_society = ?, 
-                    start = ?, 
-                    end = ? 
-                WHERE id = ?`,
-                [
-                    params.email,
-                    params.membership_id,
-                    params.membership_society,
-                    params.start,
-                    params.end,
-                    params.id
-                ]
-            );
-            return NextResponse.json(membershipUpdateResult);
+        case 'memberships':
+          const membershipUpdateResult = await query(
+              `UPDATE memberships 
+              SET email = ?, 
+                  membership_id = ?, 
+                  membership_society = ?, 
+                  start = ?, 
+                  end = ? 
+              WHERE id = ?`,
+              [
+                  params.email,
+                  params.membership_id,
+                  params.membership_society,
+                  params.start,
+                  params.end,
+                  params.id
+              ]
+          );
+          return NextResponse.json(membershipUpdateResult);
 
-          case 'project_supervision':
-            const supervisionResult = await query(
-                `UPDATE project_supervision SET 
-                    category = ?, 
-                    project_title = ?, 
-                    student_details = ?, 
-                    internal_supervisors = ?, 
-                    external_supervisors = ?, 
-                    start_date = ?, 
-                    end_date = ?
-                 WHERE id = ? AND email = ?`,
-                [
-                    params.category,
-                    params.project_title,
-                    params.student_details,
-                    params.internal_supervisors,
-                    params.external_supervisors,
-                    params.start_date,
-                    params.end_date, 
-                    params.id,
-                    params.email
-                ]
-            );
-            return NextResponse.json(supervisionResult);
+        case 'project_supervision':
+          const supervisionResult = await query(
+              `UPDATE project_supervision SET 
+                  category = ?, 
+                  project_title = ?, 
+                  student_details = ?, 
+                  internal_supervisors = ?, 
+                  external_supervisors = ?, 
+                  start_date = ?, 
+                  end_date = ?
+               WHERE id = ? AND email = ?`,
+              [
+                  params.category,
+                  params.project_title,
+                  params.student_details,
+                  params.internal_supervisors,
+                  params.external_supervisors,
+                  params.start_date,
+                  params.end_date, 
+                  params.id,
+                  params.email
+              ]
+          );
+          return NextResponse.json(supervisionResult);
 
         case 'workshops_conferences':
           const workshopResult = await query(
@@ -746,11 +752,6 @@ export async function PUT(request) {
             [params.certification, params.institution, params.passing_year,params.specialization, params.id, params.email]
           )
           return NextResponse.json(educationResult)
-
-        
-
-          
-
       }
     }
 
@@ -766,4 +767,4 @@ export async function PUT(request) {
       { status: 500 }
     )
   }
-} 
+}

@@ -50,7 +50,9 @@ export default function Page() {
     if (session) {
         return (
             <>
-                {session.user.role == "SUPER_ADMIN" ? (
+                {session.user.role === "SUPER_ADMIN" || 
+                  session.user.role === "ACADEMIC_ADMIN" || 
+                  session.user.role === "DEPT_ADMIN" ? (
                     <Layout>
                         <Wrap>
                             {isLoading ? (

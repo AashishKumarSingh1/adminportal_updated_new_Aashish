@@ -155,6 +155,7 @@ export function FacultyTable() {
                             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => setOpenAdd(true)}
+            style={{ backgroundColor: '#830001', color: 'white' }}
                         >
             Add Faculty
                         </Button>

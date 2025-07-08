@@ -378,6 +378,7 @@ export default function SubjectManagement() {
                 color="primary" 
                 onClick={() => setOpenAdd(true)}
                 sx={{m: 2 }}
+                style={{ backgroundColor: '#830001', color: 'white' }}
             >
                 Add Subject
             </Button>

@@ -36,7 +36,7 @@ const SigninCard = styled(Paper)`
   }
   
   .title {
-    color: #1a237e;
+    color: #830001;
     font-weight: 600;
     text-align: center;
     margin-bottom: 1rem;
@@ -70,7 +70,7 @@ export default function Sign() {
             src="/logo.jpg" 
             alt="NITP Logo"
             fill
-            style={{ objectFit: 'contain' }}
+            style={{ objectFit: 'contain', borderRadius: '50%' }}
             priority
           />
         </div>
@@ -86,7 +86,7 @@ export default function Sign() {
 
         <StyledButton
           variant="contained"
-          color="primary"
+          color="#830001"
           onClick={() => signIn('google')}
           startIcon={<GoogleIcon />}
         >

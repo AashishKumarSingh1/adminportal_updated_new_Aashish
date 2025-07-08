@@ -229,9 +229,19 @@ const DataDisplay = (props) => {
         let mm = openDate.getMonth() + 1
         let yyyy = openDate.getFullYear()
         openDate = dd + '/' + mm + '/' + yyyy
-        const [event_link, setEvent_link] = useState(
-            JSON.parse(detail.event_link)
-        )
+        
+        // Safely parse event_link
+        const [event_link, setEvent_link] = useState(() => {
+            if (!detail.event_link) return null;
+            try {
+                return typeof detail.event_link === 'string' ? 
+                    JSON.parse(detail.event_link) : 
+                    detail.event_link;
+            } catch (e) {
+                console.error('Error parsing event_link:', e);
+                return null;
+            }
+        });
 
         const [editModal, setEditModal] = useState(false)
 
@@ -328,8 +338,10 @@ const DataDisplay = (props) => {
                         </a>
                     </Paper>{' '}
                 </Grid>
-                {session.user.role == 1 ||
-                session.user.email === detail.email ? (
+                {session.user.role === 'SUPER_ADMIN' || 
+                 session.user.role === 'ACADEMIC_ADMIN' || 
+                 session.user.role === 'DEPT_ADMIN' ||
+                 session.user.email === detail.email ? (
                     <Grid item xs={6} sm={2} lg={1}>
                         <Paper
                             className={classes.paper}
@@ -346,12 +358,6 @@ const DataDisplay = (props) => {
                     </Grid>
                 ) : (<>
                 </>
-                    // <Grid item xs={6} sm={2} lg={1}>
-                    //     <Paper
-                    //         className={classes.paper}
-                    //         style={{ textAlign: `center`, cursor: `pointer` }}
-                    //     ></Paper>{' '}
-                    // </Grid>
                 )}
             </React.Fragment>
         )

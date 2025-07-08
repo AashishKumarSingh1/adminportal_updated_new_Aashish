@@ -460,6 +460,7 @@ export default function InternshipManagement() {
                     variant="contained"
                     color="primary"
                     onClick={() => setOpenAdd(true)}
+                    style={{ backgroundColor: '#830001', color: 'white' }}
                 >
                     Add Internship
                 </Button>

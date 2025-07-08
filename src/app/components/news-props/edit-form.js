@@ -129,7 +129,7 @@ export const EditForm = ({ data, handleClose, modal }) => {
                 <ConfirmDelete
                     modal={verifyDelete}
                     handleClose={handleDelete}
-                    id={content.id}
+                    news={data}
                 />
                 <DialogContent>
                     <TextField

@@ -129,12 +129,13 @@ export const AddAttachments = ({ attachments, setAttachments, limit }) => {
         <div style={{ marginTop: `8px` }}>
             <Button
                 variant="contained"
-                color="primary"
+                
                 type="button"
                 onClick={() => handleAdd()}
                 disabled={
                     limit ? (attachments.length < limit ? false : true) : false
                 }
+                style={{ marginBottom: `8px`, backgroundColor: '#830001', color: 'white' }}
             >
                 + Additional Attachments
             </Button>
@@ -143,7 +144,7 @@ export const AddAttachments = ({ attachments, setAttachments, limit }) => {
     )
 }
 
-export const handleNewAttachments = async (new_attach) => {
+export const handleNewAttachments = async (new_attach, onProgress = null) => {
     for (let i = 0; i < new_attach.length; i++) {
         delete new_attach[i].value;
 
@@ -151,23 +152,33 @@ export const handleNewAttachments = async (new_attach) => {
         if (new_attach[i].typeLink === false && new_attach[i].url) {
             let file = new FormData();
             file.append('file', new_attach[i].url);
+            file.append('fileType', 'general');
 
             try {
-                let response = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: file,
-                });
+                // Use XMLHttpRequest for progress tracking if callback provided
+                if (onProgress && typeof onProgress === 'function') {
+                    const result = await uploadWithProgress(file, (percent) => onProgress(i, percent));
+                    new_attach[i].url = result.url;
+                    new_attach[i].key = result.key;
+                } else {
+                    let response = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: file,
+                    });
 
-                if (!response.ok) {
-                    throw new Error('File upload failed');
+                    if (!response.ok) {
+                        throw new Error('File upload failed');
+                    }
+
+                    let data = await response.json();
+                    // Update the attachment with S3 URL and key
+                    new_attach[i].url = data.url; // S3 URL for display
+                    new_attach[i].key = data.key; // S3 key for deletion
                 }
-
-                let data = await response.json();
-                // Update the attachment with the webViewLink
-                new_attach[i].url = data.url; // This will now be the webViewLink from Google Drive
             } catch (error) {
                 console.error('File upload error:', error);
                 new_attach[i].url = ''; // Set it to empty if there was an error
+                new_attach[i].key = ''; // Empty key as well
             }
         } else {
             console.log('NOT A FILE, It is a link');
@@ -175,4 +186,45 @@ export const handleNewAttachments = async (new_attach) => {
     }
 
     return new_attach;
+};
+
+// Helper function for upload with progress
+const uploadWithProgress = (formData, onProgress) => {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        // Progress tracking
+        xhr.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable) {
+                const percent = Math.round((event.loaded / event.total) * 100);
+                onProgress(percent);
+            }
+        });
+        
+        // Success handler
+        xhr.addEventListener('load', () => {
+            if (xhr.status === 200) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    resolve(response);
+                } catch (e) {
+                    reject(new Error('Invalid response format'));
+                }
+            } else {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    reject(new Error(response.message || 'Upload failed'));
+                } catch (e) {
+                    reject(new Error(`Upload failed with status ${xhr.status}`));
+                }
+            }
+        });
+        
+        xhr.addEventListener('error', () => {
+            reject(new Error('Network error occurred'));
+        });
+        
+        xhr.open('POST', '/api/upload');
+        xhr.send(formData);
+    });
 };

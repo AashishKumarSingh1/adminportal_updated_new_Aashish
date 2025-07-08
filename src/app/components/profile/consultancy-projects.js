@@ -479,6 +479,7 @@ export default function ConsultancyProjectManagement() {
                     startIcon={<AddIcon />}
                     variant="contained"
                     onClick={() => setOpenAdd(true)}
+                    style={{ backgroundColor: '#830001', color: 'white' }}
                 >
                     Add Consultancy Project
                 </Button>

@@ -372,6 +372,7 @@ export default function StartupManagement() {
                     startIcon={<AddIcon />}
                     variant="contained"
                     onClick={() => setOpenAdd(true)}
+                    style={{ backgroundColor: '#830001', color: 'white' }}
                 >
                     Add Startup
                 </Button>

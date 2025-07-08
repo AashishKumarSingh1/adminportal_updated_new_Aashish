@@ -5,135 +5,178 @@ import {
     DialogContent,
     DialogTitle,
     Alert,
-    Box
+    Box,
+    Avatar,
+    Typography,
+    CircularProgress
 } from '@mui/material'
 import { useSession } from 'next-auth/react'
-import React, { useState } from 'react'
-import { convertToThumbnailUrl } from '@/lib/utils'
+import { useFacultyData } from '../../../context/FacultyDataContext'
+import React, { useState, useEffect } from 'react'
+import FileUploadWithProgress from '../common/FileUploadWithProgress'
+import { extractS3KeyFromUrl, deleteS3File } from '@/lib/utils'
 
 export const AddProfilePic = ({ handleClose, modal }) => {
     const { data: session } = useSession()
+    const { getBasicInfo, refreshFacultyData } = useFacultyData()
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState('')
     const [selectedFile, setSelectedFile] = useState(null)
     const [preview, setPreview] = useState('')
+    const [currentImageKey, setCurrentImageKey] = useState('')
+    const [currentImageUrl, setCurrentImageUrl] = useState('')
+    const [uploadedData, setUploadedData] = useState(null)
 
-    const handleFileSelect = (event) => {
-        const file = event.target.files[0]
-        if (file) {
-            if (file.type.startsWith('image/')) {
-                setSelectedFile(file)
-                setPreview(URL.createObjectURL(file))
-                setError('')
-            } else {
-                setError('Please select an image file')
+    // Get current profile image info from context
+    useEffect(() => {
+        if (modal && session?.user?.email) {
+            const basicInfo = getBasicInfo()
+            if (basicInfo?.image) {
+                setCurrentImageUrl(basicInfo.image)
+                const key = extractS3KeyFromUrl(basicInfo.image)
+                setCurrentImageKey(key)
+                console.log('[profilepic] Extracted image key from URL:', key);
             }
         }
+    }, [modal, session?.user?.email, getBasicInfo])
+
+    const handleUploadComplete = (url, key) => {
+        setUploadedData({ url, key })
+        setPreview(url)
+        setError('')
+    }
+
+    const handleUploadError = (errorMsg) => {
+        setError(errorMsg)
+        setUploadedData(null)
+        setPreview('')
     }
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        if (!selectedFile) {
-            setError('Please select an image first')
+        if (!uploadedData) {
+            setError('Please upload an image first')
             return
         }
 
         setSubmitting(true)
         try {
-            // Upload file
-            const formData = new FormData()
-            formData.append('file', selectedFile)
-
-            const uploadResponse = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData
-            })
-
-            if (!uploadResponse.ok) throw new Error('Failed to upload image')
+            const { url: newImageUrl, key: newImageKey } = uploadedData;
             
-            // Parse the response properly
-            const uploadData = await uploadResponse.json()
-            if (!uploadData.success || !uploadData.id) {
-                throw new Error('Invalid upload response')
+            // Step 1: First delete old image if one exists and is different
+            if (currentImageKey && newImageKey !== currentImageKey) {
+                console.log(`[profilepic] Attempting to delete old image with key: ${currentImageKey}`);
+                await deleteS3File(currentImageKey);
             }
 
-            const url = convertToThumbnailUrl(uploadData.id)
-            
-            // Update profile with image URL
+            // Step 2: Update profile with the new image URL
             const updateResponse = await fetch('/api/update', {
                 method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     type: 'profile',
                     email: session.user.email,
-                    image: url
+                    image: newImageUrl,
                 }),
-            })
+            });
 
             if (!updateResponse.ok) throw new Error('Failed to update profile')
 
-            handleClose()
-            window.location.reload()
+            await refreshFacultyData();
+            console.log(`[profilepic] Profile update successful - New URL: ${newImageUrl}`);
+            handleClose();
+            window.location.reload();
+
         } catch (error) {
-            console.error('Error:', error)
-            setError(error.message || 'Failed to update profile picture')
+            console.error('[profilepic] Error updating profile:', error);
+            setError(error.message || 'Failed to update profile picture');
         } finally {
-            setSubmitting(false)
+            setSubmitting(false);
         }
     }
 
     return (
-        <Dialog open={modal} onClose={handleClose}>
+        <Dialog open={modal} onClose={handleClose} maxWidth="md" fullWidth>
             <form onSubmit={handleSubmit}>
-                <DialogTitle>Update Profile Picture</DialogTitle>
+                <DialogTitle sx={{ textAlign: 'center' }}>
+                    Update Profile Picture
+                </DialogTitle>
                 <DialogContent>
                     {error && (
                         <Alert severity="error" sx={{ mb: 2 }}>
                             {error}
                         </Alert>
                     )}
-                    <Box sx={{ my: 2 }}>
-                        <input
-                            accept="image/*"
-                            type="file"
-                            id="profile-pic-upload"
-                            onChange={handleFileSelect}
-                            style={{ display: 'none' }}
+                    
+                    {/* Current Profile Picture */}
+                    {currentImageUrl && (
+                        <Box sx={{ textAlign: 'center', mb: 3 }}>
+                            <Typography variant="h6" gutterBottom>
+                                Current Profile Picture
+                            </Typography>
+                            <Avatar
+                                src={currentImageUrl}
+                                sx={{ 
+                                    width: 120, 
+                                    height: 120, 
+                                    mx: 'auto',
+                                    border: '3px solid #e0e0e0',
+                                    boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+                                }}
+                            />
+                        </Box>
+                    )}
+
+                    {/* New Image Upload */}
+                    <Box sx={{ textAlign: 'center', mb: 2 }}>
+                        <Typography variant="h6" gutterBottom>
+                            Upload New Profile Picture
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                            Maximum file size: 1MB • Supported formats: JPG, PNG, GIF, WebP
+                        </Typography>
+                        
+                        <FileUploadWithProgress
+                            onUploadComplete={handleUploadComplete}
+                            onUploadError={handleUploadError}
+                            fileType="profile"
+                            acceptedTypes="image/*"
+                            maxSizeMB={1}
+                            disabled={submitting}
                         />
-                        <label htmlFor="profile-pic-upload">
-                            <Button
-                                variant="outlined"
-                                component="span"
-                                disabled={submitting}
-                            >
-                                Choose Image
-                            </Button>
-                        </label>
-                        {selectedFile && (
-                            <Box sx={{ mt: 2, textAlign: 'center' }}>
-                                <img 
-                                    src={preview} 
-                                    alt="Preview" 
-                                    style={{ 
-                                        maxWidth: '200px', 
-                                        maxHeight: '200px',
-                                        objectFit: 'contain' 
-                                    }} 
+                        
+                        {/* Preview of the new image */}
+                        {preview && (
+                            <Box sx={{ textAlign: 'center', mt: 3 }}>
+                                <Typography variant="h6" gutterBottom>
+                                    New Profile Picture
+                                </Typography>
+                                <Avatar
+                                    src={preview}
+                                    sx={{ 
+                                        width: 120, 
+                                        height: 120, 
+                                        mx: 'auto',
+                                        border: '3px solid #4caf50',
+                                        boxShadow: '0 4px 8px rgba(0,0,0,0.1)'
+                                    }}
                                 />
                             </Box>
                         )}
                     </Box>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleClose}>Cancel</Button>
-                    <Button
+                    <Button onClick={handleClose} disabled={submitting}>
+                        Cancel
+                    </Button>
+                    <Button 
                         type="submit"
-                        variant="contained"
-                        disabled={submitting || !selectedFile}
+                        variant="contained" 
+                        color="primary"
+                        disabled={!uploadedData || submitting}
+                        startIcon={submitting && <CircularProgress size={20} color="inherit" />}
                     >
-                        {submitting ? 'Uploading...' : 'Upload'}
+                        {submitting ? 'Saving...' : 'Save Changes'}
                     </Button>
                 </DialogActions>
             </form>

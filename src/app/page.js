@@ -11,30 +11,11 @@ export default async function Page() {
         return <Sign />
     }
 
-    // Fetch faculty data using server-side fetch
-    let result = null
-    try {
-        const res = await fetch(
-            `${process.env.URL}/api/faculty?type=${session.user.email}`,
-            {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                cache: 'no-store'
-            }
-        )
-        if (!res.ok) {
-            throw new Error('Failed to fetch faculty data')
-        }
-        result = await res.json()
-    } catch (e) {
-        console.error('Error fetching faculty data:', e)
-    }
-
+    // Let the FacultyDataContext handle all data fetching
+    // Remove server-side data fetching to prevent duplicate calls
     return (
         <ClientLayout>
-            <Profilepage details={result} />
+            <Profilepage />
         </ClientLayout>
     )
 }

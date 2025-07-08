@@ -71,7 +71,7 @@ export function AboutYouPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
         <Typography variant="h6">About You</Typography>
-        <Button startIcon={<EditIcon />} variant="contained" onClick={() => setOpenEdit(true)}>
+        <Button startIcon={<EditIcon />} variant="contained" onClick={() => setOpenEdit(true)} style={{ backgroundColor: '#830001', color: 'white', marginRight: '20px' }}>
           Edit
         </Button>
       </div>
@@ -79,7 +79,7 @@ export function AboutYouPage() {
         style={{
           padding: isSmallScreen ? '0.5rem' : '1rem',
           margin: isSmallScreen ? '0.5rem' : '1rem',
-          width: '100%',
+          
           boxSizing: 'border-box',
         }}
       >

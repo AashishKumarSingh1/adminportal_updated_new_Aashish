@@ -17,6 +17,8 @@ import {
 import React, { useState } from 'react'
 
 import { useSession } from 'next-auth/react';
+//import { useFacultyData } from '../../../context/FacultyDataContext'
+import { useFacultyData } from '../../../context/FacultyDataContext';
 import { Typography } from '@mui/material';
 import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper } from '@mui/material';
 import { IconButton } from '@mui/material';
@@ -111,7 +113,8 @@ export const UplaodCSV = ({ handleClose, modal }) => {
 
             handleClose()
             refreshData()
-            window.location.reload();
+            // Refresh context data instead of page reload
+            // Component will update automatically through context
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -555,32 +558,18 @@ export const EditForm = ({ handleClose, modal, values }) => {
 // Main Component
 export default function JournalPaperManagement() {
     const { data: session } = useSession()
+    const { getJournalPapers, loading, updateFacultySection } = useFacultyData()
     const [papers, setPapers] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedPaper, setSelectedPaper] = useState(null)
-    const [loading, setLoading] = useState(true)
     const refreshData = useRefreshData(false)
 
-    // Fetch data
+    // Get data from context
     React.useEffect(() => {
-        const fetchPapers = async () => {
-            try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setPapers(data.journal_papers || [])
-            } catch (error) {
-                console.error('Error:', error)
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        if (session?.user?.email) {
-            fetchPapers()
-        }
-    }, [session, refreshData])
+        const journalPapersData = getJournalPapers()
+        setPapers(journalPapersData)
+    }, [getJournalPapers])
 
     const handleEdit = (paper) => {
         setSelectedPaper(paper)
@@ -604,7 +593,9 @@ export default function JournalPaperManagement() {
                     throw new Error(errorData.message || 'Failed to delete');
                 }
     
-                setPapers((prevPapers) => prevPapers.filter((paper) => paper.id !== id));
+                const updatedPapers = papers.filter((paper) => paper.id !== id)
+                setPapers(updatedPapers);
+                updateFacultySection('journalPapers', updatedPapers)
             } catch (error) {
                 console.error('Error:', error);
                 alert('Failed to delete the paper. Please try again.');
@@ -625,9 +616,9 @@ export default function JournalPaperManagement() {
                     startIcon={<AddIcon />}
                     variant="contained"
                     onClick={() => setOpenAdd(true)}
-
+                    style={{ backgroundColor: '#830001', color: 'white' }}
                 >
-                    add Journal Papers
+                    Add Journal Papers
                 </Button>
 
                 <Button
@@ -635,6 +626,7 @@ export default function JournalPaperManagement() {
                     variant="contained"
                     // onClick={() => setOpenAdd(true)}
                     onClick={() => setdownloadtemplateOpen(true)}
+                    style={{ backgroundColor: '#830001', color: 'white' }}
                 >
                     Upload Journal Excel File
                 </Button>
@@ -645,6 +637,7 @@ export default function JournalPaperManagement() {
                         <UplaodCSV
                             handleClose={() => setdownloadtemplateOpen(false)}
                             modal={downloadTemplateOpen}
+
                         />
                     )
                 }

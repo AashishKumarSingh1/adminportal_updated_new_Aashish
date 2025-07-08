@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+AWS_S3_SETUP.md
+
+PERFORMANCE_OPTIMIZATION_REPORT.md
+S3_MIGRATION.md

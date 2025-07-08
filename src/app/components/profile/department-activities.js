@@ -397,6 +397,7 @@ export default function DepartmentActivityManagement() {
                     startIcon={<AddIcon />}
                     variant="contained"
                     onClick={() => setOpenAdd(true)}
+                    style={{ backgroundColor: '#830001', color: 'white' }}
                 >
                     Add Department Activity
                 </Button>

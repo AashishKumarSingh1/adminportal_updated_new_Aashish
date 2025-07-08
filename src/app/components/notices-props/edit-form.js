@@ -83,6 +83,7 @@ export const EditForm = ({ data, handleClose, modal }) => {
                     id: Date.now() + Math.random(),
                     caption: attachment.caption,
                     url: attachment.url,
+                    key: attachment.key,
                     typeLink: attachment.typeLink
                 }))
                 attachments = [...attachments, ...newAttachmentsWithIds]
@@ -118,6 +119,12 @@ export const EditForm = ({ data, handleClose, modal }) => {
 
             if (!result.ok) {
                 throw new Error('Failed to update notice')
+            }
+
+            for (const item of deleteArray.current) {
+                if (item.key) {
+                    await deleteFileFromS3(item.key)
+                }
             }
 
             window.location.reload()
@@ -240,28 +247,20 @@ export const EditForm = ({ data, handleClose, modal }) => {
                 </DialogContent>
 
                 <DialogActions>
-                    <Button onClick={handleClose}>Cancel</Button>
-                    <Button 
-                        type="submit"
-                        variant="contained"
-                        color="primary"
-                        disabled={submitting}
-                    >
-                        {submitting ? 'Saving...' : 'Save'}
-                    </Button>
+                    <Button onClick={handleClose} style={{ color: '#830001' }}>Cancel</Button>
+                    <Button type="submit" variant="contained" style={{ backgroundColor: '#830001', color: 'white' }}>Update</Button>
                 </DialogActions>
             </form>
-
             <ConfirmDelete
+                open={verifyDelete}
                 handleClose={() => setVerifyDelete(false)}
-                modal={verifyDelete}
-                id={data.id}
+                notice={data}
             />
         </Dialog>
     )
 }
 
-const DisplayAdditionalAttach = ({ add_attach, setAdd_attach, deleteArray }) => {
+function DisplayAdditionalAttach({ add_attach, setAdd_attach, deleteArray }) {
     const deleteAttachment = (idx) => {
         const values = [...add_attach]
         const attachmentToDelete = values[idx]
@@ -269,7 +268,8 @@ const DisplayAdditionalAttach = ({ add_attach, setAdd_attach, deleteArray }) => 
         if (attachmentToDelete.id) {
             deleteArray.current = [...deleteArray.current, {
                 id: attachmentToDelete.id,
-                url: attachmentToDelete.url
+                url: attachmentToDelete.url,
+                key: attachmentToDelete.key
             }]
         }
         
@@ -305,7 +305,7 @@ const DisplayAdditionalAttach = ({ add_attach, setAdd_attach, deleteArray }) => 
                             target="_blank" 
                             rel="noopener noreferrer"
                             style={{ 
-                                color: '#1976d2',
+                                color: '#048300ff',
                                 textDecoration: 'none',
                                 display: 'flex',
                                 alignItems: 'center' 
@@ -326,4 +326,14 @@ const DisplayAdditionalAttach = ({ add_attach, setAdd_attach, deleteArray }) => 
             ))}
         </>
     )
+}
+
+const deleteFileFromS3 = async (key) => {
+    try {
+        await fetch(`/api/delete/s3-file?key=${key}`, {
+            method: 'DELETE',
+        })
+    } catch (error) {
+        console.error('Error deleting file from S3:', error)
+    }
 }

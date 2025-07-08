@@ -450,6 +450,7 @@ export default function ProjectManagement() {
                 color="primary" 
                 onClick={() => setOpenAdd(true)}
                 sx={{m: 2 }}
+                style={{ backgroundColor: '#830001', color: 'white' }}
             >
                 Add Project
             </Button>

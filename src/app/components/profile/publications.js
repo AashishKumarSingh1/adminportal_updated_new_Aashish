@@ -200,6 +200,7 @@ export default function PublicationsManagement() {
                     variant="contained" 
                     onClick={() => setOpenJournalForm(true)}
                     sx={{ mb: 2 }}
+                    style={{ backgroundColor: '#830001', color: 'white' }}
                 >
                     Add Journal Paper
                 </Button>
@@ -219,6 +220,7 @@ export default function PublicationsManagement() {
                     variant="contained" 
                     onClick={() => setOpenConferenceForm(true)}
                     sx={{ mb: 2 }}
+                    style={{ backgroundColor: '#830001', color: 'white' }}
                 >
                     Add Conference Paper
                 </Button>

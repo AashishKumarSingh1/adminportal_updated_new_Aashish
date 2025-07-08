@@ -91,51 +91,91 @@ export async function GET(request) {
         }
 
         // Individual faculty profile query
-        const profileData = {}
-
-        // Get basic profile
-        const userData = await query(
+        // Optimized: Get user profile data first
+        const profileResult = await query(
           `SELECT * FROM user WHERE email = ?`,
           [type]
         )
 
-        if (!userData || userData.length === 0) {
-          return NextResponse.json(
-            { message: 'Faculty not found' },
-            { status: 404 }
-          )
+        if (profileResult.length === 0) {
+          return NextResponse.json({ error: 'User not found' }, { status: 404 })
         }
 
-        profileData.profile = userData[0]
+        const profileData = {
+          profile: profileResult[0]
+        }
 
-        // Get data from all faculty-related tables
-        for (const table of facultyTables) {
-          let queryString;
-          if (table !== "patents"){
-            queryString=`select * from ${table} where email = ? `
-          }else{
-            queryString=`select * from ipr where email=? and type="Patent"`
+        // Super-optimized: Create a single UNION query instead of multiple individual queries
+        const nonEmptyTables = []
+        const emptyTables = []
+        
+        // First, let's do a quick check to see which tables have data
+        const quickCheckQuery = `
+          ${facultyTables.map(table => {
+            if (table === "patents") {
+              return `SELECT '${table}' as table_name, COUNT(*) as count FROM ipr WHERE email = ? AND type = "Patent"`
+            } else if (table === "user") {
+              return `SELECT '${table}' as table_name, 1 as count` // Skip user table
+            } else {
+              return `SELECT '${table}' as table_name, COUNT(*) as count FROM ${table} WHERE email = ?`
+            }
+          }).join(' UNION ALL ')}
+        `
+        
+        // Execute count check for all tables at once
+        const tableCounts = await query(quickCheckQuery, Array(facultyTables.length).fill(type))
+        
+        // Separate tables with data from empty tables
+        tableCounts.forEach(({ table_name, count }) => {
+          if (count > 0 && table_name !== 'user') {
+            nonEmptyTables.push(table_name)
+          } else {
+            emptyTables.push(table_name)
           }
-          const tableData = await query(
-            queryString,
-            [type]
-          ).catch(e => {
-            console.error(`${table} query error:`, e)
-            return null
+        })
+
+        // Only query tables that have data - parallel execution for non-empty tables only
+        if (nonEmptyTables.length > 0) {
+          const dataQueries = nonEmptyTables.map(async (table) => {
+            try {
+              let queryString;
+              if (table === "patents") {
+                queryString = `SELECT *, '${table}' as source_table FROM ipr WHERE email = ? AND type = "Patent"`
+              } else {
+                queryString = `SELECT *, '${table}' as source_table FROM ${table} WHERE email = ?`
+              }
+              
+              const tableData = await query(queryString, [type])
+              return { table, data: tableData }
+            } catch (e) {
+              console.error(`${table} query error:`, e)
+              return { table, data: null }
+            }
           })
 
-          // Special handling for certain tables that need JSON parsing
-          if (tableData?.length > 0) {
-            // Parse JSON fields if they exist
-            if (table === 'publications') {
-              tableData.forEach(item => {
-                if (item.publications) item.publications = JSON.parse(item.publications)
-                if (item.pub_pdf) item.pub_pdf = JSON.parse(item.pub_pdf)
+          // Execute only necessary queries in parallel
+          const tableResults = await Promise.all(dataQueries)
+          
+          // Process results
+          tableResults.forEach(({ table, data }) => {
+            if (data && data.length > 0) {
+              // Remove the source_table field we added for identification
+              const cleanData = data.map(item => {
+                const { source_table, ...cleanItem } = item
+                return cleanItem
               })
+              
+              // Special handling for certain tables that need JSON parsing
+              if (table === 'publications') {
+                cleanData.forEach(item => {
+                  if (item.publications) item.publications = JSON.parse(item.publications)
+                  if (item.pub_pdf) item.pub_pdf = JSON.parse(item.pub_pdf)
+                })
+              }
+              profileData[table] = cleanData
             }
-            profileData[table] = tableData
-          }
-        } 
+          })
+        }
 
         return NextResponse.json(profileData)
     }

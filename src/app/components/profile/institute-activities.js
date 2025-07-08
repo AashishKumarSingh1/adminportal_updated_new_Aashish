@@ -18,6 +18,7 @@ import {
   Typography
 } from '@mui/material'
 import { useSession } from 'next-auth/react'
+import { useFacultyData } from '../../../context/FacultyDataContext'
 import React, { useState } from 'react'
 import { enGB } from 'date-fns/locale';
 import useRefreshData from '@/custom-hooks/refresh'
@@ -44,11 +45,11 @@ const formatDate = (dateString) => {
 // Main Component
 export default function InstituteActivityManagement() {
     const { data: session } = useSession()
+    const { getInstituteActivities, loading, updateFacultySection } = useFacultyData()
     const [activities, setActivities] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedActivity, setSelectedActivity] = useState(null)
-    const [loading, setLoading] = useState(true)
     const refreshData = useRefreshData(true)
     const [toast, setToast] = useState({
         open: false,
@@ -69,25 +70,11 @@ export default function InstituteActivityManagement() {
         })
     }
 
-    // Fetch data
+    // Get data from context
     React.useEffect(() => {
-        const fetchActivities = async () => {
-            try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setActivities(data.institute_activities || [])
-            } catch (error) {
-                console.error('Error:', error)
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        if (session?.user?.email) {
-            fetchActivities()
-        }
-    }, [session, refreshData])
+        const instituteActivitiesData = getInstituteActivities()
+        setActivities(instituteActivitiesData)
+    }, [getInstituteActivities])
 
     const handleEdit = (activity) => {
         setSelectedActivity(activity)
@@ -419,7 +406,7 @@ export default function InstituteActivityManagement() {
                     variant="contained"
                     color="primary"
                     onClick={() => setOpenAdd(true)}
-                    style={{ padding: '10px 20px' }}
+                    style={{ backgroundColor: '#830001', color: 'white' }}
                 >
                     Add Institute Activity
                 </Button>

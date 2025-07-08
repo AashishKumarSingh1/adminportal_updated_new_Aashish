@@ -19,6 +19,7 @@ import {
   Typography
 } from '@mui/material'
 import { useSession } from 'next-auth/react'
+import { useFacultyData } from '../../../context/FacultyDataContext'
 import React, { useState } from 'react'
 import { enGB } from 'date-fns/locale';
 
@@ -420,32 +421,18 @@ export const EditForm = ({ handleClose, modal, values }) => {
 // Main Component
 export default function PhdCandidateManagement() {
     const { data: session } = useSession()
+    const { getPhdCandidates, loading, updateFacultySection } = useFacultyData()
     const [candidates, setCandidates] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedCandidate, setSelectedCandidate] = useState(null)
-    const [loading, setLoading] = useState(true)
     const refreshData = useRefreshData(false)
 
-    // Fetch data
+    // Get data from context
     React.useEffect(() => {
-        const fetchCandidates = async () => {
-            try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setCandidates(data.phd_candidates || [])
-            } catch (error) {
-                console.error('Error:', error)
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        if (session?.user?.email) {
-            fetchCandidates()
-        }
-    }, [session, refreshData])
+        const phdCandidatesData = getPhdCandidates()
+        setCandidates(phdCandidatesData)
+    }, [getPhdCandidates])
 
     const handleEdit = (candidate) => {
         setSelectedCandidate(candidate)
@@ -484,6 +471,7 @@ export default function PhdCandidateManagement() {
                     startIcon={<AddIcon />}
                     variant="contained"
                     onClick={() => setOpenAdd(true)}
+                    style={{ backgroundColor: '#830001', color: 'white' }}
                 >
                     Add PhD Student
                 </Button>

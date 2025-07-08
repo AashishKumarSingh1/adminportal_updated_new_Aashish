@@ -115,32 +115,83 @@ export const AddAttachments = ({ attachments, setAttachments, limit }) => {
     )
 }
 
-export const handleNewImages = async (new_images) => {
+export const handleNewImages = async (new_images, onProgress = null) => {
     for (let i = 0; i < new_images.length; i++) {
         delete new_images[i].value;
 
         if (new_images[i].typeLink === false && new_images[i].url) {
             let file = new FormData();
             file.append('file', new_images[i].url);
+            file.append('fileType', 'general');
 
             try {
-                let response = await fetch('/api/upload', {
-                    method: 'POST',
-                    body: file,
-                });
+                // Use XMLHttpRequest for progress tracking if callback provided
+                if (onProgress && typeof onProgress === 'function') {
+                    const result = await uploadWithProgress(file, (percent) => onProgress(i, percent));
+                    new_images[i].url = result.url;
+                    new_images[i].key = result.key;
+                } else {
+                    let response = await fetch('/api/upload', {
+                        method: 'POST',
+                        body: file,
+                    });
 
-                if (!response.ok) {
-                    throw new Error('Image upload failed');
+                    if (!response.ok) {
+                        throw new Error('Image upload failed');
+                    }
+
+                    let data = await response.json();
+                    new_images[i].url = data.url; // S3 URL for display
+                    new_images[i].key = data.key; // S3 key for deletion
                 }
-
-                let data = await response.json();
-                new_images[i].url = data.url;
             } catch (error) {
                 console.error('Image upload error:', error);
                 new_images[i].url = '';
+                new_images[i].key = '';
             }
         }
     }
 
     return new_images;
+};
+
+// Helper function for upload with progress
+const uploadWithProgress = (formData, onProgress) => {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        // Progress tracking
+        xhr.upload.addEventListener('progress', (event) => {
+            if (event.lengthComputable) {
+                const percent = Math.round((event.loaded / event.total) * 100);
+                onProgress(percent);
+            }
+        });
+        
+        // Success handler
+        xhr.addEventListener('load', () => {
+            if (xhr.status === 200) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    resolve(response);
+                } catch (e) {
+                    reject(new Error('Invalid response format'));
+                }
+            } else {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    reject(new Error(response.message || 'Upload failed'));
+                } catch (e) {
+                    reject(new Error(`Upload failed with status ${xhr.status}`));
+                }
+            }
+        });
+        
+        xhr.addEventListener('error', () => {
+            reject(new Error('Network error occurred'));
+        });
+        
+        xhr.open('POST', '/api/upload');
+        xhr.send(formData);
+    });
 };
