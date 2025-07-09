@@ -86,7 +86,7 @@ export default function Sign() {
 
         <StyledButton
           variant="contained"
-          color="#830001"
+          color="primary"
           onClick={() => signIn('google')}
           startIcon={<GoogleIcon />}
         >

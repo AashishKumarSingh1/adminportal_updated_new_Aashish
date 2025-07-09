@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
-import { Delete } from '@material-ui/icons'
+import { Delete } from '@mui/icons-material'
 import { FormControlLabel, Checkbox } from '@mui/material'
 
 export const AddAttachments = ({ attachments, setAttachments, limit }) => {
