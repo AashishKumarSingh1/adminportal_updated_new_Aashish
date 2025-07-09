@@ -1,8 +1,6 @@
 import React from 'react'
-import Button from '@material-ui/core/Button'
-import TextField from '@material-ui/core/TextField'
-import { Delete } from '@material-ui/icons'
-import { FormControlLabel, Checkbox } from '@material-ui/core'
+import { Button, TextField, FormControlLabel, Checkbox } from '@mui/material'
+import { Delete } from '@mui/icons-material'
 
 export const UpdateMainAttachment = ({ attachment, setAttachment }) => {
     function handleChangeSubTitle(event) {
