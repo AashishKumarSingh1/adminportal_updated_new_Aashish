@@ -29,6 +29,7 @@ import Loading from '../common/Loading'
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
 import AddIcon from '@mui/icons-material/Add'
+import { useFacultyData } from '../../../context/FacultyDataContext'
 import { format } from 'date-fns';
 
 // Add formatDate helper function at the top
@@ -73,31 +74,38 @@ export const AddForm = ({ handleClose, modal }) => {
         e.preventDefault()
 
         try {
+            const newActivity = {
+                type: 'department_activities',
+                ...content,
+                start_date: content.start_date
+                    ? formatDateToMySQL(content.start_date) 
+                    : null,
+                end_date: content.end_date
+                    ? content.end_date === "Continue"
+                        ? "Continue"
+                        : formatDateToMySQL(content.end_date)  
+                    : null,
+                id: Date.now().toString(),
+                email: session?.user?.email,
+            };
+            
             const result = await fetch('/api/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'department_activities',
-                    ...content,
-                    start_date: content.start_date
-                        ? formatDateToMySQL(content.start_date) 
-                        : null,
-                    end_date: content.end_date
-                        ? content.end_date === "Continue"
-                            ? "Continue"
-                            : formatDateToMySQL(content.end_date)  
-                        : null,
-                    id: Date.now().toString(),
-                    email: session?.user?.email,
-                }),
+                body: JSON.stringify(newActivity),
             });
 
             if (!result.ok) throw new Error('Failed to create')
             
+            // Get current activities from parent component
+            const { updateFacultyData, facultyData } = window.getActivitiesComponent();
+            
+            // Update local state in parent component
+            const updatedActivities = [...(facultyData.department_activities || []), newActivity];
+            updateFacultyData(updatedActivities);
+            
             handleClose()
-            refreshData()
             setContent(initialState)
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -217,29 +225,41 @@ export const EditForm = ({ handleClose, modal, values }) => {
         setSubmitting(true);
 
         try {
+            const updatedActivity = {
+                type: 'department_activities',
+                ...content,
+                start_date: content.start_date
+                    ? formatDateToMySQL(content.start_date) 
+                    : null,
+                end_date: content.end_date
+                    ? content.end_date === "Continue"
+                        ? "Continue"
+                        : formatDateToMySQL(content.end_date)
+                    : null,
+                email: session?.user?.email
+            };
+            
             const result = await fetch('/api/update', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'department_activities',
-                    ...content,
-                    start_date: content.start_date
-                        ? formatDateToMySQL(content.start_date) 
-                        : null,
-                    end_date: content.end_date
-                        ? content.end_date === "Continue"
-                            ? "Continue"
-                            : formatDateToMySQL(content.end_date)
-                        : null,
-                    email: session?.user?.email
-                }),
+                body: JSON.stringify(updatedActivity),
             });
 
             if (!result.ok) throw new Error('Failed to update');
 
+            // Get current activities from parent component
+            const { updateFacultyData, facultyData } = window.getActivitiesComponent();
+            
+            // Update local state in parent component
+            const updatedActivities = facultyData.department_activities.map(activity => 
+                activity.id === content.id ? updatedActivity : activity
+            );
+            updateFacultyData(updatedActivities);
+            
             handleClose();
-            showToast('Department activity updated successfully!');
-            refreshData();
+            if (typeof showToast === 'function') {
+                showToast('Department activity updated successfully!');
+            }
         } catch (error) {
             console.error('Error:', error);
             showToast('Failed to update department activity', 'error');
@@ -337,28 +357,30 @@ export default function DepartmentActivityManagement() {
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedActivity, setSelectedActivity] = useState(null)
-    const [loading, setLoading] = useState(true)
-    const refreshData = useRefreshData(false)
+    const { facultyData, loading, updateFacultySection } = useFacultyData()
 
-    // Fetch data
+    // Use context data instead of API call
     React.useEffect(() => {
-        const fetchActivities = async () => {
-            try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setActivities(data.department_activities || [])
-            } catch (error) {
-                console.error('Error:', error)
-            } finally {
-                setLoading(false)
-            }
+        if (facultyData?.department_activities) {
+            console.log('DepartmentActivities - Using context data:', facultyData.department_activities)
+            setActivities(facultyData.department_activities || [])
         }
-
-        if (session?.user?.email) {
-            fetchActivities()
-        }
-    }, [session, refreshData])
+    }, [facultyData])
+    
+    // Expose functions for child components
+    React.useEffect(() => {
+        window.getActivitiesComponent = () => ({
+            updateFacultyData: (updatedActivities) => {
+                setActivities(updatedActivities);
+                updateFacultySection('department_activities', updatedActivities);
+            },
+            facultyData: { department_activities: activities }
+        });
+        
+        return () => {
+            delete window.getActivitiesComponent;
+        };
+    }, [activities, updateFacultySection]);
 
     const handleEdit = (activity) => {
         setSelectedActivity(activity)
@@ -379,8 +401,13 @@ export default function DepartmentActivityManagement() {
                 })
                 
                 if (!response.ok) throw new Error('Failed to delete')
-                refreshData()
-                window.location.reload()
+                
+                // Update local state directly
+                const updatedActivities = activities.filter(activity => activity.id !== id);
+                setActivities(updatedActivities);
+                
+                // Update context
+                updateFacultySection('department_activities', updatedActivities);
             } catch (error) {
                 console.error('Error:', error)
             }

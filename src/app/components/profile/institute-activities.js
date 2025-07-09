@@ -45,12 +45,11 @@ const formatDate = (dateString) => {
 // Main Component
 export default function InstituteActivityManagement() {
     const { data: session } = useSession()
-    const { getInstituteActivities, loading, updateFacultySection } = useFacultyData()
+    const { facultyData, loading, updateFacultySection } = useFacultyData()
     const [activities, setActivities] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedActivity, setSelectedActivity] = useState(null)
-    const refreshData = useRefreshData(true)
     const [toast, setToast] = useState({
         open: false,
         severity: 'success',
@@ -72,9 +71,26 @@ export default function InstituteActivityManagement() {
 
     // Get data from context
     React.useEffect(() => {
-        const instituteActivitiesData = getInstituteActivities()
-        setActivities(instituteActivitiesData)
-    }, [getInstituteActivities])
+        if (facultyData?.institute_activities) {
+            console.log('Institute Activities - Using context data:', facultyData.institute_activities)
+            setActivities(facultyData.institute_activities || [])
+        }
+    }, [facultyData])
+    
+    // Expose functions for child components
+    React.useEffect(() => {
+        window.getInstituteActivitiesComponent = () => ({
+            updateFacultyData: (updatedActivities) => {
+                setActivities(updatedActivities);
+                updateFacultySection('institute_activities', updatedActivities);
+            },
+            facultyData: { institute_activities: activities }
+        });
+        
+        return () => {
+            delete window.getInstituteActivitiesComponent;
+        };
+    }, [activities, updateFacultySection])
 
     const handleEdit = (activity) => {
         setSelectedActivity(activity)
@@ -95,9 +111,15 @@ export default function InstituteActivityManagement() {
                 })
                 
                 if (!response.ok) throw new Error('Failed to delete')
+                
+                // Update local state directly
+                const updatedActivities = activities.filter(activity => activity.id !== id);
+                setActivities(updatedActivities);
+                
+                // Update context
+                updateFacultySection('institute_activities', updatedActivities);
+                
                 showToast('Institute activity deleted successfully!')
-                refreshData()
-                window.location.reload()
             } catch (error) {
                 console.error('Error:', error)
                 showToast('Failed to delete institute activity', 'error')
@@ -139,32 +161,39 @@ export default function InstituteActivityManagement() {
             e.preventDefault();
         
             try {
+                const newActivity = {
+                    type: 'institute_activities',
+                    ...content,
+                    start_date: content.start_date
+                        ? formatDateToMySQL(content.start_date)  // Use the formatted start date
+                        : null,
+                    end_date: content.end_date
+                        ? content.end_date === "Continue"
+                            ? "Continue"
+                            : formatDateToMySQL(content.end_date)  // Use the formatted end date
+                        : null,
+                    id: Date.now().toString(),
+                    email: session?.user?.email,
+                };
+                
                 const result = await fetch('/api/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        type: 'institute_activities',
-                        ...content,
-                        start_date: content.start_date
-                            ? formatDateToMySQL(content.start_date)  // Use the formatted start date
-                            : null,
-                        end_date: content.end_date
-                            ? content.end_date === "Continue"
-                                ? "Continue"
-                                : formatDateToMySQL(content.end_date)  // Use the formatted end date
-                            : null,
-                        id: Date.now().toString(),
-                        email: session?.user?.email,
-                    }),
+                    body: JSON.stringify(newActivity),
                 });
         
                 if (!result.ok) throw new Error('Failed to create');
+                
+                // Get current activities from parent component
+                const { updateFacultyData, facultyData } = window.getInstituteActivitiesComponent();
+                
+                // Update local state in parent component
+                const updatedActivities = [...(facultyData.institute_activities || []), newActivity];
+                updateFacultyData(updatedActivities);
         
                 handleClose();
                 setContent(initialState);
                 showToast('Institute activity added successfully!');
-                refreshData();
-                window.location.reload();
             } catch (error) {
                 console.error('Error:', error);
                 showToast('Failed to add institute activity', 'error');
@@ -283,29 +312,39 @@ export default function InstituteActivityManagement() {
             setSubmitting(true);
         
             try {
+                const updatedActivity = {
+                    type: 'institute_activities',
+                    ...content,
+                    start_date: content.start_date
+                        ? formatDateToMySQL(content.start_date) 
+                        : null,
+                    end_date: content.end_date
+                        ? content.end_date === "Continue"
+                            ? "Continue"
+                            : formatDateToMySQL(content.end_date) 
+                        : null,
+                    email: session?.user?.email
+                };
+                
                 const result = await fetch('/api/update', {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        type: 'institute_activities',
-                        ...content,
-                        start_date: content.start_date
-                            ? formatDateToMySQL(content.start_date) 
-                            : null,
-                        end_date: content.end_date
-                            ? content.end_date === "Continue"
-                                ? "Continue"
-                                : formatDateToMySQL(content.end_date) 
-                            : null,
-                        email: session?.user?.email
-                    }),
+                    body: JSON.stringify(updatedActivity),
                 });
         
                 if (!result.ok) throw new Error('Failed to update');
+                
+                // Get current activities from parent component
+                const { updateFacultyData, facultyData } = window.getInstituteActivitiesComponent();
+                
+                // Update local state in parent component
+                const updatedActivities = facultyData.institute_activities.map(activity => 
+                    activity.id === content.id ? updatedActivity : activity
+                );
+                updateFacultyData(updatedActivities);
         
                 handleClose();
                 showToast('Institute activity updated successfully!');
-                refreshData();
             } catch (error) {
                 console.error('Error:', error);
                 showToast('Failed to update institute activity', 'error');

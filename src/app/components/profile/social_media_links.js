@@ -1,21 +1,40 @@
-import Button from '@material-ui/core/Button'
-import Dialog from '@material-ui/core/Dialog'
-import DialogActions from '@material-ui/core/DialogActions'
-import DialogContent from '@material-ui/core/DialogContent'
-import DialogTitle from '@material-ui/core/DialogTitle'
-import TextField from '@material-ui/core/TextField'
-import { useSession } from 'next-auth/client'
+import { 
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField
+} from '@mui/material'
+import { useSession } from 'next-auth/react'
 import React, { useState, useEffect } from 'react'
 import { AddAttachments } from './../common-props/add-attachment'
 import useRefreshData from '@/custom-hooks/refresh'
+import { useFacultyData } from '@/context/FacultyDataContext'
 
 export const AddSocialMediaForm = ({ handleClose, modal, links }) => {
-    const [session, loading] = useSession()
+    const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const refreshData = useRefreshData(false)
     const initialState = links
 
     const [content, setContent] = useState(links)
     const [submitting, setSubmitting] = useState(false)
+    
+    // Add window reference to this component
+    React.useEffect(() => {
+        // Expose the component instance to the window
+        window.getSocialMediaLinksComponent = () => ({
+            updateLinks: (newData) => {
+                setContent(newData);
+            }
+        });
+        
+        // Cleanup
+        return () => {
+            delete window.getSocialMediaLinksComponent;
+        };
+    }, [])
 
     useEffect(() => {
         setContent(links)
@@ -32,29 +51,41 @@ export const AddSocialMediaForm = ({ handleClose, modal, links }) => {
         let data = {
             ...content,
             update_social_media_links: true,
-            email: session.user.email,
+            email: session?.user?.email,
         }
-        // data.attachments = JSON.stringify(data.attachments);
 
-        let result = await fetch('/api/update/user', {
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-            },
-            method: 'POST',
-            body: JSON.stringify(data),
-        })
-        result = await result.json()
-        if (result instanceof Error) {
-            console.log('Error Occured')
-            // console.log(result)
+        try {
+            let result = await fetch('/api/update/user', {
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                method: 'POST',
+                body: JSON.stringify(data),
+            })
+            
+            const updatedData = await result.json()
+            
+            if (result.ok) {
+                // Update the context data with the updated social media links
+                updateFacultySection("user", updatedData);
+                
+                // Update the component's state via the window reference
+                if (window.getSocialMediaLinksComponent) {
+                    window.getSocialMediaLinksComponent().updateLinks(updatedData.social_media_links);
+                }
+                
+                handleClose()
+                setSubmitting(false)
+                setContent(updatedData.social_media_links || initialState)
+            } else {
+                console.error('Error occurred:', updatedData)
+                setSubmitting(false)
+            }
+        } catch (error) {
+            console.error('Error:', error)
+            setSubmitting(false)
         }
-        // console.log(result)
-        handleClose()
-        refreshData()
-        setSubmitting(false)
-        setContent(initialState)
-        window.location.reload()
     }
 
     return (

@@ -21,6 +21,7 @@ import {
 import { useSession } from 'next-auth/react'
 import React, { useState } from 'react'
 import useRefreshData from '@/custom-hooks/refresh'
+import { useFacultyData } from '@/context/FacultyDataContext'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import AddIcon from '@mui/icons-material/Add'
@@ -39,6 +40,7 @@ const formatDate = (dateString) => {
 // Add Form Component
 export const AddForm = ({ handleClose, modal }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const initialState = {
         semester: '',
         level: '',
@@ -87,10 +89,18 @@ export const AddForm = ({ handleClose, modal }) => {
 
             if (!result.ok) throw new Error('Failed to create')
             
+            const updatedData = await result.json();
+                
+            // Update the context data
+            updateFacultySection(11, updatedData.data);
+            
+            // Update the component's state via the window reference
+            if (window.getTeachingEngagementComponent) {
+                window.getTeachingEngagementComponent().updateData(updatedData.data);
+            }
+            
             handleClose()
-            refreshData()
             setContent(initialState)
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -262,13 +272,13 @@ export const AddForm = ({ handleClose, modal }) => {
 // Edit Form Component
 export const EditForm = ({ handleClose, modal, values }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     // Parse dates when initializing content
     const [content, setContent] = useState({
         ...values,
         start_date: values.start_date ? new Date(values.start_date) : null,
         end_date: values.end_date ? new Date(values.end_date) : null
     })
-    const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
 
     const handleChange = (e) => {
@@ -299,9 +309,17 @@ export const EditForm = ({ handleClose, modal, values }) => {
 
             if (!result.ok) throw new Error('Failed to update')
             
+            const updatedData = await result.json();
+                
+            // Update the context data
+            updateFacultySection(11, updatedData.data);
+            
+            // Update the component's state via the window reference
+            if (window.getTeachingEngagementComponent) {
+                window.getTeachingEngagementComponent().updateData(updatedData.data);
+            }
+            
             handleClose()
-            refreshData()
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -468,21 +486,40 @@ export const EditForm = ({ handleClose, modal, values }) => {
 // Main Component
 export default function TeachingEngagementManagement() {
     const { data: session } = useSession()
+    const { facultyData, updateFacultySection } = useFacultyData();
     const [courses, setCourses] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedCourse, setSelectedCourse] = useState(null)
     const [loading, setLoading] = useState(true)
-    const refreshData = useRefreshData(false)
+    
+    // Add window reference to this component
+    React.useEffect(() => {
+        // Expose the component instance to the window
+        window.getTeachingEngagementComponent = () => ({
+            updateData: (newData) => {
+                setCourses(newData);
+            }
+        });
+        
+        // Cleanup
+        return () => {
+            delete window.getTeachingEngagementComponent;
+        };
+    }, []);
 
     // Fetch data
     React.useEffect(() => {
         const fetchCourses = async () => {
             try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setCourses(data.teaching_engagement || [])
+                if (facultyData && facultyData.teaching_engagement) {
+                    setCourses(facultyData.teaching_engagement || []);
+                } else {
+                    const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
+                    if (!response.ok) throw new Error('Failed to fetch')
+                    const data = await response.json()
+                    setCourses(data.teaching_engagement || [])
+                }
             } catch (error) {
                 console.error('Error:', error)
             } finally {
@@ -493,7 +530,7 @@ export default function TeachingEngagementManagement() {
         if (session?.user?.email) {
             fetchCourses()
         }
-    }, [session, refreshData])
+    }, [session, facultyData])
 
     const handleEdit = (course) => {
         setSelectedCourse(course)
@@ -514,8 +551,14 @@ export default function TeachingEngagementManagement() {
                 })
                 
                 if (!response.ok) throw new Error('Failed to delete')
-                refreshData()
-            window.location.reload()
+                
+                const updatedData = await response.json();
+                
+                // Update the context data
+                updateFacultySection(11, updatedData.data);
+                
+                // Update the local state
+                setCourses(updatedData.data);
             } catch (error) {
                 console.error('Error:', error)
             }

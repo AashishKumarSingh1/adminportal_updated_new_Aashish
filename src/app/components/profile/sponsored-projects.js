@@ -24,6 +24,7 @@ import { enGB } from 'date-fns/locale';
 
 import React, { useEffect, useState } from 'react'
 import useRefreshData from '@/custom-hooks/refresh'
+import { useFacultyData } from '@/context/FacultyDataContext'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
@@ -36,6 +37,7 @@ import Checkbox from '@mui/material/Checkbox';
 // Add Form Component
 export const AddForm = ({ handleClose, modal }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const initialState = {
         project_title: '',
         funding_agency: '',
@@ -79,14 +81,22 @@ export const AddForm = ({ handleClose, modal }) => {
 
 
             if (!result.ok) throw new Error('Failed to create')
+            
+            const updatedData = await result.json();
+            
+            // Update the context data
+            updateFacultySection(11, updatedData.data);
+            
+            // Update the component's state via the window reference
+            if (window.getSponsoredProjectsComponent) {
+                window.getSponsoredProjectsComponent().updateProjects(updatedData.data);
+            }
 
             handleClose()
-            refreshData()
             setContent(initialState)
         } catch (error) {
             console.error('Error:', error)
         } finally {
-            window.location.reload();
             setSubmitting(false)
         }
     }
@@ -242,6 +252,7 @@ export const AddForm = ({ handleClose, modal }) => {
 // Edit Form Component
 export const EditForm = ({ handleClose, modal, values }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const [content, setContent] = useState(values)
     const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
@@ -271,14 +282,21 @@ export const EditForm = ({ handleClose, modal, values }) => {
         })
 
             if (!result.ok) throw new Error('Failed to update')
+            
+            const updatedData = await result.json();
+            
+            // Update the context data
+            updateFacultySection(11, updatedData.data);
+            
+            // Update the component's state via the window reference
+            if (window.getSponsoredProjectsComponent) {
+                window.getSponsoredProjectsComponent().updateProjects(updatedData.data);
+            }
 
             handleClose()
-            refreshData()
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
-            window.location.href()
             setSubmitting(false)
         }
     }
@@ -441,32 +459,52 @@ export const EditForm = ({ handleClose, modal, values }) => {
 // Main Component
 export default function SponsoredProjectManagement() {
     const { data: session } = useSession()
+    const { facultyData, updateFacultySection } = useFacultyData();
     const [projects, setProjects] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedProject, setSelectedProject] = useState(null)
     const [loading, setLoading] = useState(true)
-    const refreshData = useRefreshData(false)
+    
+    // Add window reference to this component
+    React.useEffect(() => {
+        // Expose the component instance to the window
+        window.getSponsoredProjectsComponent = () => ({
+            updateProjects: (newData) => {
+                setProjects(newData);
+            }
+        });
+        
+        // Cleanup
+        return () => {
+            delete window.getSponsoredProjectsComponent;
+        };
+    }, []);
 
     // Fetch data
     React.useEffect(() => {
         const fetchProjects = async () => {
             try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setProjects(data.sponsored_projects || [])
+                if (facultyData) {
+                    setProjects(facultyData.sponsored_projects || []);
+                    setLoading(false);
+                } else {
+                    const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
+                    if (!response.ok) throw new Error('Failed to fetch')
+                    const data = await response.json()
+                    setProjects(data.sponsored_projects || [])
+                    setLoading(false);
+                }
             } catch (error) {
                 console.error('Error:', error)
-            } finally {
-                setLoading(false)
+                setLoading(false);
             }
         }
 
         if (session?.user?.email) {
             fetchProjects()
         }
-    }, [session, refreshData])
+    }, [session, facultyData])
 
     const handleEdit = (project) => {
         setSelectedProject(project)
@@ -490,8 +528,14 @@ export default function SponsoredProjectManagement() {
                     const errorData = await response.json();
                     throw new Error(errorData.message || 'Failed to delete');
                 }
-
-                setProjects((prevProjects) => prevProjects.filter((project) => project.id !== id));
+                
+                const updatedData = await response.json();
+                
+                // Update the context data
+                updateFacultySection(11, updatedData.data);
+                
+                // Update the component's state
+                setProjects(updatedData.data);
             } catch (error) {
                 console.error('Error:', error);
                 alert('Failed to delete the project. Please try again.');

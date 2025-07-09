@@ -26,31 +26,21 @@ import React, { useState, useEffect } from 'react';
 import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { useFacultyData } from '../../../context/FacultyDataContext';
+
 export function ExperiencePage() {
     const { data: session } = useSession();
+    const { facultyData, loading, updateFacultySection } = useFacultyData();
     const [experienceData, setExperienceData] = useState([]);
     const [openEdit, setOpenEdit] = useState(false);
-    const [loading, setLoading] = useState(true);
     const [editExperience, setEditExperience] = useState(null);
 
+    // Use context data instead of making API call
     useEffect(() => {
-        const fetchExperience = async () => {
-            try {
-                const res = await fetch(`/api/experience?email=${session?.user?.email}`);
-                if (!res.ok) throw new Error('Failed to fetch experience data');
-                const data = await res.json();
-                setExperienceData(data.workExperiences || []); 
-            } catch (error) {
-                console.error('Error fetching experience data:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (session?.user?.email) {
-            fetchExperience();
+        if (facultyData?.work_experience) {
+            setExperienceData(facultyData.work_experience || []);
         }
-    }, [session]);
+    }, [facultyData]);
 
     const handleSave = async (newExperience) => {
         try {
@@ -60,34 +50,39 @@ export function ExperiencePage() {
                 end_date: newExperience.end_date === 'continue' ? 'continue' : new Date(newExperience.end_date).toISOString().split('T')[0],
             };
 
-            const res = adjustedExperience.id
-                ? await fetch('/api/experience', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                          email: session?.user?.email,
-                          ...adjustedExperience,
-                      }),
-                  })
-                : await fetch('/api/experience', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                          email: session?.user?.email,
-                          ...adjustedExperience,
-                      }),
-                  });
+            // Add id and email to the adjusted experience
+            if (!adjustedExperience.id) {
+                adjustedExperience.id = Date.now().toString();
+            }
+            
+            const endpoint = adjustedExperience.id ? '/api/update' : '/api/create';
+            const method = adjustedExperience.id ? 'PUT' : 'POST';
+            
+            const res = await fetch(endpoint, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'work_experience',
+                    email: session?.user?.email,
+                    ...adjustedExperience,
+                }),
+            });
 
             if (!res.ok) throw new Error('Failed to save experience data');
 
+            let updatedExperienceData;
             if (adjustedExperience.id) {
-                setExperienceData(
-                    experienceData.map((exp) => (exp.id === adjustedExperience.id ? adjustedExperience : exp))
+                updatedExperienceData = experienceData.map((exp) => 
+                    exp.id === adjustedExperience.id ? adjustedExperience : exp
                 );
             } else {
-                setExperienceData([...experienceData, adjustedExperience]);
+                updatedExperienceData = [...experienceData, adjustedExperience];
             }
-            window.location.reload();
+            
+            setExperienceData(updatedExperienceData);
+            // Update context with new data
+            updateFacultySection('work_experience', updatedExperienceData);
+            
         } catch (error) {
             console.error('Error saving experience data:', error);
         }
@@ -95,15 +90,24 @@ export function ExperiencePage() {
 
     const handleDelete = async (experienceId) => {
         try {
-            const res = await fetch(`/api/experience?id=${experienceId}`, {
-                method: 'DELETE',
+            const res = await fetch('/api/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'work_experience',
+                    id: experienceId,
+                    email: session?.user?.email
+                }),
             });
 
             if (!res.ok) {
                 throw new Error('Failed to delete experience');
             }
 
-            setExperienceData(experienceData.filter((exp) => exp.id !== experienceId));
+            const updatedExperienceData = experienceData.filter((exp) => exp.id !== experienceId);
+            setExperienceData(updatedExperienceData);
+            // Update context with new data
+            updateFacultySection('work_experience', updatedExperienceData);
         } catch (error) {
             console.error('Error deleting experience:', error);
         }
@@ -137,7 +141,7 @@ export function ExperiencePage() {
             {loading ? (
                 <div>Loading experience details...</div>
             ) : (
-                <TableContainer component={Paper} style={{ margin: '1rem' }}>
+                <TableContainer component={Paper} >
                     <Table>
                         <TableHead>
                             <TableRow>

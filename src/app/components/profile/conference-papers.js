@@ -26,13 +26,14 @@ import {
   import DeleteIcon from '@mui/icons-material/Delete'
   import AddIcon from '@mui/icons-material/Add'
   import Papa from 'papaparse'
+  import { useFacultyData } from '../../../context/FacultyDataContext'
   
 export const UploadCSVConference = ({ handleClose, modal }) => {
     const { data: session } = useSession();
+    const { updateFacultySection } = useFacultyData();
     const [bulkConference, setBulkConference] = useState([]);
     const [fileUploaded, setFileUploaded] = useState(false);
     const [fileName, setFileName] = useState('');
-    const refreshData = useRefreshData();
     const [submitting, setSubmitting] = useState(false);
 
     const handleCSVUpload = (event) => {
@@ -68,8 +69,9 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
         setSubmitting(true);
 
         try {
+            let lastResponse;
             for (let i = 0; i < bulkConference.length; i++) {
-                await fetch('/api/create', {
+                const result = await fetch('/api/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -79,11 +81,24 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                         email: session?.user?.email
                     }),
                 });
+                
+                if (i === bulkConference.length - 1) {
+                    // Save the last response to update the context
+                    lastResponse = await result.json();
+                }
+            }
+
+            if (lastResponse) {
+                // Update the context data
+                updateFacultySection(4, lastResponse.data);
+                
+                // Update the component's state via the window reference
+                if (window.getConferencePapersComponent) {
+                    window.getConferencePapersComponent().updateData(lastResponse.data);
+                }
             }
 
             handleClose();
-            refreshData();
-            window.location.reload();
         } catch (error) {
             console.error('Error:', error);
         } finally {
@@ -157,6 +172,7 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
   
   export const AddForm = ({ handleClose, modal }) => {
       const { data: session } = useSession()
+      const { updateFacultySection } = useFacultyData()
       const initialState = {
           authors: '',
           title: '',
@@ -170,7 +186,6 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
           doi: ''
       }
       const [content, setContent] = useState(initialState)
-      const refreshData = useRefreshData(false)
       const [submitting, setSubmitting] = useState(false)
   
       const handleChange = (e) => {
@@ -195,14 +210,22 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
   
               if (!result.ok) throw new Error('Failed to create')
               
+              const updatedData = await result.json();
+                
+              // Update the context data
+              updateFacultySection(4, updatedData.data);
+              
+              // Update the component's state via the window reference
+              if (window.getConferencePapersComponent) {
+                  window.getConferencePapersComponent().updateData(updatedData.data);
+              }
+              
               handleClose()
-              refreshData()
               setContent(initialState)
           } catch (error) {
               console.error('Error:', error)
           } finally {
               setSubmitting(false)
-              window.location.reload()
           }
       }
   
@@ -322,8 +345,8 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
   // Edit Form Component
   export const EditForm = ({ handleClose, modal, values }) => {
       const { data: session } = useSession()
+      const { updateFacultySection } = useFacultyData()
       const [content, setContent] = useState(values)
-      const refreshData = useRefreshData(false)
       const [submitting, setSubmitting] = useState(false)
   
       const handleChange = (e) => {
@@ -347,12 +370,20 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
   
               if (!result.ok) throw new Error('Failed to update')
               
+              const updatedData = await result.json();
+                  
+              // Update the context data
+              updateFacultySection(4, updatedData.data);
+              
+              // Update the component's state via the window reference
+              if (window.getConferencePapersComponent) {
+                  window.getConferencePapersComponent().updateData(updatedData.data);
+              }
+              
               handleClose()
-              refreshData()
           } catch (error) {
               console.error('Error:', error)
           } finally {
-              window.location.reload()
               setSubmitting(false)
           }
       }
@@ -476,28 +507,30 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
       const [openAdd, setOpenAdd] = useState(false)
       const [openEdit, setOpenEdit] = useState(false)
       const [selectedPaper, setSelectedPaper] = useState(null)
-      const [loading, setLoading] = useState(true)
-      const refreshData = useRefreshData(false)
-  
-      // Fetch data
+      const { facultyData, loading, updateFacultySection } = useFacultyData()
+      
+      // Add window reference to this component
       React.useEffect(() => {
-          const fetchPapers = async () => {
-              try {
-                  const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                  if (!response.ok) throw new Error('Failed to fetch')
-                  const data = await response.json()
-                  setPapers(data.conference_papers || [])
-              } catch (error) {
-                  console.error('Error:', error)
-              } finally {
-                  setLoading(false)
+          // Expose the component instance to the window
+          window.getConferencePapersComponent = () => ({
+              updateData: (newData) => {
+                  setPapers(newData);
               }
-          }
+          });
+          
+          // Cleanup
+          return () => {
+              delete window.getConferencePapersComponent;
+          };
+      }, []);
   
-          if (session?.user?.email) {
-              fetchPapers()
+      // Use context data instead of API call
+      React.useEffect(() => {
+          if (facultyData?.conference_papers) {
+              console.log('ConferencePapers - Using context data:', facultyData.conference_papers)
+              setPapers(facultyData.conference_papers || [])
           }
-      }, [session, refreshData])
+      }, [facultyData])
   
       const handleEdit = (paper) => {
           setSelectedPaper(paper)
@@ -518,11 +551,16 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                   })
                   
                   if (!response.ok) throw new Error('Failed to delete')
-                  refreshData()
+                  
+                  const updatedData = await response.json();
+                  
+                  // Update the context data
+                  updateFacultySection(4, updatedData.data);
+                  
+                  // Update the local state
+                  setPapers(updatedData.data);
               } catch (error) {
                   console.error('Error:', error)
-              }finally{
-                  window.location.reload()
               }
           }
       }

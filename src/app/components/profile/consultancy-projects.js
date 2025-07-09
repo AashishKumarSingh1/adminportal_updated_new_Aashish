@@ -29,6 +29,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import { Typography } from '@mui/material'
+import { useFacultyData } from '../../../context/FacultyDataContext'
 import AddIcon from '@mui/icons-material/Add'
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
@@ -61,28 +62,35 @@ export const AddForm = ({ handleClose, modal }) => {
         setSubmitting(true)
 
         try {
+            const newProject = {
+                type: 'consultancy_projects',
+                ...content,
+                start_date: content.start_date 
+                    ? new Date(content.start_date).toISOString().split('T')[0]
+                    : null,
+                end_date: content.end_date==="Continue"?"continue"
+                    : new Date(content.end_date).toISOString().split('T')[0],
+                id: Date.now().toString(),
+                email: session?.user?.email
+            };
+            
             const result = await fetch('/api/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'consultancy_projects',
-                    ...content,
-                    start_date: content.start_date 
-                        ? new Date(content.start_date).toISOString().split('T')[0]
-                        : null,
-                    end_date: content.end_date==="Continue"?"continue"
-                        : new Date(content.end_date).toISOString().split('T')[0],
-                    id: Date.now().toString(),
-                    email: session?.user?.email
-                }),
+                body: JSON.stringify(newProject),
             })
 
             if (!result.ok) throw new Error('Failed to create')
             
+            // Get current projects from parent component
+            const { updateFacultyData, facultyData } = window.getProjectsComponent();
+            
+            // Update local state in parent component
+            const updatedProjects = [...(facultyData.consultancy_projects || []), newProject];
+            updateFacultyData(updatedProjects);
+            
             handleClose()
-            refreshData()
             setContent(initialState)
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -256,27 +264,36 @@ export const EditForm = ({ handleClose, modal, values }) => {
         setSubmitting(true)
 
         try {
+            const updatedProject = {
+                type: 'consultancy_projects',
+                ...content,
+                start_date: content.start_date 
+                    ? new Date(content.start_date).toISOString().split('T')[0]
+                    : null,
+                end_date: content.end_date
+                    ? new Date(content.end_date).toISOString().split('T')[0]
+                    : null,
+                email: session?.user?.email
+            };
+            
             const result = await fetch('/api/update', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'consultancy_projects',
-                    ...content,
-                    start_date: content.start_date 
-                        ? new Date(content.start_date).toISOString().split('T')[0]
-                        : null,
-                    end_date: content.end_date
-                        ? new Date(content.end_date).toISOString().split('T')[0]
-                        : null,
-                    email: session?.user?.email
-                }),
+                body: JSON.stringify(updatedProject),
             })
 
             if (!result.ok) throw new Error('Failed to update')
             
+            // Get current projects from parent component
+            const { updateFacultyData, facultyData } = window.getProjectsComponent();
+            
+            // Update local state in parent component
+            const updatedProjects = facultyData.consultancy_projects.map(project => 
+                project.id === content.id ? updatedProject : project
+            );
+            updateFacultyData(updatedProjects);
+            
             handleClose()
-            refreshData()
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -420,28 +437,30 @@ export default function ConsultancyProjectManagement() {
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedProject, setSelectedProject] = useState(null)
-    const [loading, setLoading] = useState(true)
-    const refreshData = useRefreshData(false)
-
-    // Fetch data
+    const { facultyData, loading, updateFacultySection } = useFacultyData()
+    
+    // Use context data instead of API call
     React.useEffect(() => {
-        const fetchProjects = async () => {
-            try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setProjects(data.consultancy_projects || [])
-            } catch (error) {
-                console.error('Error:', error)
-            } finally {
-                setLoading(false)
-            }
+        if (facultyData?.consultancy_projects) {
+            console.log('ConsultancyProjects - Using context data:', facultyData.consultancy_projects)
+            setProjects(facultyData.consultancy_projects || [])
         }
-
-        if (session?.user?.email) {
-            fetchProjects()
-        }
-    }, [session, refreshData])
+    }, [facultyData])
+    
+    // Expose functions for child components
+    React.useEffect(() => {
+        window.getProjectsComponent = () => ({
+            updateFacultyData: (updatedProjects) => {
+                setProjects(updatedProjects);
+                updateFacultySection('consultancy_projects', updatedProjects);
+            },
+            facultyData: { consultancy_projects: projects }
+        });
+        
+        return () => {
+            delete window.getProjectsComponent;
+        };
+    }, [projects, updateFacultySection]);
 
     const handleEdit = (project) => {
         setSelectedProject(project)
@@ -462,7 +481,13 @@ export default function ConsultancyProjectManagement() {
                 })
                 
                 if (!response.ok) throw new Error('Failed to delete')
-                refreshData()
+                
+                // Update local state directly
+                const updatedProjects = projects.filter(project => project.id !== id);
+                setProjects(updatedProjects);
+                
+                // Update context
+                updateFacultySection('consultancy_projects', updatedProjects);
             } catch (error) {
                 console.error('Error:', error)
             }

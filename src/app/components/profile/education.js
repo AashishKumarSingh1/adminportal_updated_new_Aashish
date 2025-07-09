@@ -27,16 +27,19 @@ import { useFacultyData } from '../../../context/FacultyDataContext'
 
 export function EducationManagement() {
     const { data: session } = useSession()
-    const { getEducation, loading, updateFacultySection, refreshFacultyData } = useFacultyData()
+    const { facultyData, loading, updateFacultySection } = useFacultyData()
     const [educations, setEducations] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedEducation, setSelectedEducation] = useState(null)
 
+    // Use context data 
     useEffect(() => {
-        const educationData = getEducation()
-        setEducations(educationData)
-    }, [getEducation])
+        if (facultyData?.education) {
+            console.log('Education - Using context data:', facultyData.education)
+            setEducations(facultyData.education || [])
+        }
+    }, [facultyData])
 
     const handleDelete = async (id) => {
         if (!window.confirm('Are you sure you want to delete this education record?')) return
@@ -104,9 +107,34 @@ export function EducationManagement() {
                     </Table>
                 </TableContainer>
             )}
-            <AddEducation open={openAdd} onClose={() => setOpenAdd(false)} onSuccess={(newEdu) => { setEducations(prev => [...prev, newEdu]); setOpenAdd(false) }} />
+            <AddEducation 
+                open={openAdd} 
+                onClose={() => setOpenAdd(false)} 
+                onSuccess={(newEdu) => { 
+                    const updatedEducations = [...educations, newEdu]; 
+                    setEducations(updatedEducations); 
+                    updateFacultySection('education', updatedEducations);
+                    setOpenAdd(false); 
+                }} 
+            />
             {selectedEducation && (
-                <EditEducation open={openEdit} onClose={() => { setOpenEdit(false); setSelectedEducation(null) }} education={selectedEducation} onSuccess={(updatedEdu) => { setEducations(prev => prev.map(edu => edu.id === updatedEdu.id ? updatedEdu : edu)); setOpenEdit(false); setSelectedEducation(null) }} />
+                <EditEducation 
+                    open={openEdit} 
+                    onClose={() => { 
+                        setOpenEdit(false); 
+                        setSelectedEducation(null); 
+                    }} 
+                    education={selectedEducation} 
+                    onSuccess={(updatedEdu) => { 
+                        const updatedEducations = educations.map(edu => 
+                            edu.id === updatedEdu.id ? updatedEdu : edu
+                        );
+                        setEducations(updatedEducations);
+                        updateFacultySection('education', updatedEducations);
+                        setOpenEdit(false); 
+                        setSelectedEducation(null); 
+                    }} 
+                />
             )}
         </div>
     )
@@ -118,26 +146,32 @@ const degreeOptions = [
 
 export function AddEducation({ open, onClose, onSuccess }) {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const [formData, setFormData] = useState({ degree: '', institution: '', year: '',specialization:"" })
     
     const handleSubmit = async (e) => {
         e.preventDefault()
         try {
+            const newEducation = {
+                type: 'education',
+                id: Date.now().toString(),
+                certification: formData.degree,
+                institution: formData.institution,
+                passing_year: formData.year,
+                specialization: formData.specialization,
+                email: session?.user?.email
+            };
+            
             const res = await fetch('/api/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'education',
-                    id: Date.now(),
-                    ...formData,
-                    email: session?.user?.email
-                })
+                body: JSON.stringify(newEducation)
             })
+            
             if (!res.ok) throw new Error('Failed to add education')
-            const newEducation = await res.json()
+            
+            // Call onSuccess to update parent component state
             onSuccess(newEducation)
-            // Refresh context data instead of page reload
-            refreshFacultyData()
         } catch (error) {
             console.error('Error adding education:', error)
         }
@@ -175,6 +209,7 @@ export function AddEducation({ open, onClose, onSuccess }) {
 
 export function EditEducation({ open, onClose, education, onSuccess }) {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const [formData, setFormData] = useState(education)
     const [submitting, setSubmitting] = useState(false)
 
@@ -192,22 +227,22 @@ export function EditEducation({ open, onClose, education, onSuccess }) {
         setSubmitting(true)
 
         try {
+            const updatedEducation = {
+                type: 'education',
+                ...formData,
+                email: session?.user?.email
+            };
+            
             const res = await fetch('/api/update', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'education',
-                    ...formData,
-                    email: session?.user?.email
-                })
+                body: JSON.stringify(updatedEducation)
             })
 
             if (!res.ok) throw new Error('Failed to update education')
 
-            const updatedEducation = await res.json()
+            // Call onSuccess to update parent component state
             onSuccess(updatedEducation)
-            // Refresh context data instead of page reload
-            refreshFacultyData()
         } catch (error) {
             console.error('Error updating education:', error)
         } finally {

@@ -34,6 +34,7 @@ import FormControl from '@mui/material/FormControl'
 // Add Form Component
 export const AddForm = ({ handleClose, modal }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const initialState = {
         student_name: '',
         roll_no: '',
@@ -46,7 +47,6 @@ export const AddForm = ({ handleClose, modal }) => {
         supervisor_type:''
     }
     const [content, setContent] = useState(initialState)
-    const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
 
     const handleChange = (e) => {
@@ -74,27 +74,36 @@ export const AddForm = ({ handleClose, modal }) => {
                 completion_year: content.completion_year ? new Date(content.completion_year).toISOString().split('T')[0] : '',
             };
 
+            const newCandidate = {
+                type: 'phd_candidates',
+                ...adjustedContent,
+                id: Date.now().toString(),
+                email: session?.user?.email
+            };
+
             const result = await fetch('/api/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'phd_candidates',
-                    ...adjustedContent,
-                    id: Date.now().toString(),
-                    email: session?.user?.email
-                }),
+                body: JSON.stringify(newCandidate),
             })
 
             if (!result.ok) throw new Error('Failed to create')
 
+            // Update state through window component reference
+            if (window.getPhdCandidatesComponent) {
+                const currentCandidates = window.getPhdCandidatesComponent().getCandidates() || [];
+                const updatedCandidates = [...currentCandidates, newCandidate];
+                
+                // Update both local state and context
+                window.getPhdCandidatesComponent().setCandidates(updatedCandidates);
+                updateFacultySection('phdCandidates', updatedCandidates);
+            }
+
             handleClose()
-            refreshData()
             setContent(initialState)
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
-            // window.location.reload()
             setSubmitting(false)
         }
     }
@@ -242,6 +251,7 @@ export const AddForm = ({ handleClose, modal }) => {
 // Edit Form Component
 export const EditForm = ({ handleClose, modal, values }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const [content, setContent] = useState({
         student_name: values.student_name || '',
         roll_no: values.roll_no || '',
@@ -252,8 +262,8 @@ export const EditForm = ({ handleClose, modal, values }) => {
         current_status: values.current_status || 'Ongoing',
         completion_year: values.completion_year || '',
         supervisor_type: values.supervisor_type || '',
+        id: values.id
     })
-    const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
 
     const handleChange = (e) => {
@@ -269,29 +279,41 @@ export const EditForm = ({ handleClose, modal, values }) => {
                 ...content,
                 completion_year: content.completion_year ? new Date(content.completion_year).toISOString().split('T')[0] : '',
             };
+            
+            const updatedCandidate = {
+                type: 'phd_candidates',
+                id: values.id,
+                email: session?.user?.email,
+                ...adjustedContent
+            };
+            
             const result = await fetch('/api/update', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'phd_candidates',
-                    id: values.id,
-                    email: session?.user?.email,
-                    ...adjustedContent
-                }),
+                body: JSON.stringify(updatedCandidate),
             })
 
             if (!result.ok) {
                 throw new Error('Failed to update PhD candidate')
             }
 
-            refreshData()
+            // Update state through window component reference
+            if (window.getPhdCandidatesComponent) {
+                const currentCandidates = window.getPhdCandidatesComponent().getCandidates();
+                const updatedCandidates = currentCandidates.map(candidate => 
+                    candidate.id === content.id ? content : candidate
+                );
+                
+                // Update both local state and context
+                window.getPhdCandidatesComponent().setCandidates(updatedCandidates);
+                updateFacultySection('phdCandidates', updatedCandidates);
+            }
+            
             handleClose()
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
             setSubmitting(false)
-            
         }
     }
 
@@ -426,7 +448,14 @@ export default function PhdCandidateManagement() {
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedCandidate, setSelectedCandidate] = useState(null)
-    const refreshData = useRefreshData(false)
+
+    // Set up component reference for child components
+    React.useEffect(() => {
+        window.getPhdCandidatesComponent = () => ({
+            getCandidates: () => candidates,
+            setCandidates: (newCandidates) => setCandidates(newCandidates)
+        });
+    }, [candidates]);
 
     // Get data from context
     React.useEffect(() => {
@@ -453,8 +482,11 @@ export default function PhdCandidateManagement() {
                 })
                 
                 if (!response.ok) throw new Error('Failed to delete')
-                refreshData()
-            window.location.reload()
+                
+                // Update local state and context
+                const updatedCandidates = candidates.filter(candidate => candidate.id !== id);
+                setCandidates(updatedCandidates);
+                updateFacultySection('phdCandidates', updatedCandidates);
             } catch (error) {
                 console.error('Error:', error)
             }

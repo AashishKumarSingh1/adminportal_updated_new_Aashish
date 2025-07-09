@@ -22,6 +22,7 @@ import { useSession } from 'next-auth/react'
 import { enGB } from 'date-fns/locale'
 import React, { useState } from 'react'
 import useRefreshData from '@/custom-hooks/refresh'
+import { useFacultyData } from '../../../context/FacultyDataContext'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
@@ -73,27 +74,33 @@ export const AddForm = ({ handleClose, modal }) => {
         e.preventDefault()
 
         try {
+            const newInternship = {
+                type: 'internships',
+                ...content,
+                // Format start_date and end_date to 'YYYY-MM-DD' for DATE or 'YYYY-MM-DD HH:MM:SS' for DATETIME
+                start_date: formatDateToUTC(content.start_date),
+                end_date: formatDateToUTC(content.end_date),
+                id: Date.now().toString(),
+                email: session?.user?.email,
+            };
+            
             const result = await fetch('/api/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  type: 'internships',
-                  ...content,
-                  // Format start_date and end_date to 'YYYY-MM-DD' for DATE or 'YYYY-MM-DD HH:MM:SS' for DATETIME
-                  start_date: formatDateToUTC(content.start_date),
-                  end_date: formatDateToUTC(content.end_date),
-                  id: Date.now().toString(),
-                  email: session?.user?.email,
-                }),
-              });
+                body: JSON.stringify(newInternship),
+            });
               
-
             if (!result.ok) throw new Error('Failed to create')
             
+            // Get current internships from parent component
+            const { updateFacultyData, facultyData } = window.getInternshipsComponent();
+            
+            // Update local state in parent component
+            const updatedInternships = [...(facultyData.internships || []), newInternship];
+            updateFacultyData(updatedInternships);
+            
             handleClose()
-            refreshData()
             setContent(initialState)
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -246,24 +253,33 @@ export const EditForm = ({ handleClose, modal, values }) => {
         setSubmitting(true)
 
         try {
+            const updatedInternship = {
+                type: 'internships',
+                ...content,
+                // Format dates before sending to API
+                start_date: formatDateToUTC(content.start_date),
+                end_date: formatDateToUTC(content.end_date),
+                email: session?.user?.email
+            };
+            
             const result = await fetch('/api/update', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'internships',
-                    ...content,
-                    // Format dates before sending to API
-                    start_date: formatDateToUTC(content.start_date),
-                    end_date: formatDateToUTC(content.end_date),
-                    email: session?.user?.email
-                }),
+                body: JSON.stringify(updatedInternship),
             })
 
             if (!result.ok) throw new Error('Failed to update')
             
+            // Get current internships from parent component
+            const { updateFacultyData, facultyData } = window.getInternshipsComponent();
+            
+            // Update local state in parent component
+            const updatedInternships = facultyData.internships.map(internship => 
+                internship.id === content.id ? updatedInternship : internship
+            );
+            updateFacultyData(updatedInternships);
+            
             handleClose()
-            refreshData()
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -399,28 +415,30 @@ export default function InternshipManagement() {
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedInternship, setSelectedInternship] = useState(null)
-    const [loading, setLoading] = useState(true)
-    const refreshData = useRefreshData(false)
-
-    // Fetch data
+    const { facultyData, loading, updateFacultySection } = useFacultyData()
+    
+    // Use context data instead of API call
     React.useEffect(() => {
-        const fetchInternships = async () => {
-            try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setInternships(data.internships || [])
-            } catch (error) {
-                console.error('Error:', error)
-            } finally {
-                setLoading(false)
-            }
+        if (facultyData?.internships) {
+            console.log('Internships - Using context data:', facultyData.internships)
+            setInternships(facultyData.internships || [])
         }
-
-        if (session?.user?.email) {
-            fetchInternships()
-        }
-    }, [session, refreshData])
+    }, [facultyData])
+    
+    // Expose functions for child components
+    React.useEffect(() => {
+        window.getInternshipsComponent = () => ({
+            updateFacultyData: (updatedInternships) => {
+                setInternships(updatedInternships);
+                updateFacultySection('internships', updatedInternships);
+            },
+            facultyData: { internships: internships }
+        });
+        
+        return () => {
+            delete window.getInternshipsComponent;
+        };
+    }, [internships, updateFacultySection])
 
     const handleEdit = (internship) => {
         setSelectedInternship(internship)
@@ -441,8 +459,13 @@ export default function InternshipManagement() {
                 })
                 
                 if (!response.ok) throw new Error('Failed to delete')
-                refreshData()
-                window.location.reload()
+                
+                // Update local state directly
+                const updatedInternships = internships.filter(internship => internship.id !== id);
+                setInternships(updatedInternships);
+                
+                // Update context
+                updateFacultySection('internships', updatedInternships);
             } catch (error) {
                 console.error('Error:', error)
             }

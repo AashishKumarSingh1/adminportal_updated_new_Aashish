@@ -68,24 +68,20 @@ export async function POST(request) {
     
     let results
     switch (type) {
-      case 'range':
-        const { start_date, end_date, from, to } = body
+      case 'all':
         results = await query(
           `SELECT * FROM news 
-           WHERE closeDate <= ? AND openDate >= ? 
-           ORDER BY openDate DESC LIMIT ?, ?`,
-          [end_date, start_date, from, to - from]
+           ORDER BY openDate DESC`
         )
         break
 
-      case 'between':
-        const { from: fromIndex, to: toIndex,type } = body
-        const diff=toIndex - fromIndex;
+      case 'range':
+        const { start_date, end_date } = body
         results = await query(
           `SELECT * FROM news 
-           ORDER BY openDate DESC 
-           LIMIT ?, ?`,
-          [fromIndex, diff]
+           WHERE closeDate <= ? AND openDate >= ? 
+           ORDER BY openDate DESC`,
+          [end_date, start_date]
         )
         break
 
@@ -100,10 +96,23 @@ export async function POST(request) {
     const newsItems = JSON.parse(JSON.stringify(results))
     newsItems.forEach(item => {
       if (item.image) {
-        item.image = JSON.parse(item.image)
+        try {
+          item.image = JSON.parse(item.image)
+        } catch (e) {
+          item.image = []
+        }
+      } else {
+        item.image = []
       }
+      
       if (item.attachments) {
-        item.attachments = JSON.parse(item.attachments)
+        try {
+          item.attachments = JSON.parse(item.attachments)
+        } catch (e) {
+          item.attachments = []
+        }
+      } else {
+        item.attachments = []
       }
     })
 

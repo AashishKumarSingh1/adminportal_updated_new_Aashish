@@ -12,9 +12,13 @@ import {
     IconButton,
     Checkbox,
     FormControlLabel,
-    
+    Box,
+    Typography,
+    Divider,
+    Grid,
+    Chip
 } from '@mui/material'
-import { Delete, Link } from '@mui/icons-material'
+import { Delete, Link, Warning } from '@mui/icons-material'
 import { useSession } from 'next-auth/react'
 import React, { useRef, useState } from 'react'
 import { dateformatter } from './../common-props/date-formatter'
@@ -22,6 +26,38 @@ import { ConfirmDelete } from './confirm-delete'
 import { AddAttachments } from './../common-props/add-attachment'
 import { handleNewAttachments } from './../common-props/add-attachment'
 import { administrationList, depList } from './../../../lib/const'
+
+// Helper function to format dates for edit form
+const formatDateForInput = (dateValue) => {
+    if (!dateValue) return ''
+    
+    let date
+    // Handle different date formats
+    if (typeof dateValue === 'string') {
+        // If it's a string timestamp, convert to number first
+        const timestamp = parseInt(dateValue, 10)
+        if (!isNaN(timestamp)) {
+            date = new Date(timestamp)
+        } else {
+            // Try parsing as date string
+            date = new Date(dateValue)
+        }
+    } else if (typeof dateValue === 'number') {
+        // If it's already a number timestamp
+        date = new Date(dateValue)
+    } else {
+        // If it's already a Date object
+        date = dateValue
+    }
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+        return ''
+    }
+    
+    // Return in YYYY-MM-DD format for input[type="date"]
+    return date.toISOString().split('T')[0]
+}
 export const EditForm = ({ data, handleClose, modal }) => {
     const deleteArray = useRef([])
     const { data: session } = useSession()
@@ -30,8 +66,8 @@ export const EditForm = ({ data, handleClose, modal }) => {
         id: data.id,
         title: data.title,
         isVisible: 1,
-        openDate: dateformatter(data.openDate),
-        closeDate: dateformatter(data.closeDate),
+        openDate: formatDateForInput(data.openDate),
+        closeDate: formatDateForInput(data.closeDate),
         type: data.notice_type || 'general',
         department: data.department || null,
         important: data.important || false,
@@ -139,116 +175,229 @@ export const EditForm = ({ data, handleClose, modal }) => {
     return (
         <Dialog open={modal} onClose={handleClose} maxWidth="md" fullWidth>
             <form onSubmit={handleSubmit}>
-                <DialogTitle>
+                <DialogTitle 
+                    sx={{ 
+                        backgroundColor: '#830001', 
+                        color: 'white',
+                        fontWeight: 600,
+                        fontSize: '1.25rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 1300
+                    }}
+                >
                     Edit Notice
                     <IconButton
                         onClick={handleDelete}
-                        style={{
-                            position: 'absolute',
-                            right: '8px',
-                            top: '8px',
-                            color: '#d32f2f'
+                        sx={{
+                            color: 'white',
+                            '&:hover': {
+                                backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                            }
                         }}
                     >
                         <Delete />
                     </IconButton>
                 </DialogTitle>
-                <DialogContent>
-                    {/* Form fields same as add form */}
-                    <TextField
-                        margin="dense"
-                        label="Title"
-                        name="title"
-                        type="text"
-                        required
-                        fullWidth
-                        value={content.title}
-                        onChange={handleChange}
-                    />
-                    
-                    <TextField
-                        margin="dense"
-                        label="Open Date"
-                        name="openDate"
-                        type="date"
-                        required
-                        fullWidth
-                        value={content.openDate}
-                        onChange={handleChange}
-                        InputLabelProps={{
-                            shrink: true,
-                        }}
-                    />
-                    <TextField
-                        margin="dense"
-                        label="Close Date"
-                        name="closeDate"
-                        type="date"
-                        required
-                        fullWidth
-                        value={content.closeDate}
-                        onChange={handleChange}
-                        InputLabelProps={{
-                            shrink: true,
-                        }}
-                    />
-                    <FormControlLabel
-                        control={
-                            <Checkbox
-                                name="important"
-                                checked={Boolean(content.important)}
-                                onChange={handleChange}
-                                color="primary"
+                <DialogContent sx={{ 
+                    mt: 2, 
+                    maxHeight: '70vh', 
+                    overflowY: 'auto',
+                    '&::-webkit-scrollbar': {
+                        display: 'none'
+                    },
+                    scrollbarWidth: 'none',  // Firefox
+                    msOverflowStyle: 'none'  // IE and Edge
+                }}>
+                    <Box sx={{ mb: 3 }}>
+                        <Typography variant="h6" sx={{ mb: 2, color: '#333', fontWeight: 500 }}>
+                            Notice Details
+                        </Typography>
+                        <TextField
+                            margin="dense"
+                            label="Notice Title"
+                            name="title"
+                            type="text"
+                            required
+                            fullWidth
+                            value={content.title}
+                            onChange={handleChange}
+                            sx={{ mb: 2 }}
+                            variant="outlined"
+                        />
+                        
+                        <Grid container spacing={2} sx={{ mb: 2 }}>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    margin="dense"
+                                    label="Open Date"
+                                    name="openDate"
+                                    type="date"
+                                    required
+                                    fullWidth
+                                    value={content.openDate}
+                                    onChange={handleChange}
+                                    InputLabelProps={{
+                                        shrink: true,
+                                    }}
+                                    variant="outlined"
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    margin="dense"
+                                    label="Close Date"
+                                    name="closeDate"
+                                    type="date"
+                                    required
+                                    fullWidth
+                                    value={content.closeDate}
+                                    onChange={handleChange}
+                                    InputLabelProps={{
+                                        shrink: true,
+                                    }}
+                                    variant="outlined"
+                                />
+                            </Grid>
+                        </Grid>
+
+                        <Box sx={{ mb: 2 }}>
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        name="important"
+                                        checked={Boolean(content.important)}
+                                        onChange={handleChange}
+                                        sx={{ 
+                                            color: '#830001',
+                                            '&.Mui-checked': {
+                                                color: '#830001',
+                                            },
+                                        }}
+                                    />
+                                }
+                                label={
+                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                        Mark as Important
+                                    </Typography>
+                                }
                             />
-                        }
-                        label="Important"
-                    />
-                    <FormControl fullWidth margin="dense">
-                        <InputLabel>Type</InputLabel>
-                        <Select
-                            name="type"
-                            value={content.type}
-                            onChange={handleChange}
-                        >
-                            <MenuItem value="general">General</MenuItem>
-                            <MenuItem value="department">Department</MenuItem>
-                            {Array.from(administrationList).map(([key, value]) => (
-                                <MenuItem key={key} value={key}>{value}</MenuItem>
-                            ))}
+                        </Box>
 
-                        </Select>
-                    </FormControl>
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} sm={content.type === 'department' ? 6 : 12}>
+                                <FormControl fullWidth margin="dense" variant="outlined">
+                                    <InputLabel>Notice Type</InputLabel>
+                                    <Select
+                                        name="type"
+                                        value={content.type}
+                                        onChange={handleChange}
+                                        label="Notice Type"
+                                    >
+                                        <MenuItem value="general">General</MenuItem>
+                                        <MenuItem value="department">Department</MenuItem>
+                                        {Array.from(administrationList).map(([key, value]) => (
+                                            <MenuItem key={key} value={key}>{value}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+                            {content.type === 'department' && (
+                                <Grid item xs={12} sm={6}>
+                                    <FormControl fullWidth margin="dense" variant="outlined">
+                                        <InputLabel>Department</InputLabel>
+                                        <Select
+                                            name="department"
+                                            value={content.department}
+                                            onChange={handleChange}
+                                            label="Department"
+                                        >
+                                            {Array.from(depList).map(([key, value]) => (
+                                                <MenuItem key={value} value={value}>{value}</MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                            )}
+                        </Grid>
+                    </Box>
 
-                    {content.type === 'department' && (
-                        <FormControl fullWidth margin="dense">
-                            <InputLabel>Department</InputLabel>
-                            <Select
-                                name="department"
-                            value={content.department}
-                            onChange={handleChange}
-                        >
-                            {Array.from(depList).map(([key, value]) => (
-                                <MenuItem key={value} value={value}>{value}</MenuItem>
-                            ))}
-                        </Select>
-                        </FormControl>
-                    )}
+                    <Divider sx={{ my: 3 }} />
 
-                    <DisplayAdditionalAttach
-                        add_attach={add_attach}
-                        setAdd_attach={setAdd_attach}
-                        deleteArray={deleteArray}
-                    />
+                    <Box>
+                        <Typography variant="h6" sx={{ mb: 2, color: '#333', fontWeight: 500 }}>
+                            Attachments
+                        </Typography>
+                        
+                        {add_attach.length > 0 && (
+                            <Box sx={{ 
+                                mb: 3,
+                                p: 2, 
+                                border: '1px solid #e0e0e0', 
+                                borderRadius: 2,
+                                backgroundColor: '#f9f9f9'
+                            }}>
+                                <Typography variant="subtitle2" sx={{ mb: 2, color: '#666' }}>
+                                    Current Attachments
+                                </Typography>
+                                <DisplayAdditionalAttach
+                                    add_attach={add_attach}
+                                    setAdd_attach={setAdd_attach}
+                                    deleteArray={deleteArray}
+                                />
+                            </Box>
+                        )}
 
-                    <AddAttachments
-                        attachments={new_attach}
-                        setAttachments={setNew_attach}
-                    />
+                        <Box sx={{ 
+                            p: 2, 
+                            border: '2px dashed #ddd', 
+                            borderRadius: 2,
+                            backgroundColor: '#fafafa'
+                        }}>
+                            <Typography variant="subtitle2" sx={{ mb: 2, color: '#666' }}>
+                                Add New Attachments
+                            </Typography>
+                            <AddAttachments
+                                attachments={new_attach}
+                                setAttachments={setNew_attach}
+                            />
+                        </Box>
+                    </Box>
                 </DialogContent>
 
-                <DialogActions>
-                    <Button onClick={handleClose} style={{ color: '#830001' }}>Cancel</Button>
-                    <Button type="submit" variant="contained" style={{ backgroundColor: '#830001', color: 'white' }}>Update</Button>
+                <DialogActions sx={{ p: 3, backgroundColor: '#f8f9fa', position: 'sticky', bottom: 0, zIndex: 1300 }}>
+                    <Button 
+                        onClick={handleClose} 
+                        variant="outlined"
+                        sx={{ 
+                            color: '#830001', 
+                            borderColor: '#830001',
+                            '&:hover': {
+                                backgroundColor: '#830001',
+                                color: 'white'
+                            }
+                        }}
+                    >
+                        Cancel
+                    </Button>
+                    <Button 
+                        type="submit" 
+                        variant="contained" 
+                        sx={{ 
+                            backgroundColor: '#830001', 
+                            color: 'white',
+                            minWidth: 120,
+                            '&:hover': {
+                                backgroundColor: '#6a0001'
+                            }
+                        }}
+                        disabled={submitting}
+                    >
+                        {submitting ? 'Updating...' : 'Update Notice'}
+                    </Button>
                 </DialogActions>
             </form>
             <ConfirmDelete
@@ -280,49 +429,75 @@ function DisplayAdditionalAttach({ add_attach, setAdd_attach, deleteArray }) {
     return (
         <>
             {add_attach?.map((attachment, idx) => (
-                <div
+                <Box
                     key={idx}
-                    style={{
+                    sx={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '10px',
-                        marginTop: '10px'
+                        gap: 2,
+                        p: 2,
+                        mb: 2,
+                        border: '1px solid #e0e0e0',
+                        borderRadius: 2,
+                        backgroundColor: 'white',
+                        '&:hover': {
+                            backgroundColor: '#f5f5f5'
+                        }
                     }}
                 >
-                    <TextField
-                        type="text"
-                        value={attachment.caption || ''}
-                        fullWidth
-                        label={`Attachment ${idx + 1}`}
-                        InputLabelProps={{
-                            shrink: true,
-                        }}
-                        disabled
-                    />
+                    <Box sx={{ flexGrow: 1 }}>
+                        <TextField
+                            type="text"
+                            value={attachment.caption || `Attachment ${idx + 1}`}
+                            fullWidth
+                            label={`Attachment ${idx + 1}`}
+                            InputLabelProps={{
+                                shrink: true,
+                            }}
+                            variant="outlined"
+                            size="small"
+                            disabled
+                            sx={{
+                                '& .MuiInputBase-input.Mui-disabled': {
+                                    WebkitTextFillColor: '#666',
+                                }
+                            }}
+                        />
+                    </Box>
                     {attachment.url && (
-                        <a 
+                        <Button
                             href={attachment.url} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            style={{ 
-                                color: '#048300ff',
-                                textDecoration: 'none',
-                                display: 'flex',
-                                alignItems: 'center' 
+                            variant="outlined"
+                            size="small"
+                            startIcon={<Link />}
+                            sx={{ 
+                                color: '#830001',
+                                borderColor: '#830001',
+                                minWidth: 80,
+                                '&:hover': {
+                                    backgroundColor: '#830001',
+                                    color: 'white'
+                                }
                             }}
                         >
-                            <Link style={{ marginRight: '5px' }} />
                             View
-                        </a>
+                        </Button>
                     )}
-                    <Delete
+                    <IconButton
                         onClick={() => deleteAttachment(idx)}
-                        style={{
-                            cursor: 'pointer',
-                            color: '#d32f2f'
+                        sx={{
+                            color: '#d32f2f',
+                            '&:hover': {
+                                backgroundColor: 'rgba(211, 47, 47, 0.1)'
+                            }
                         }}
-                    />
-                </div>
+                        size="small"
+                    >
+                        <Delete />
+                    </IconButton>
+                </Box>
             ))}
         </>
     )

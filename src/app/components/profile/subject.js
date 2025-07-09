@@ -30,10 +30,12 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import DatePickerField from '@/app/components/common/DatePickerField'
 import Loading from '../common/Loading'
 import Toast from '../common/Toast'
+import { useFacultyData } from '../../../context/FacultyDataContext'
 
 // Add Form Component
 export const AddForm = ({ handleClose, modal }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const initialState = {
         code: '',
         name: '',
@@ -41,7 +43,6 @@ export const AddForm = ({ handleClose, modal }) => {
         end: ''
     }
     const [content, setContent] = useState(initialState)
-    const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
 
     const handleChange = (e) => {
@@ -72,8 +73,17 @@ export const AddForm = ({ handleClose, modal }) => {
 
             if (!result.ok) throw new Error('Failed to create')
             
+            // Update state through window component reference
+            if (window.getSubjectsComponent) {
+                const currentSubjects = window.getSubjectsComponent().getSubjects() || [];
+                const updatedSubjects = [...currentSubjects, data];
+                
+                // Update both local state and context
+                window.getSubjectsComponent().setSubjects(updatedSubjects);
+                updateFacultySection('teachingEngagement', updatedSubjects);
+            }
+            
             handleClose()
-            refreshData()
             setContent(initialState)
         } catch (error) {
             console.error('Error:', error)
@@ -145,8 +155,8 @@ export const AddForm = ({ handleClose, modal }) => {
 // Edit Form Component
 export const EditSubject = ({ handleClose, modal, values }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const [content, setContent] = useState(values)
-    const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
 
     const handleChange = (e) => {
@@ -172,8 +182,19 @@ export const EditSubject = ({ handleClose, modal, values }) => {
 
             if (!result.ok) throw new Error('Failed to update')
             
+            // Update state through window component reference
+            if (window.getSubjectsComponent) {
+                const currentSubjects = window.getSubjectsComponent().getSubjects();
+                const updatedSubjects = currentSubjects.map(subject => 
+                    subject.id === content.id ? content : subject
+                );
+                
+                // Update both local state and context
+                window.getSubjectsComponent().setSubjects(updatedSubjects);
+                updateFacultySection('teachingEngagement', updatedSubjects);
+            }
+            
             handleClose()
-            refreshData()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -296,17 +317,25 @@ export const SubjectList = ({ subjects, onEdit, onDelete }) => {
 // Main Subject Management Component
 export default function SubjectManagement() {
     const { data: session } = useSession()
+    const { getTeachingEngagement, loading: contextLoading, updateFacultySection } = useFacultyData()
     const [subjects, setSubjects] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedSubject, setSelectedSubject] = useState(null)
-    const [loading, setLoading] = useState(true)
-    const refreshData = useRefreshData(false)
+    const [loading, setLoading] = useState(false)
     const [toast, setToast] = useState({
         open: false,
         severity: 'success',
         message: ''
     })
+
+    // Set up component reference for child components
+    React.useEffect(() => {
+        window.getSubjectsComponent = () => ({
+            getSubjects: () => subjects,
+            setSubjects: (newSubjects) => setSubjects(newSubjects)
+        });
+    }, [subjects]);
 
     const handleCloseToast = (event, reason) => {
         if (reason === 'clickaway') return
@@ -321,25 +350,11 @@ export default function SubjectManagement() {
         })
     }
 
-    // Fetch subjects on component mount
+    // Get data from context
     React.useEffect(() => {
-        const fetchSubjects = async () => {
-            try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setSubjects(data.teaching_engagement || [])
-            } catch (error) {
-                console.error('Error fetching subjects:', error)
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        if (session?.user?.email) {
-            fetchSubjects()
-        }
-    }, [session, refreshData])
+        const teachingEngagement = getTeachingEngagement() || [];
+        setSubjects(teachingEngagement);
+    }, [getTeachingEngagement])
 
     const handleEdit = (subject) => {
         setSelectedSubject(subject)
@@ -353,15 +368,20 @@ export default function SubjectManagement() {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        type: 'subjects',
+                        type: 'teaching_engagement',
                         id,
                         email: session?.user?.email
                     }),
                 })
                 
                 if (!response.ok) throw new Error('Failed to delete')
+                
+                // Update local state and context
+                const updatedSubjects = subjects.filter(subject => subject.id !== id);
+                setSubjects(updatedSubjects);
+                updateFacultySection('teachingEngagement', updatedSubjects);
+                
                 showToast('Subject deleted successfully!')
-                refreshData()
             } catch (error) {
                 console.error('Error:', error)
                 showToast('Failed to delete subject', 'error')
@@ -369,7 +389,7 @@ export default function SubjectManagement() {
         }
     }
 
-    if (loading) return <Loading />
+    if (loading || contextLoading) return <Loading />
 
     return (
         <div>

@@ -28,9 +28,11 @@ import AddIcon from '@mui/icons-material/Add'
 import { parseISO, format } from 'date-fns';
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Checkbox from '@mui/material/Checkbox'
+import { useFacultyData } from '../../../context/FacultyDataContext'
 // Add Form Component
 export const AddForm = ({ handleClose, modal }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const initialState = {
         membership_id: '',
         membership_society: '',
@@ -38,7 +40,6 @@ export const AddForm = ({ handleClose, modal }) => {
         end: null
     }
     const [content, setContent] = useState(initialState)
-    const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
 
     const handleChange = (e) => {
@@ -49,27 +50,37 @@ export const AddForm = ({ handleClose, modal }) => {
         setSubmitting(true)
         e.preventDefault()
 
+        const newMembership = {
+            type: 'memberships',
+            ...content,
+            id: Date.now().toString(),
+            email: session?.user?.email
+        };
+
         try {
             const result = await fetch('/api/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'memberships',
-                    ...content,
-                    id: Date.now().toString(),
-                    email: session?.user?.email
-                }),
+                body: JSON.stringify(newMembership),
             })
 
             if (!result.ok) throw new Error('Failed to create')
             
+            // Update state through window component reference
+            if (window.getMembershipsComponent) {
+                const currentMemberships = window.getMembershipsComponent().getMemberships() || [];
+                const updatedMemberships = [...currentMemberships, newMembership];
+                
+                // Update both local state and context
+                window.getMembershipsComponent().setMemberships(updatedMemberships);
+                updateFacultySection('memberships', updatedMemberships);
+            }
+            
             handleClose()
-            refreshData()
             setContent(initialState)
         } catch (error) {
             console.error('Error:', error)
         } finally {
-            window.location.reload()
             setSubmitting(false)
         }
     }
@@ -148,8 +159,8 @@ export const AddForm = ({ handleClose, modal }) => {
 // Edit Form Component
 export const EditForm = ({ handleClose, modal, values }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const [content, setContent] = useState(values)
-    const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
 
     const handleChange = (e) => {
@@ -161,26 +172,38 @@ export const EditForm = ({ handleClose, modal, values }) => {
         e.preventDefault()
 
         try {
+            const updatedMembership = {
+                type: 'memberships',
+                ...content,
+                start_date: content.start_date ? new Date(content.start_date).toISOString().split('T')[0] : null,
+                end_date: content.end_date ? new Date(content.end_date).toISOString().split('T')[0] : null,
+                email: session?.user?.email
+            };
+            
             const result = await fetch('/api/update', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'memberships',
-                    ...content,
-                    start_date: content.start_date ? new Date(content.start_date).toISOString().split('T')[0] : null,
-                    end_date: content.end_date ? new Date(content.end_date).toISOString().split('T')[0] : null,
-                    email: session?.user?.email
-                }),
+                body: JSON.stringify(updatedMembership),
             })
 
             if (!result.ok) throw new Error('Failed to update')
             
+            // Update state through window component reference
+            if (window.getMembershipsComponent) {
+                const currentMemberships = window.getMembershipsComponent().getMemberships();
+                const updatedMemberships = currentMemberships.map(membership => 
+                    membership.id === content.id ? content : membership
+                );
+                
+                // Update both local state and context
+                window.getMembershipsComponent().setMemberships(updatedMemberships);
+                updateFacultySection('memberships', updatedMemberships);
+            }
+            
             handleClose()
-            refreshData()
         } catch (error) {
             console.error('Error:', error)
         } finally {
-            window.location.reload()
             setSubmitting(false)
         }
     }
@@ -272,32 +295,26 @@ export const EditForm = ({ handleClose, modal, values }) => {
 // Main Component
 export default function MembershipManagement() {
     const { data: session } = useSession()
+    const { getMemberships, loading: contextLoading, updateFacultySection } = useFacultyData()
     const [memberships, setMemberships] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedMembership, setSelectedMembership] = useState(null)
-    const [loading, setLoading] = useState(true)
-    const refreshData = useRefreshData(false)
+    const [loading, setLoading] = useState(false)
 
-    // Fetch data
+    // Set up component reference for child components
     React.useEffect(() => {
-        const fetchMemberships = async () => {
-            try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setMemberships(data.memberships || [])
-            } catch (error) {
-                console.error('Error:', error)
-            } finally {
-                setLoading(false)
-            }
-        }
+        window.getMembershipsComponent = () => ({
+            getMemberships: () => memberships,
+            setMemberships: (newMemberships) => setMemberships(newMemberships)
+        });
+    }, [memberships]);
 
-        if (session?.user?.email) {
-            fetchMemberships()
-        }
-    }, [session, refreshData])
+    // Get data from context
+    React.useEffect(() => {
+        const membershipsData = getMemberships() || [];
+        setMemberships(membershipsData);
+    }, [getMemberships])
 
     const handleEdit = (membership) => {
         setSelectedMembership(membership)
@@ -318,15 +335,18 @@ export default function MembershipManagement() {
                 })
                 
                 if (!response.ok) throw new Error('Failed to delete')
-                refreshData()
-            window.location.reload()
+                
+                // Update local state and context
+                const updatedMemberships = memberships.filter(membership => membership.id !== id);
+                setMemberships(updatedMemberships);
+                updateFacultySection('memberships', updatedMemberships);
             } catch (error) {
                 console.error('Error:', error)
             }
         }
     }
 
-    if (loading) return <div>Loading...</div>
+    if (loading || contextLoading) return <div>Loading...</div>
 
     return (
         <div>

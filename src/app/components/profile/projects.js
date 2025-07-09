@@ -22,6 +22,7 @@ import React, { useState } from 'react'
 import useRefreshData from '@/custom-hooks/refresh'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
+import { useFacultyData } from '../../../context/FacultyDataContext'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
@@ -51,25 +52,32 @@ export const AddForm = ({ handleClose, modal }) => {
         e.preventDefault()
 
         try {
+            const newProject = {
+                type: 'sponsored_projects',
+                ...content,
+                id: Date.now().toString(),
+                email: session?.user?.email
+            };
+            
             const result = await fetch('/api/create', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    type: 'sponsored_projects',
-                    ...content,
-                    id: Date.now().toString(),
-                    email: session?.user?.email
-                }),
+                body: JSON.stringify(newProject),
             })
 
             if (!result.ok) throw new Error('Failed to create')
             
+            // Get current projects from parent component
+            const { updateFacultyData, facultyData } = window.getProjectsComponent();
+            
+            // Update local state in parent component
+            const updatedProjects = [...(facultyData.sponsored_projects || []), newProject];
+            updateFacultyData(updatedProjects);
+            
             handleClose()
-            refreshData()
             setContent(initialState)
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -248,23 +256,32 @@ export const EditForm = ({ handleClose, modal, values }) => {
         setSubmitting(true)
 
         try {
+            const updatedProject = {
+                type: 'sponsored_projects',
+                ...content,
+                email: session?.user?.email
+            };
+            
             const result = await fetch('/api/update', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    type: 'sponsored_projects',
-                    ...content,
-                    email: session?.user?.email
-                }),
+                body: JSON.stringify(updatedProject),
             })
 
             if (!result.ok) throw new Error('Failed to update')
             
+            // Get current projects from parent component
+            const { updateFacultyData, facultyData } = window.getProjectsComponent();
+            
+            // Update local state in parent component
+            const updatedProjects = facultyData.sponsored_projects.map(project => 
+                project.id === content.id ? updatedProject : project
+            );
+            updateFacultyData(updatedProjects);
+            
             handleClose()
-            refreshData()
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -387,28 +404,30 @@ export default function ProjectManagement() {
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedProject, setSelectedProject] = useState(null)
-    const [loading, setLoading] = useState(true)
-    const refreshData = useRefreshData(false)
-
-    // Fetch data
+    const { facultyData, loading, updateFacultySection } = useFacultyData()
+    
+    // Use context data instead of API call
     React.useEffect(() => {
-        const fetchProjects = async () => {
-            try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setProjects(data.sponsored_projects || [])
-            } catch (error) {
-                console.error('Error:', error)
-            } finally {
-                setLoading(false)
-            }
+        if (facultyData?.sponsored_projects) {
+            console.log('Projects - Using context data:', facultyData.sponsored_projects)
+            setProjects(facultyData.sponsored_projects || [])
         }
-
-        if (session?.user?.email) {
-            fetchProjects()
-        }
-    }, [session, refreshData])
+    }, [facultyData])
+    
+    // Expose functions for child components
+    React.useEffect(() => {
+        window.getProjectsComponent = () => ({
+            updateFacultyData: (updatedProjects) => {
+                setProjects(updatedProjects);
+                updateFacultySection('sponsored_projects', updatedProjects);
+            },
+            facultyData: { sponsored_projects: projects }
+        });
+        
+        return () => {
+            delete window.getProjectsComponent;
+        };
+    }, [projects, updateFacultySection])
 
     const handleEdit = (project) => {
         setSelectedProject(project)
@@ -416,7 +435,7 @@ export default function ProjectManagement() {
     }
 
     const handleDelete = async (id) => {
-        if (confirm('Are you sure you want to delete this project?')) {
+        if (window.confirm('Are you sure you want to delete this project? This action cannot be undone.')) {
             try {
                 const response = await fetch('/api/delete', {
                     method: 'POST',
@@ -431,8 +450,13 @@ export default function ProjectManagement() {
                 })
                 
                 if (!response.ok) throw new Error('Failed to delete')
-                refreshData()
-                window.location.reload()
+                
+                // Update local state directly
+                const updatedProjects = projects.filter(project => project.id !== id);
+                setProjects(updatedProjects);
+                
+                // Update context
+                updateFacultySection('sponsored_projects', updatedProjects);
             } catch (error) {
                 console.error('Error:', error)
             }

@@ -20,6 +20,7 @@ import {
 } from '@mui/material'
 import { useSession } from 'next-auth/react'
 import { enGB } from 'date-fns/locale';
+import { useFacultyData } from '../../../context/FacultyDataContext';
 
 import React, { useState } from 'react'
 import useRefreshData from '@/custom-hooks/refresh'
@@ -34,6 +35,7 @@ import Checkbox from '@mui/material/Checkbox';
 // Add Form Component
 export const AddForm = ({ handleClose, modal }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const initialState = {
         category: '',
         project_title: '',
@@ -44,7 +46,6 @@ export const AddForm = ({ handleClose, modal }) => {
         end_date:''
     }
     const [content, setContent] = useState(initialState)
-    const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
 
     const handleChange = (e) => {
@@ -56,29 +57,38 @@ export const AddForm = ({ handleClose, modal }) => {
         e.preventDefault()
 
         try {
+            const newProject = {
+              type: 'project_supervision',
+              ...content,
+              // Format start_date and end_date to 'YYYY-MM-DD' for DATE or 'YYYY-MM-DD HH:MM:SS' for DATETIME
+              start_date: content.start_date
+                ? new Date(content.start_date).toISOString().split('T')[0]  // Format as 'YYYY-MM-DD'
+                : null,
+              end_date: content.end_date,
+              id: Date.now().toString(),
+              email: session?.user?.email,
+            };
+            
             const result = await fetch('/api/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  type: 'project_supervision',
-                  ...content,
-                  // Format start_date and end_date to 'YYYY-MM-DD' for DATE or 'YYYY-MM-DD HH:MM:SS' for DATETIME
-                  start_date: content.start_date
-                    ? new Date(content.start_date).toISOString().split('T')[0]  // Format as 'YYYY-MM-DD'
-                    : null,
-                  end_date: content.end_date,
-                  id: Date.now().toString(),
-                  email: session?.user?.email,
-                }),
-              });
+                body: JSON.stringify(newProject),
+            });
               
-
             if (!result.ok) throw new Error('Failed to create')
             
+            // Update state through window component reference
+            if (window.getProjectSupervisionComponent) {
+                const currentProjects = window.getProjectSupervisionComponent().getProjects() || [];
+                const updatedProjects = [...currentProjects, newProject];
+                
+                // Update both local state and context
+                window.getProjectSupervisionComponent().setProjects(updatedProjects);
+                updateFacultySection('projectSupervision', updatedProjects);
+            }
+            
             handleClose()
-            refreshData()
             setContent(initialState)
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -207,8 +217,8 @@ export const AddForm = ({ handleClose, modal }) => {
 // Edit Form Component
 export const EditForm = ({ handleClose, modal, values }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const [content, setContent] = useState(values)
-    const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
 
     const handleChange = (e) => {
@@ -232,9 +242,17 @@ export const EditForm = ({ handleClose, modal, values }) => {
 
             if (!result.ok) throw new Error('Failed to update')
             
+            const updatedData = await result.json();
+                
+            // Update the context data
+            updateFacultySection(17, updatedData.data);
+            
+            // Update the component's state via the window reference
+            if (window.getProjectSupervisionComponent) {
+                window.getProjectSupervisionComponent().updateData(updatedData.data);
+            }
+            
             handleClose()
-            refreshData()
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -358,32 +376,26 @@ export const EditForm = ({ handleClose, modal, values }) => {
 // Main Component
 export default function ProjectSupervisionManagement() {
     const { data: session } = useSession()
+    const { getProjectSupervision, loading: contextLoading, updateFacultySection } = useFacultyData()
     const [projects, setProjects] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedProject, setSelectedProject] = useState(null)
-    const [loading, setLoading] = useState(true)
-    const refreshData = useRefreshData(false)
+    const [loading, setLoading] = useState(false)
 
-    // Fetch data
+    // Set up component reference for child components
     React.useEffect(() => {
-        const fetchProjects = async () => {
-            try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setProjects(data.project_supervision || [])
-            } catch (error) {
-                console.error('Error:', error)
-            } finally {
-                setLoading(false)
-            }
-        }
+        window.getProjectSupervisionComponent = () => ({
+            getProjects: () => projects,
+            setProjects: (newProjects) => setProjects(newProjects)
+        });
+    }, [projects]);
 
-        if (session?.user?.email) {
-            fetchProjects()
-        }
-    }, [session, refreshData])
+    // Get data from context
+    React.useEffect(() => {
+        const projectSupervisionData = getProjectSupervision() || [];
+        setProjects(projectSupervisionData);
+    }, [getProjectSupervision])
 
     const handleEdit = (project) => {
         setSelectedProject(project)
@@ -404,8 +416,11 @@ export default function ProjectSupervisionManagement() {
                 })
                 
                 if (!response.ok) throw new Error('Failed to delete')
-                refreshData()
-            window.location.reload()
+                
+                // Update local state and context
+                const updatedProjects = projects.filter(project => project.id !== id);
+                setProjects(updatedProjects);
+                updateFacultySection('projectSupervision', updatedProjects);
             } catch (error) {
                 console.error('Error:', error)
             }

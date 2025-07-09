@@ -1,172 +1,155 @@
 "use client"
 import {
     IconButton,
-    TableFooter,
-    TablePagination,
-    TableRow,
     Typography,
+    Box,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
+    Tooltip,
+    Chip
 } from '@mui/material'
 import Button from '@mui/material/Button'
-import Grid from '@material-ui/core/Grid'
-import Paper from '@material-ui/core/Paper'
-import { makeStyles, useTheme } from '@material-ui/core/styles'
 import {
-    Edit,
-    Flag,
-    Link,
-    LocationOn,
-    KeyboardArrowLeft,
-    KeyboardArrowRight,
-    Description,
-} from '@material-ui/icons'
+    Edit as EditIcon,
+    Visibility as VisibilityIcon,
+    Delete as DeleteIcon,
+    Add as AddIcon,
+    Star as StarIcon,
+    Description as DescriptionIcon
+} from '@mui/icons-material'
 import React, { useState, useEffect } from 'react'
 import { DescriptionModal } from './common-props/description-modal'
 import { useSession } from 'next-auth/react'
 import { AddForm } from './news-props/add-form'
 import { EditForm } from './news-props/edit-form'
 import Filter from './common-props/filter'
-import PropTypes from 'prop-types'
-import FirstPageIcon from '@material-ui/icons/FirstPage'
-import LastPageIcon from '@material-ui/icons/LastPage'
 
-const useStyles = makeStyles((theme) => ({
-    root: {
-        flexGrow: 1,
-        boxSizing: `border-box`,
-    },
-    paper: {
-        margin: `${theme.spacing(1)}px auto`,
-        padding: `${theme.spacing(1.5)}px`,
-        lineHeight: 1.5,
-    },
-    truncate: {
-        display: `block`,
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: `nowrap`,
-    },
-    icon: {
-        display: `block`,
-        fontSize: `2rem`,
-        marginLeft: `auto`,
-        marginRight: `auto`,
-    },
-    attached: {
-        '& > span': { paddingLeft: `8px` },
-        '& > span:first-child': {
-            paddingLeft: 0,
-        },
-    },
-}))
-
-const useStyles1 = makeStyles((theme) => ({
-    root: {
-        flexShrink: 0,
-        marginRight: theme.spacing(2.5),
-    },
-}))
-
-function TablePaginationActions(props) {
-    const classes = useStyles1()
-    const theme = useTheme()
-    const { count, page, rowsPerPage, onPageChange } = props
-
-    const handleFirstPageButtonClick = (event) => {
-        onPageChange(event, 0)
+// Helper function to format dates safely
+const formatDate = (dateValue) => {
+    if (!dateValue) return 'N/A'
+    
+    let date
+    // Handle different date formats
+    if (typeof dateValue === 'string') {
+        // If it's a string timestamp, convert to number first
+        const timestamp = parseInt(dateValue, 10)
+        if (!isNaN(timestamp)) {
+            date = new Date(timestamp)
+        } else {
+            // Try parsing as date string
+            date = new Date(dateValue)
+        }
+    } else if (typeof dateValue === 'number') {
+        // If it's already a number timestamp
+        date = new Date(dateValue)
+    } else {
+        // If it's already a Date object
+        date = dateValue
     }
-
-    const handleBackButtonClick = (event) => {
-        onPageChange(event, page - 1)
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+        return 'Invalid Date'
     }
-
-    const handleNextButtonClick = (event) => {
-        onPageChange(event, page + 1)
-    }
-
-    const handleLastPageButtonClick = (event) => {
-        onPageChange(event, Math.max(0, Math.ceil(count / rowsPerPage) - 1))
-    }
-
-    return (
-        <div className={classes.root}>
-            <IconButton
-                onClick={handleFirstPageButtonClick}
-                disabled={page <= 0}
-                aria-label="first page"
-            >
-                {theme.direction === 'rtl' ? (
-                    <LastPageIcon />
-                ) : (
-                    <FirstPageIcon />
-                )}
-            </IconButton>
-            <IconButton
-                onClick={handleBackButtonClick}
-                disabled={page <= 0}
-                aria-label="previous page"
-            >
-                {theme.direction === 'rtl' ? (
-                    <KeyboardArrowRight />
-                ) : (
-                    <KeyboardArrowLeft />
-                )}
-            </IconButton>
-            <IconButton
-                onClick={handleNextButtonClick}
-                // disabled={page >= Math.ceil(count / rowsPerPage) - 1}
-                aria-label="next page"
-            >
-                {theme.direction === 'rtl' ? (
-                    <KeyboardArrowLeft />
-                ) : (
-                    <KeyboardArrowRight />
-                )}
-            </IconButton>
-            <IconButton
-                onClick={handleLastPageButtonClick}
-                // disabled={page >= Math.ceil(count / rowsPerPage) - 1}
-                aria-label="last page"
-            >
-                {theme.direction === 'rtl' ? (
-                    <FirstPageIcon />
-                ) : (
-                    <LastPageIcon />
-                )}
-            </IconButton>
-        </div>
-    )
+    
+    return date.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit', 
+        year: 'numeric'
+    })
 }
 
-TablePaginationActions.propTypes = {
-    count: PropTypes.number.isRequired,
-    onPageChange: PropTypes.func.isRequired,
-    page: PropTypes.number.isRequired,
-    rowsPerPage: PropTypes.number.isRequired,
+
+
+// News Table Row Component
+const News = ({ newsItem, session, handleOpenEditModal, handleOpenDeleteModal, handleOpenDetailsModal }) => {
+    return (
+        <TableRow hover>
+            <TableCell>
+                <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {newsItem.title}
+                </Typography>
+            </TableCell>
+            <TableCell>
+                <Typography variant="body2">
+                    {formatDate(newsItem.updatedAt || newsItem.timestamp)}
+                </Typography>
+            </TableCell>
+            <TableCell>
+                <Typography variant="body2">
+                    {formatDate(newsItem.openDate)}
+                </Typography>
+            </TableCell>
+            <TableCell>
+                <Typography variant="body2">
+                    {newsItem.type || 'general'}
+                </Typography>
+            </TableCell>
+            <TableCell>
+                {newsItem.attachments && newsItem.attachments.length > 0 ? (
+                    <Chip 
+                        label={`${newsItem.attachments.length} file(s)`}
+                        size="small"
+                        color="primary"
+                        variant="outlined"
+                    />
+                ) : (
+                    <Typography variant="body2" color="textSecondary">
+                        No attachments
+                    </Typography>
+                )}
+            </TableCell>
+            <TableCell>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Tooltip title="View Details">
+                        <IconButton
+                            size="small"
+                            onClick={() => handleOpenDetailsModal(newsItem)}
+                            color="info"
+                        >
+                            <VisibilityIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                    {(session?.user?.role === 'SUPER_ADMIN' || 
+                      session?.user?.role === 'ACADEMIC_ADMIN' || 
+                      session?.user?.role === 'DEPT_ADMIN') && (
+                        <>
+                            <Tooltip title="Edit">
+                                <IconButton
+                                    size="small"
+                                    onClick={() => handleOpenEditModal(newsItem)}
+                                    color="primary"
+                                >
+                                    <EditIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Delete">
+                                <IconButton
+                                    size="small"
+                                    onClick={() => handleOpenDeleteModal(newsItem)}
+                                    color="error"
+                                >
+                                    <DeleteIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        </>
+                    )}
+                </Box>
+            </TableCell>
+        </TableRow>
+    )
 }
 
 const DataDisplay = (props) => {
     const {data:session,status}= useSession()
     const loading = status === "loading";
-    const classes = useStyles()
     const [details, setDetails] = useState(props.data)
     const [filterQuery, setFilterQuery] = useState(null)
-
-    // const [rows, setRows] = useState(props.data);
-    // const totalRow = [...rows]
-    const [page, setPage] = React.useState(0)
-    const [rowsPerPage, setRowsPerPage] = React.useState(15)
-
-    // const emptyRows =
-    // 	rowsPerPage - Math.min(rowsPerPage, rows.length - page * rowsPerPage);
-
-    const handleChangePage = (event, newPage) => {
-        setPage(newPage)
-    }
-
-    const handleChangeRowsPerPage = (event) => {
-        setRowsPerPage(parseInt(event.target.value, 10))
-        setPage(0)
-    }
     const [addModal, setAddModal] = useState(false)
     const addModalOpen = () => {
         setAddModal(true)
@@ -184,9 +167,7 @@ const DataDisplay = (props) => {
                     Accept: 'application/json',
                 },
                 body: JSON.stringify({
-                    from: page * rowsPerPage,
-                    to: page * rowsPerPage + rowsPerPage,
-                    type:"between"
+                    type:"all"
                 }),
             })
                 .then((res) => res.json())
@@ -204,202 +185,138 @@ const DataDisplay = (props) => {
                 },
                 body: JSON.stringify({
                     ...filterQuery,
-                    from: page * rowsPerPage,
-                    to: page * rowsPerPage + rowsPerPage,
                     type:"range"
                 }),
             })
                 .then((res) => res.json())
                 .then((data) => {
-                    // console.log(data)
                     setDetails(data)
                 })
                 .catch((err) => console.log(err))
         }
+    }, [filterQuery])
 
-        console.log(filterQuery)
-        // setDetails(await response.json());
+    // Modal state management
+    const [editModal, setEditModal] = useState(false)
+    const [deleteModal, setDeleteModal] = useState(false)
+    const [detailsModal, setDetailsModal] = useState(false)
+    const [selectedNews, setSelectedNews] = useState(null)
 
-        // console.log("page : ", page)
-        // console.log("rowperpage : ", rowsPerPage)
+    const handleOpenEditModal = (newsItem) => {
+        setSelectedNews(newsItem)
+        setEditModal(true)
+    }
 
-        // console.log(response.json());
-    }, [page, rowsPerPage, filterQuery])
+    const handleCloseEditModal = () => {
+        setEditModal(false)
+        setSelectedNews(null)
+    }
 
-    const News = ({detail }) => {
-        let openDate = new Date(detail.timestamp)
-        let dd = openDate.getDate()
-        let mm = openDate.getMonth() + 1
-        let yyyy = openDate.getFullYear()
-        openDate = dd + '/' + mm + '/' + yyyy
+    const handleOpenDeleteModal = (newsItem) => {
+        setSelectedNews(newsItem)
+        setDeleteModal(true)
+    }
 
-        const [editModal, setEditModal] = useState(false)
-        const [descriptionModal, setDescriptionModal] = useState(false)
+    const handleCloseDeleteModal = () => {
+        setDeleteModal(false)
+        setSelectedNews(null)
+    }
 
-        const editModalOpen = () => {
-            setEditModal(true)
-        }
+    const handleOpenDetailsModal = (newsItem) => {
+        setSelectedNews(newsItem)
+        setDetailsModal(true)
+    }
 
-        const handleCloseEditModal = () => {
-            setEditModal(false)
-        }
-
-        const descModalOpen = () => {
-            setDescriptionModal(true)
-        }
-
-        const handleCloseDescModal = () => {
-            setDescriptionModal(false)
-        }
-
-        return (
-            <React.Fragment key={detail.id}>
-                <Grid item xs={12} sm={8} lg={10}>
-                    <Paper
-                        className={classes.paper}
-                        style={{ minHeight: `50px`, position: `relative` }}
-                    >
-                        <span className={classes.truncate}>{detail.title}</span>
-                        <div className={classes.attached}>
-                            {detail.image &&
-                                detail.image.map((img, idx) => {
-                                    return (
-                                        <span
-                                            key={idx}
-                                            style={{
-                                                display: `inline-flex`,
-                                                margin: `5px 0 `,
-                                            }}
-                                        >
-                                            <Flag color="secondary" />
-                                            <a
-                                                href={img.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                {img.caption}
-                                            </a>{' '}
-                                        </span>
-                                    )
-                                })}{' '}
-                            {detail.attachments &&
-                                detail.attachments.map((atch, idx) => {
-                                    return (
-                                        <span
-                                            key={idx}
-                                            style={{
-                                                display: `inline-flex`,
-                                                margin: `5px 0 `,
-                                            }}
-                                        >
-                                            <Flag />
-                                            <a
-                                                href={atch.url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
-                                                {atch.caption}
-                                            </a>{' '}
-                                        </span>
-                                    )
-                                })}
-                        </div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-                            <div>Uploaded By : {detail.email} </div>
-                            <div>Updated By: {detail.updatedBy} </div>
-                            <div>Open Date: {openDate}</div>
-                        </div>
-                    </Paper>
-                </Grid>
-
-                <Grid item xs={6} sm={2} lg={1}>
-                    <Paper
-                        className={classes.paper}
-                        style={{ textAlign: `center`, cursor: `pointer` }}
-                        onClick={descModalOpen}
-                    >
-                        <Description className={classes.icon} />
-                        <span>Description</span>
-                    </Paper>
-                    <DescriptionModal
-                        data={detail}
-                        handleClose={handleCloseDescModal}
-                        modal={descriptionModal}
-                    />
-                </Grid>
-                {session.user.role == 1 ||
-                session.user.email === detail.email ? (
-                    <Grid item xs={6} sm={2} lg={1}>
-                        <Paper
-                            className={classes.paper}
-                            style={{ textAlign: `center`, cursor: `pointer` }}
-                            onClick={editModalOpen}
-                        >
-                            <Edit className={classes.icon} /> <span>Edit</span>
-                        </Paper>
-                        <EditForm
-                            data={detail}
-                            modal={editModal}
-                            handleClose={handleCloseEditModal}
-                        />
-                    </Grid>
-                ) : (
-                    <Grid item xs={6} sm={2} lg={1}>
-                        <Paper
-                            className={classes.paper}
-                            style={{ textAlign: `center`, cursor: `pointer` }}
-                        ></Paper>{' '}
-                    </Grid>
-                )}
-            </React.Fragment>
-        )
+    const handleCloseDetailsModal = () => {
+        setDetailsModal(false)
+        setSelectedNews(null)
     }
 
     return (
-        <>
-            <header>
-                <Typography variant="h4" style={{ margin: `15px 0` }}>
+        <Box sx={{ p: 3 }}>
+            {/* Header */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <Typography variant="h4" component="h1" sx={{ fontWeight: 600 }}>
                     Recent News
                 </Typography>
-                <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={addModalOpen}
-                >
-                    ADD +
-                </Button>
+                {(session?.user?.role === 'SUPER_ADMIN' || 
+                  session?.user?.role === 'ACADEMIC_ADMIN' || 
+                  session?.user?.role === 'DEPT_ADMIN') && (
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={addModalOpen}
+                        startIcon={<AddIcon />}
+                        sx={{ borderRadius: 2 }}
+                    >
+                        Add News
+                    </Button>
+                )}
+            </Box>
+
+            {/* Filter */}
+            <Box sx={{ mb: 3 }}>
                 <Filter type="news" setEntries={setFilterQuery} />
-            </header>
+            </Box>
 
+            {/* Table */}
+            <Paper elevation={2} sx={{ borderRadius: 2, overflow: 'hidden' }}>
+                <TableContainer>
+                    <Table>
+                        <TableHead>
+                            <TableRow sx={{ bgcolor: 'primary.main' }}>
+                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Title</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Updated Date</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Open Date</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Type</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Attachments</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Actions</TableCell>
+                            </TableRow>
+                        </TableHead>
+                        <TableBody>
+                            {details && details.length > 0 ? (
+                                details.map((newsItem, index) => (
+                                    <News
+                                        key={newsItem.id || index}
+                                        newsItem={newsItem}
+                                        session={session}
+                                        handleOpenEditModal={handleOpenEditModal}
+                                        handleOpenDeleteModal={handleOpenDeleteModal}
+                                        handleOpenDetailsModal={handleOpenDetailsModal}
+                                    />
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                                        <Typography variant="body1" color="textSecondary">
+                                            No news items found
+                                        </Typography>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </TableContainer>
+            </Paper>
+
+            {/* Modals */}
             <AddForm handleClose={handleCloseAddModal} modal={addModal} />
-
-            <Grid container spacing={2} className={classes.root}>
-                {/* {details.map((row, index) => {
-                    return <News key={row.id || index} detail={row} />;
-                })} */}
-                {(details && details.length > 0) ? details.map((row, index) => (
-                <News key={row.id || index} detail={row} />
-            )) : null}
-            </Grid>
-            <TableFooter>
-                <TableRow>
-                    <TablePagination
-                        rowsPerPageOptions={[15, 25, 50, 100]}
-                        colSpan={7}
-                        count={rowsPerPage * page + details.length}
-                        rowsPerPage={rowsPerPage}
-                        page={page}
-                        selectprops={{
-                            inputProps: { 'aria-label': 'rows per page' },
-                            native: true,
-                        }}
-                        onPageChange={handleChangePage}
-                        onRowsPerPageChange={handleChangeRowsPerPage}
-                        ActionsComponent={TablePaginationActions}
+            
+            {selectedNews && (
+                <>
+                    <EditForm
+                        data={selectedNews}
+                        modal={editModal}
+                        handleClose={handleCloseEditModal}
                     />
-                </TableRow>
-            </TableFooter>
-        </>
+                    <DescriptionModal
+                        data={selectedNews}
+                        handleClose={handleCloseDetailsModal}
+                        modal={detailsModal}
+                    />
+                </>
+            )}
+        </Box>
     )
 }
 

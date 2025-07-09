@@ -23,6 +23,7 @@ import AddIcon from '@mui/icons-material/Add'
 import SearchIcon from '@mui/icons-material/Search'
 import { AddFaculty } from './faculty-management-props/addfaculty'
 import { EditFaculty } from './faculty-management-props/editfaculty'
+import Loading from './common/Loading'
 
 const columns = [
   { id: 'name', label: 'Name', minWidth: 170 },
@@ -117,7 +118,7 @@ export function FacultyTable() {
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
-        <CircularProgress />
+        <Loading />
       </div>
     )
   }

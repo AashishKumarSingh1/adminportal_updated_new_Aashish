@@ -9,7 +9,11 @@ import {
     InputLabel,
     Select,
     MenuItem,
-    IconButton
+    IconButton,
+    Grid,
+    Typography,
+    Divider,
+    Box
 } from '@mui/material'
 import { Delete, Link } from '@mui/icons-material'
 import { useSession } from 'next-auth/react'
@@ -118,138 +122,240 @@ export const EditForm = ({ data, handleClose, modal }) => {
     }
 
     return (
-        <Dialog open={modal} onClose={handleClose} maxWidth="md" fullWidth>
+        <Dialog 
+            open={modal} 
+            onClose={handleClose} 
+            maxWidth="md" 
+            fullWidth
+            PaperProps={{
+                sx: {
+                    borderRadius: 2,
+                    '& .MuiDialogContent-root': {
+                        '&::-webkit-scrollbar': {
+                            display: 'none'
+                        },
+                        '-ms-overflow-style': 'none',
+                        'scrollbar-width': 'none'
+                    }
+                }
+            }}
+        >
             <form onSubmit={handleSubmit}>
-                <DialogTitle>
-                    Edit Event
+                <DialogTitle sx={{ 
+                    position: 'sticky', 
+                    top: 0, 
+                    bgcolor: 'background.paper', 
+                    zIndex: 1,
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                }}>
+                    <Typography variant="h6" component="div">
+                        Edit Event
+                    </Typography>
                     <IconButton
                         onClick={handleDelete}
-                        style={{
-                            position: 'absolute',
-                            right: '8px',
-                            top: '8px',
-                            color: '#d32f2f'
-                        }}
+                        color="error"
+                        sx={{ ml: 1 }}
                     >
                         <Delete />
                     </IconButton>
                 </DialogTitle>
-                <DialogContent>
-                    <TextField
-                        margin="dense"
-                        label="Title"
-                        name="title"
-                        type="text"
-                        required
-                        fullWidth
-                        value={content.title}
-                        onChange={handleChange}
-                    />
-                    <TextField
-                        margin="dense"
-                        label="Open Date"
-                        name="openDate"
-                        type="date"
-                        required
-                        fullWidth
-                        value={content.openDate}
-                        onChange={handleChange}
-                        InputLabelProps={{
-                            shrink: true,
-                        }}
-                    />
-                    <TextField
-                        margin="dense"
-                        label="Close Date"
-                        name="closeDate"
-                        type="date"
-                        required
-                        fullWidth
-                        value={content.closeDate}
-                        onChange={handleChange}
-                        InputLabelProps={{
-                            shrink: true,
-                        }}
-                    />
-                    <TextField
-                        margin="dense"
-                        label="Event Start Date"
-                        name="eventStartDate"
-                        type="date"
-                        required
-                        fullWidth
-                        value={content.eventStartDate}
-                        onChange={handleChange}
-                        InputLabelProps={{
-                            shrink: true,
-                        }}
-                    />
-                    <TextField
-                        margin="dense"
-                        label="Event End Date"
-                        name="eventEndDate"
-                        type="date"
-                        required
-                        fullWidth
-                        value={content.eventEndDate}
-                        onChange={handleChange}
-                        InputLabelProps={{
-                            shrink: true,
-                        }}
-                    />
-                    <TextField
-                        margin="dense"
-                        label="Venue"
-                        name="venue"
-                        type="text"
-                        required
-                        fullWidth
-                        value={content.venue}
-                        onChange={handleChange}
-                    />
-                    <TextField
-                        margin="dense"
-                        label="Registration Link"
-                        name="doclink"
-                        type="text"
-                        fullWidth
-                        value={content.doclink}
-                        onChange={handleChange}
-                    />
-                    
-                    <FormControl fullWidth margin="dense">
-                        <InputLabel>Type</InputLabel>
-                        <Select
-                            name="type"
-                            value={content.type}
-                            onChange={handleChange}
-                        >
-                            <MenuItem value="general">General</MenuItem>
-                            <MenuItem value="intranet">Intranet</MenuItem>
-                        </Select>
-                    </FormControl>
+                
+                <DialogContent sx={{ mt: 1 }}>
+                    <Grid container spacing={2}>
+                        {/* Basic Information Section */}
+                        <Grid item xs={12}>
+                            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, color: 'primary.main' }}>
+                                Basic Information
+                            </Typography>
+                            <Divider sx={{ mb: 2 }} />
+                        </Grid>
+                        
+                        <Grid item xs={12}>
+                            <TextField
+                                label="Event Title"
+                                name="title"
+                                type="text"
+                                required
+                                fullWidth
+                                value={content.title}
+                                onChange={handleChange}
+                                variant="outlined"
+                            />
+                        </Grid>
+                        
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                label="Venue"
+                                name="venue"
+                                type="text"
+                                required
+                                fullWidth
+                                value={content.venue}
+                                onChange={handleChange}
+                                variant="outlined"
+                            />
+                        </Grid>
+                        
+                        <Grid item xs={12} sm={6}>
+                            <FormControl fullWidth variant="outlined">
+                                <InputLabel>Event Type</InputLabel>
+                                <Select
+                                    name="type"
+                                    value={content.type}
+                                    onChange={handleChange}
+                                    label="Event Type"
+                                >
+                                    <MenuItem value="general">General</MenuItem>
+                                    <MenuItem value="intranet">Intranet</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Grid>
 
-                    <DisplayAdditionalAttach
-                        add_attach={add_attach}
-                        setAdd_attach={setAdd_attach}
-                        deleteArray={deleteArray}
-                    />
+                        {/* Date Information Section */}
+                        <Grid item xs={12} sx={{ mt: 2 }}>
+                            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, color: 'primary.main' }}>
+                                Date Information
+                            </Typography>
+                            <Divider sx={{ mb: 2 }} />
+                        </Grid>
+                        
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                label="Registration Open Date"
+                                name="openDate"
+                                type="date"
+                                required
+                                fullWidth
+                                value={content.openDate}
+                                onChange={handleChange}
+                                InputLabelProps={{ shrink: true }}
+                                variant="outlined"
+                            />
+                        </Grid>
+                        
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                label="Registration Close Date"
+                                name="closeDate"
+                                type="date"
+                                required
+                                fullWidth
+                                value={content.closeDate}
+                                onChange={handleChange}
+                                InputLabelProps={{ shrink: true }}
+                                variant="outlined"
+                            />
+                        </Grid>
+                        
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                label="Event Start Date"
+                                name="eventStartDate"
+                                type="date"
+                                required
+                                fullWidth
+                                value={content.eventStartDate}
+                                onChange={handleChange}
+                                InputLabelProps={{ shrink: true }}
+                                variant="outlined"
+                            />
+                        </Grid>
+                        
+                        <Grid item xs={12} sm={6}>
+                            <TextField
+                                label="Event End Date"
+                                name="eventEndDate"
+                                type="date"
+                                required
+                                fullWidth
+                                value={content.eventEndDate}
+                                onChange={handleChange}
+                                InputLabelProps={{ shrink: true }}
+                                variant="outlined"
+                            />
+                        </Grid>
 
-                    <AddAttachments
-                        attachments={new_attach}
-                        setAttachments={setNew_attach}
-                    />
+                        {/* Additional Information Section */}
+                        <Grid item xs={12} sx={{ mt: 2 }}>
+                            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, color: 'primary.main' }}>
+                                Additional Information
+                            </Typography>
+                            <Divider sx={{ mb: 2 }} />
+                        </Grid>
+                        
+                        <Grid item xs={12}>
+                            <TextField
+                                label="Registration Link (Optional)"
+                                name="doclink"
+                                type="url"
+                                fullWidth
+                                value={content.doclink}
+                                onChange={handleChange}
+                                variant="outlined"
+                                placeholder="https://..."
+                            />
+                        </Grid>
+
+                        {/* Existing Attachments Section */}
+                        {add_attach && add_attach.length > 0 && (
+                            <>
+                                <Grid item xs={12} sx={{ mt: 2 }}>
+                                    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, color: 'primary.main' }}>
+                                        Existing Attachments
+                                    </Typography>
+                                    <Divider sx={{ mb: 2 }} />
+                                </Grid>
+                                
+                                <Grid item xs={12}>
+                                    <DisplayAdditionalAttach
+                                        add_attach={add_attach}
+                                        setAdd_attach={setAdd_attach}
+                                        deleteArray={deleteArray}
+                                    />
+                                </Grid>
+                            </>
+                        )}
+
+                        {/* New Attachments Section */}
+                        <Grid item xs={12} sx={{ mt: 2 }}>
+                            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, color: 'primary.main' }}>
+                                Add New Attachments
+                            </Typography>
+                            <Divider sx={{ mb: 2 }} />
+                        </Grid>
+                        
+                        <Grid item xs={12}>
+                            <AddAttachments
+                                attachments={new_attach}
+                                setAttachments={setNew_attach}
+                            />
+                        </Grid>
+                    </Grid>
                 </DialogContent>
 
-                <DialogActions>
-                    <Button onClick={handleClose}>Cancel</Button>
+                <DialogActions sx={{ 
+                    position: 'sticky', 
+                    bottom: 0, 
+                    bgcolor: 'background.paper', 
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                    p: 2
+                }}>
+                    <Button onClick={handleClose} variant="outlined">
+                        Cancel
+                    </Button>
                     <Button 
                         type="submit"
                         variant="contained"
                         color="primary"
                         disabled={submitting}
+                        sx={{ minWidth: 100 }}
                     >
-                        {submitting ? 'Saving...' : 'Save'}
+                        {submitting ? 'Saving...' : 'Save Changes'}
                     </Button>
                 </DialogActions>
             </form>

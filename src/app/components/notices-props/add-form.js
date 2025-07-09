@@ -10,7 +10,11 @@ import {
     Select,
     MenuItem,
     Checkbox,
-    FormControlLabel
+    FormControlLabel,
+    Box,
+    Typography,
+    Divider,
+    Grid
 } from '@mui/material'
 import { useSession } from 'next-auth/react'
 import React, { useState } from 'react'
@@ -18,13 +22,26 @@ import { AddAttachments } from './../common-props/add-attachment'
 import { handleNewAttachments } from './../common-props/add-attachment'
 import { administrationList, depList } from './../../../lib/const'
 
+// Helper function to get default close date (6 months from now)
+const getDefaultCloseDate = () => {
+    const now = new Date()
+    const sixMonthsLater = new Date(now.getFullYear(), now.getMonth() + 6, now.getDate())
+    return sixMonthsLater.toISOString().split('T')[0]
+}
+
+// Helper function to get today's date
+const getTodayDate = () => {
+    const today = new Date()
+    return today.toISOString().split('T')[0]
+}
+
 export const AddForm = ({ handleClose, modal }) => {
     const { data: session } = useSession()
     const [submitting, setSubmitting] = useState(false)
     const [content, setContent] = useState({
         title: '',
-        openDate: '',
-        closeDate: '',
+        openDate: getTodayDate(),
+        closeDate: getDefaultCloseDate(),
         
         type: 'academics',
         category: 'academics',
@@ -120,97 +137,190 @@ export const AddForm = ({ handleClose, modal }) => {
     return (
         <Dialog open={modal} onClose={handleClose} maxWidth="md" fullWidth>
             <form onSubmit={handleSubmit}>
-                <DialogTitle>Create New Notice</DialogTitle>
-                <DialogContent>
-                    <TextField
-                        margin="dense"
-                        label="Title"
-                        name="title"
-                        type="text"
-                        required
-                        fullWidth
-                        value={content.title}
-                        onChange={handleChange}
-                    />
-                    
-                    <TextField
-                        margin="dense"
-                        label="Open Date"
-                        name="openDate"
-                        type="date"
-                        required
-                        fullWidth
-                        value={content.openDate}
-                        onChange={handleChange}
-                        InputLabelProps={{
-                            shrink: true,
-                        }}
-                    />
-                    <TextField
-                        margin="dense"
-                        label="Close Date"
-                        name="closeDate"
-                        type="date"
-                        required
-                        fullWidth
-                        value={content.closeDate}
-                        onChange={handleChange}
-                        InputLabelProps={{
-                            shrink: true,
-                        }}
-                    />
-                    <FormControlLabel
-                        control={
-                            <Checkbox
-                                name="important"
-                                checked={Boolean(content.important)}
-                                onChange={handleChange}
-                                color="primary"
-                            />
-                        }
-                        label="Important"
-                    />
-                    <FormControl fullWidth margin="dense">
-                        <InputLabel>Type</InputLabel>
-                        <Select
-                            name="type"
-                            value={content.type}
+                <DialogTitle 
+                    sx={{ 
+                        backgroundColor: '#830001', 
+                        color: 'white',
+                        fontWeight: 600,
+                        fontSize: '1.25rem',
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 1300
+                    }}
+                >
+                    Create New Notice
+                </DialogTitle>
+                <DialogContent sx={{ 
+                    mt: 2, 
+                    maxHeight: '70vh', 
+                    overflowY: 'auto',
+                    '&::-webkit-scrollbar': {
+                        display: 'none'
+                    },
+                    scrollbarWidth: 'none',  // Firefox
+                    msOverflowStyle: 'none'  // IE and Edge
+                }}>
+                    <Box sx={{ mb: 3 }}>
+                        <Typography variant="h6" sx={{ mb: 2, color: '#333', fontWeight: 500 }}>
+                            Notice Details
+                        </Typography>
+                        <TextField
+                            margin="dense"
+                            label="Notice Title"
+                            name="title"
+                            type="text"
+                            required
+                            fullWidth
+                            value={content.title}
                             onChange={handleChange}
-                            defaultValue={session?.user?.role === 'ACADEMIC_ADMIN' ? 'academics' : 'general'}
-                        >
-                            {getNoticeTypeOptions()}
-                        </Select>
-                    </FormControl>
-                    {content.type === 'department' && (
-                        <FormControl fullWidth margin="dense">
-                            <InputLabel>Department</InputLabel>
-                            <Select
-                            name="department"
-                            value={content.department}
-                            onChange={handleChange}
-                        >
-                            {Array.from(depList).map(([key, value]) => (
-                                <MenuItem key={value} value={value}>{value}</MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
-                    )}
+                            sx={{ mb: 2 }}
+                            variant="outlined"
+                            placeholder="Enter notice title..."
+                        />
+                        
+                        <Grid container spacing={2} sx={{ mb: 2 }}>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    margin="dense"
+                                    label="Open Date"
+                                    name="openDate"
+                                    type="date"
+                                    required
+                                    fullWidth
+                                    value={content.openDate}
+                                    onChange={handleChange}
+                                    InputLabelProps={{
+                                        shrink: true,
+                                    }}
+                                    variant="outlined"
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    margin="dense"
+                                    label="Close Date"
+                                    name="closeDate"
+                                    type="date"
+                                    required
+                                    fullWidth
+                                    value={content.closeDate}
+                                    onChange={handleChange}
+                                    InputLabelProps={{
+                                        shrink: true,
+                                    }}
+                                    variant="outlined"
+                                    helperText="Default: 6 months from today"
+                                />
+                            </Grid>
+                        </Grid>
 
-                    <AddAttachments
-                        attachments={new_attach}
-                        setAttachments={setNew_attach}
-                    />
+                        <Box sx={{ mb: 2 }}>
+                            <FormControlLabel
+                                control={
+                                    <Checkbox
+                                        name="important"
+                                        checked={Boolean(content.important)}
+                                        onChange={handleChange}
+                                        sx={{ 
+                                            color: '#830001',
+                                            '&.Mui-checked': {
+                                                color: '#830001',
+                                            },
+                                        }}
+                                    />
+                                }
+                                label={
+                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                        Mark as Important
+                                    </Typography>
+                                }
+                            />
+                        </Box>
+
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} sm={content.type === 'department' ? 6 : 12}>
+                                <FormControl fullWidth margin="dense" variant="outlined">
+                                    <InputLabel>Notice Type</InputLabel>
+                                    <Select
+                                        name="type"
+                                        value={content.type}
+                                        onChange={handleChange}
+                                        defaultValue={session?.user?.role === 'ACADEMIC_ADMIN' ? 'academics' : 'general'}
+                                        label="Notice Type"
+                                    >
+                                        {getNoticeTypeOptions()}
+                                    </Select>
+                                </FormControl>
+                            </Grid>
+                            {content.type === 'department' && (
+                                <Grid item xs={12} sm={6}>
+                                    <FormControl fullWidth margin="dense" variant="outlined">
+                                        <InputLabel>Department</InputLabel>
+                                        <Select
+                                            name="department"
+                                            value={content.department}
+                                            onChange={handleChange}
+                                            label="Department"
+                                        >
+                                            {Array.from(depList).map(([key, value]) => (
+                                                <MenuItem key={value} value={value}>{value}</MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+                            )}
+                        </Grid>
+                    </Box>
+
+                    <Divider sx={{ my: 3 }} />
+
+                    <Box>
+                        <Typography variant="h6" sx={{ mb: 2, color: '#333', fontWeight: 500 }}>
+                            Attachments
+                        </Typography>
+                        <Box sx={{ 
+                            p: 2, 
+                            border: '2px dashed #ddd', 
+                            borderRadius: 2,
+                            backgroundColor: '#fafafa'
+                        }}>
+                            <AddAttachments
+                                attachments={new_attach}
+                                setAttachments={setNew_attach}
+                            />
+                        </Box>
+                    </Box>
                 </DialogContent>
 
-                <DialogActions>
-                    <Button onClick={handleClose} style={{ color: '#830001' }}>Cancel</Button>
+                <DialogActions sx={{ p: 3, backgroundColor: '#f8f9fa', position: 'sticky', bottom: 0, zIndex: 1300 }}>
+                    <Button 
+                        onClick={handleClose} 
+                        variant="outlined"
+                        sx={{ 
+                            color: '#830001', 
+                            borderColor: '#830001',
+                            '&:hover': {
+                                backgroundColor: '#830001',
+                                color: 'white'
+                            }
+                        }}
+                    >
+                        Cancel
+                    </Button>
                     <Button 
                         type="submit"
                         variant="contained"
-                        style={{ backgroundColor: '#830001', color: 'white' }}
+                        sx={{ 
+                            backgroundColor: '#830001', 
+                            color: 'white',
+                            minWidth: 120,
+                            '&:hover': {
+                                backgroundColor: '#6a0001'
+                            }
+                        }}
                         disabled={submitting}
                     >
-                        {submitting ? 'Creating...' : 'Create'}
+                        {submitting ? 'Creating...' : 'Create Notice'}
                     </Button>
                 </DialogActions>
             </form>

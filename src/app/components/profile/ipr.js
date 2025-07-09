@@ -23,6 +23,7 @@ import { enGB } from 'date-fns/locale';
 
 import React, { useState } from 'react'
 import useRefreshData from '@/custom-hooks/refresh'
+import { useFacultyData } from '../../../context/FacultyDataContext'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
@@ -90,8 +91,15 @@ export const AddForm = ({ handleClose, modal }) => {
 
             if (response.ok) {
                 console.log('Record created successfully');
+                
+                // Get current IPRs from parent component
+                const { updateFacultyData, facultyData } = window.getIPRComponent();
+                
+                // Update local state in parent component
+                const updatedIprs = [...(facultyData.ipr || []), requestBody];
+                updateFacultyData(updatedIprs);
+                
                 handleClose();
-                refreshData();
                 setContent(initialState);
             } else {
                 const errorData = await response.json();
@@ -248,8 +256,25 @@ export const EditForm = ({ handleClose, modal, values }) => {
 
             if (!result.ok) throw new Error('Failed to update');
 
+            const updatedIprRecord = {
+                ...content,
+                type: 'ipr',
+                iprtype: content.type,
+                registration_date: formatDateToUTC(content.registration_date),
+                publication_date: formatDateToUTC(content.publication_date),
+                grant_date: formatDateToUTC(content.grant_date)
+            };
+            
+            // Get current IPRs from parent component
+            const { updateFacultyData, facultyData } = window.getIPRComponent();
+            
+            // Update local state in parent component
+            const updatedIprs = facultyData.ipr.map(ipr => 
+                ipr.id === content.id ? updatedIprRecord : ipr
+            );
+            updateFacultyData(updatedIprs);
+            
             handleClose();
-            refreshData();
         } catch (error) {
             console.error('Error:', error);
         } finally {
@@ -369,28 +394,30 @@ export default function IPRManagement() {
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedIpr, setSelectedIpr] = useState(null)
-    const [loading, setLoading] = useState(true)
-    const refreshData = useRefreshData(false)
-
-    // Fetch data
+    const { facultyData, loading, updateFacultySection } = useFacultyData()
+    
+    // Use context data instead of API call
     React.useEffect(() => {
-        const fetchIprs = async () => {
-            try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setIprs(data.ipr || [])
-            } catch (error) {
-                console.error('Error:', error)
-            } finally {
-                setLoading(false)
-            }
+        if (facultyData?.ipr) {
+            console.log('IPR - Using context data:', facultyData.ipr)
+            setIprs(facultyData.ipr || [])
         }
-
-        if (session?.user?.email) {
-            fetchIprs()
-        }
-    }, [session, refreshData])
+    }, [facultyData])
+    
+    // Expose functions for child components
+    React.useEffect(() => {
+        window.getIPRComponent = () => ({
+            updateFacultyData: (updatedIprs) => {
+                setIprs(updatedIprs);
+                updateFacultySection('ipr', updatedIprs);
+            },
+            facultyData: { ipr: iprs }
+        });
+        
+        return () => {
+            delete window.getIPRComponent;
+        };
+    }, [iprs, updateFacultySection])
 
     const handleEdit = (ipr) => {
         setSelectedIpr(ipr)
@@ -411,7 +438,13 @@ export default function IPRManagement() {
                 })
                 
                 if (!response.ok) throw new Error('Failed to delete')
-                refreshData()
+                
+                // Update local state directly
+                const updatedIprs = iprs.filter(ipr => ipr.id !== id);
+                setIprs(updatedIprs);
+                
+                // Update context
+                updateFacultySection('ipr', updatedIprs);
             } catch (error) {
                 console.error('Error:', error)
             }
