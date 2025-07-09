@@ -22,6 +22,7 @@ import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import Loading from '../common/Loading'
 import AddIcon from '@mui/icons-material/Add'
+import { useFacultyData } from '../../../context/FacultyDataContext'
 
 // Add Form Component
 export const AddForm = ({ handleClose, modal }) => {
@@ -48,28 +49,33 @@ export const AddForm = ({ handleClose, modal }) => {
         e.preventDefault()
 
         try {
+            const newBook = {
+                type: 'edited_books',
+                ...content,
+                publish_date: content.publish_date
+                    ? new Date(content.publish_date).toISOString().split('T')[0]  // Format as 'YYYY-MM-DD'
+                    : null,
+                id: Date.now().toString(),
+                email: session?.user?.email
+            };
+            
             const result = await fetch('/api/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'edited_books',
-                    ...content,
-                    
-                    publish_date: content.publish_date
-                        ? new Date(content.publish_date).toISOString().split('T')[0]  // Format as 'YYYY-MM-DD'
-                        : null,
-                    id: Date.now().toString(),
-                    email: session?.user?.email
-                }),
+                body: JSON.stringify(newBook),
             });
             
-
             if (!result.ok) throw new Error('Failed to create')
             
+            // Get current books from parent component
+            const { updateFacultyData, facultyData } = window.getBooksComponent();
+            
+            // Update local state in parent component
+            const updatedBooks = [...(facultyData.edited_books || []), newBook];
+            updateFacultyData(updatedBooks);
+            
             handleClose()
-            refreshData()
             setContent(initialState)
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -176,21 +182,30 @@ export const EditForm = ({ handleClose, modal, values }) => {
         e.preventDefault()
 
         try {
+            const updatedBook = {
+                type: 'edited_books',
+                ...content,
+                email: session?.user?.email
+            };
+            
             const result = await fetch('/api/update', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'edited_books',
-                    ...content,
-                    email: session?.user?.email
-                }),
+                body: JSON.stringify(updatedBook),
             })
 
             if (!result.ok) throw new Error('Failed to update')
             
+            // Get current books from parent component
+            const { updateFacultyData, facultyData } = window.getBooksComponent();
+            
+            // Update local state in parent component
+            const updatedBooks = facultyData.edited_books.map(book => 
+                book.id === content.id ? updatedBook : book
+            );
+            updateFacultyData(updatedBooks);
+            
             handleClose()
-            refreshData()
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -288,28 +303,30 @@ export default function EditedBookManagement() {
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedBook, setSelectedBook] = useState(null)
-    const [loading, setLoading] = useState(true)
-    const refreshData = useRefreshData(false)
+    const { facultyData, loading, updateFacultySection } = useFacultyData()
 
-    // Fetch data
+    // Use context data instead of API call
     React.useEffect(() => {
-        const fetchBooks = async () => {
-            try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setBooks(data.edited_books || [])
-            } catch (error) {
-                console.error('Error:', error)
-            } finally {
-                setLoading(false)
-            }
+        if (facultyData?.edited_books) {
+            console.log('EditedBooks - Using context data:', facultyData.edited_books)
+            setBooks(facultyData.edited_books || [])
         }
-
-        if (session?.user?.email) {
-            fetchBooks()
-        }
-    }, [session, refreshData])
+    }, [facultyData])
+    
+    // Expose functions for child components
+    React.useEffect(() => {
+        window.getBooksComponent = () => ({
+            updateFacultyData: (updatedBooks) => {
+                setBooks(updatedBooks);
+                updateFacultySection('edited_books', updatedBooks);
+            },
+            facultyData: { edited_books: books }
+        });
+        
+        return () => {
+            delete window.getBooksComponent;
+        };
+    }, [books, updateFacultySection, session]);
 
     const handleEdit = (book) => {
         setSelectedBook(book)
@@ -330,8 +347,13 @@ export default function EditedBookManagement() {
                 })
                 
                 if (!response.ok) throw new Error('Failed to delete')
-                // refreshData()
-            window.location.reload()
+                
+                // Update local state directly
+                const updatedBooks = books.filter(book => book.id !== id);
+                setBooks(updatedBooks);
+                
+                // Update context
+                updateFacultySection('edited_books', updatedBooks);
             } catch (error) {
                 console.error('Error:', error)
             }

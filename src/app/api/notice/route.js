@@ -111,29 +111,42 @@ export async function POST(request) {
       keyword = '',
     } = body
     
-    from = parseInt(from)
-    to = parseInt(to)
+    // Ensure from and to are valid integers
+    from = parseInt(from) || 0
+    to = parseInt(to) || 15
+    
+    // Validate that from and to are valid
+    if (from < 0) from = 0
+    if (to <= from) to = from + 15
+    
     let results
 
     // For ACADEMIC_ADMIN, always filter for academic notices
     if (notice_type === 'academics') {
+      const limit = Math.max(1, Math.min(100, to - from))
+      const offset = Math.max(0, from)
+      console.log('DEBUG: Academic pagination params:', { offset, limit })
+      
       results = await query(
         `SELECT * FROM notices 
-         WHERE notice_type = 'academics'
+         WHERE notice_type = ?
          ORDER BY openDate DESC 
-         LIMIT ?, ?`,
-        [from, to - from]
+         LIMIT ${limit} OFFSET ${offset}`,
+        ['academics']
       )
     } else {
       switch (type) {
         case 'range':
+          const rangeLimit = Math.max(1, Math.min(100, to - from))
+          const rangeOffset = Math.max(0, from)
+          
           if (!notice_type) {
             results = await query(
               `SELECT * FROM notices 
                WHERE title LIKE ? 
                ORDER BY openDate DESC 
-               LIMIT ?, ?`,
-              [`%${keyword}%`, from, to - from]
+               LIMIT ${rangeLimit} OFFSET ${rangeOffset}`,
+              [`%${keyword}%`]
             )
           } else if (notice_type !== 'department') {
             results = await query(
@@ -143,8 +156,8 @@ export async function POST(request) {
                AND openDate >= ? 
                AND title LIKE ? 
                ORDER BY openDate DESC 
-               LIMIT ?, ?`,
-              [notice_type, end_date, start_date, `%${keyword}%`, from, to - from]
+               LIMIT ${rangeLimit} OFFSET ${rangeOffset}`,
+              [notice_type, end_date, start_date, `%${keyword}%`]
             )
           } else {
             results = await query(
@@ -154,18 +167,22 @@ export async function POST(request) {
                AND department = ? 
                AND title LIKE ? 
                ORDER BY openDate DESC 
-               LIMIT ?, ?`,
-              [end_date, start_date, department, `%${keyword}%`, from, to - from]
+               LIMIT ${rangeLimit} OFFSET ${rangeOffset}`,
+              [end_date, start_date, department, `%${keyword}%`]
             )
           }
           break
 
         case 'between':
+          const limit = Math.max(1, Math.min(100, to - from)) // Ensure limit is between 1 and 100
+          const offset = Math.max(0, from) // Ensure offset is non-negative
+          console.log('DEBUG: Pagination params:', { offset, limit, originalFrom: from, originalTo: to })
+          
+          // Try without prepared statements for LIMIT clause
           results = await query(
             `SELECT * FROM notices 
              ORDER BY openDate DESC 
-             LIMIT ?, ?`,
-            [from, to - from]
+             LIMIT ${limit} OFFSET ${offset}`
           )
           break
 

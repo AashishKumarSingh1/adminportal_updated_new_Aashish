@@ -18,6 +18,7 @@ import {
 import { useSession } from 'next-auth/react'
 import React, { useState } from 'react'
 import useRefreshData from '@/custom-hooks/refresh'
+import { useFacultyData } from '@/context/FacultyDataContext'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import AddIcon from '@mui/icons-material/Add'
@@ -25,6 +26,7 @@ import AddIcon from '@mui/icons-material/Add'
 // Add Form Component
 export const AddForm = ({ handleClose, modal }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const initialState = {
         title: '',
         authors: '',
@@ -35,7 +37,6 @@ export const AddForm = ({ handleClose, modal }) => {
         doi: ''
     }
     const [content, setContent] = useState(initialState)
-    const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
 
     const handleChange = (e) => {
@@ -64,10 +65,18 @@ export const AddForm = ({ handleClose, modal }) => {
 
             if (!result.ok) throw new Error('Failed to create')
             
+            const updatedData = await result.json();
+                
+            // Update the context data
+            updateFacultySection(9, updatedData.data);
+            
+            // Update the component's state via the window reference
+            if (window.getTextbooksComponent) {
+                window.getTextbooksComponent().updateData(updatedData.data);
+            }
+            
             handleClose()
-            refreshData()
             setContent(initialState)
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -163,8 +172,8 @@ export const AddForm = ({ handleClose, modal }) => {
 // Edit Form Component
 export const EditForm = ({ handleClose, modal, values }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const [content, setContent] = useState(values)
-    const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
 
     const handleChange = (e) => {
@@ -188,9 +197,17 @@ export const EditForm = ({ handleClose, modal, values }) => {
 
             if (!result.ok) throw new Error('Failed to update')
             
+            const updatedData = await result.json();
+                
+            // Update the context data
+            updateFacultySection(9, updatedData.data);
+            
+            // Update the component's state via the window reference
+            if (window.getTextbooksComponent) {
+                window.getTextbooksComponent().updateData(updatedData.data);
+            }
+            
             handleClose()
-            refreshData()
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -291,21 +308,40 @@ export const EditForm = ({ handleClose, modal, values }) => {
 // Main Component
 export default function TextbookManagement() {
     const { data: session } = useSession()
+    const { facultyData } = useFacultyData();
     const [books, setBooks] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedBook, setSelectedBook] = useState(null)
     const [loading, setLoading] = useState(true)
-    const refreshData = useRefreshData(false)
+    
+    // Add window reference to this component
+    React.useEffect(() => {
+        // Expose the component instance to the window
+        window.getTextbooksComponent = () => ({
+            updateData: (newData) => {
+                setBooks(newData);
+            }
+        });
+        
+        // Cleanup
+        return () => {
+            delete window.getTextbooksComponent;
+        };
+    }, []);
 
     // Fetch data
     React.useEffect(() => {
         const fetchBooks = async () => {
             try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setBooks(data.textbooks || [])
+                if (facultyData && facultyData.textbooks) {
+                    setBooks(facultyData.textbooks || []);
+                } else {
+                    const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
+                    if (!response.ok) throw new Error('Failed to fetch')
+                    const data = await response.json()
+                    setBooks(data.textbooks || [])
+                }
             } catch (error) {
                 console.error('Error:', error)
             } finally {
@@ -316,7 +352,7 @@ export default function TextbookManagement() {
         if (session?.user?.email) {
             fetchBooks()
         }
-    }, [session, refreshData])
+    }, [session, facultyData])
 
     const handleEdit = (book) => {
         setSelectedBook(book)
@@ -337,8 +373,14 @@ export default function TextbookManagement() {
                 })
                 
                 if (!response.ok) throw new Error('Failed to delete')
-                refreshData()
-            window.location.reload()
+                
+                const updatedData = await response.json();
+                
+                // Update the context data
+                updateFacultySection(9, updatedData.data);
+                
+                // Update the local state
+                setBooks(updatedData.data)
             } catch (error) {
                 console.error('Error:', error)
             }

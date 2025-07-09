@@ -1,33 +1,51 @@
-import Button from '@material-ui/core/Button'
-import Dialog from '@material-ui/core/Dialog'
-import DialogActions from '@material-ui/core/DialogActions'
-import DialogContent from '@material-ui/core/DialogContent'
-import DialogTitle from '@material-ui/core/DialogTitle'
-import TextField from '@material-ui/core/TextField'
-import { useSession } from 'next-auth/client'
+import { 
+  Button, 
+  Dialog, 
+  DialogActions, 
+  DialogContent, 
+  DialogTitle, 
+  TextField 
+} from '@mui/material'
+import { useSession } from 'next-auth/react'
 import React, { useState } from 'react'
 import { AddAttachments } from './../common-props/add-attachment'
 import useRefreshData from '@/custom-hooks/refresh'
+import { useFacultyData } from '@/context/FacultyDataContext'
 
 export const AddResearch = ({ handleClose, modal, detail }) => {
-    const [session, loading] = useSession()
-    const refreshData = useRefreshData(false)
+    const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
+    
+    // Add window component reference
+    React.useEffect(() => {
+        // Expose the component instance to the window
+        window.getResearchComponent = () => ({
+            updateResearch: (newData) => {
+                // Update local state if needed
+            }
+        });
+        
+        // Cleanup
+        return () => {
+            delete window.getResearchComponent;
+        };
+    }, []);
+    
     const initialState = {
-        id: `${detail.id}`,
-        name: `${detail.name}`,
-        email: `${detail.email}`,
-        role: `${detail.role}`,
-        department: `${detail.department}`,
-        designation: `${detail.designation}`,
-        ext_no: `${detail.ext_no}`,
-        research_interest: `${detail.research_interest}`,
+        id: `${detail?.id || ''}`,
+        name: `${detail?.name || ''}`,
+        email: `${detail?.email || ''}`,
+        role: `${detail?.role || ''}`,
+        department: `${detail?.department || ''}`,
+        designation: `${detail?.designation || ''}`,
+        ext_no: `${detail?.ext_no || ''}`,
+        research_interest: `${detail?.research_interest || ''}`,
     }
     const [content, setContent] = useState(initialState)
     const [submitting, setSubmitting] = useState(false)
 
     const handleChange = (e) => {
         setContent({ ...content, [e.target.name]: e.target.value })
-        //console.log(content)
     }
 
     const handleSubmit = async (e) => {
@@ -35,28 +53,41 @@ export const AddResearch = ({ handleClose, modal, detail }) => {
         e.preventDefault()
         let data = {
             ...content,
-            email: session.user.email,
+            email: session?.user?.email,
         }
-        // data.attachments = JSON.stringify(data.attachments);
 
-        let result = await fetch('/api/update/user', {
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-            },
-            method: 'POST',
-            body: JSON.stringify(data),
-        })
-        result = await result.json()
-        if (result instanceof Error) {
-            console.log('Error Occured')
-            // console.log(result)
+        try {
+            let result = await fetch('/api/update/user', {
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                method: 'POST',
+                body: JSON.stringify(data),
+            })
+            
+            const updatedData = await result.json()
+            
+            if (result.ok) {
+                // Update the context data with the updated research
+                updateFacultySection("user", updatedData);
+                
+                // Update the component's state via the window reference if needed
+                if (window.getResearchComponent) {
+                    window.getResearchComponent().updateResearch(updatedData);
+                }
+                
+                handleClose()
+                setSubmitting(false)
+                setContent(initialState)
+            } else {
+                console.error('Error occurred:', updatedData)
+                setSubmitting(false)
+            }
+        } catch (error) {
+            console.error('Error:', error)
+            setSubmitting(false)
         }
-        // console.log(result)
-        handleClose()
-        refreshData()
-        setSubmitting(false)
-        setContent(initialState)
     }
 
     return (

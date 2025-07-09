@@ -4,10 +4,11 @@ import styled from 'styled-components'
 import Image from 'next/image'
 
 const StyledFooter = styled.footer`
-  padding: 2rem 1rem;
-  background-color: #a50003;
+  padding: 3rem 1rem 2rem;
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
   color: white;
-  border-top: 1px solid #ddd;
+  border-top: 3px solid #830001;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
 `
 
 const FooterContainer = styled.div`
@@ -27,27 +28,30 @@ const FooterSection = styled.div`
   h3 {
     margin-bottom: 1.5rem;
     color: #fff;
-    font-size: 1.4rem;
+    font-size: 1.3rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 1px;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid #830001;
+    padding-bottom: 0.5rem;
+    display: inline-block;
   }
   
   p {
     margin: 0.8rem 0;
     line-height: 1.8;
-    color: #f5f5f5;
+    color: #ecf0f1;
     font-size: 0.95rem;
   }
   
   a {
-    color: #ffeb3b;
+    color: #3498db;
     text-decoration: none;
     font-weight: 500;
     transition: all 0.3s ease;
     
     &:hover {
-      color: #fff;
+      color: #e74c3c;
       text-decoration: underline;
     }
   }
@@ -59,17 +63,21 @@ const Logo = styled.div`
   margin-bottom: 1.5rem;
   
   img {
-    width: 60px;
-    height: 60px;
+    width: 70px;
+    height: 70px;
     object-fit: contain;
     margin-right: 1rem;
+    border: 3px solid #ecf0f1;
+    border-radius: 50%;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
   
   h2 {
     color: white;
-    font-size: 1.6rem;
+    font-size: 1.4rem;
     font-weight: 700;
     line-height: 1.3;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
   }
   
   @media (max-width: 768px) {
@@ -78,7 +86,7 @@ const Logo = styled.div`
     
     img {
       margin-right: 0;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.8rem;
     }
   }
 `
@@ -90,22 +98,32 @@ const LinkList = styled.div`
   
   a {
     display: inline-block;
-    padding: 0.3rem 0;
-    border-bottom: 1px solid transparent;
+    padding: 0.5rem 0;
+    border-left: 3px solid transparent;
+    padding-left: 0.8rem;
+    transition: all 0.3s ease;
     
     &:hover {
-      border-bottom-color: #ffeb3b;
+      border-left-color: #830001;
+      padding-left: 1.2rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
     }
   }
 `
 
 const Copyright = styled.div`
   text-align: center;
-  margin-top: 2rem;
-  padding-top: 1rem;
-  border-top: 1px solid #c50005;
-  color: #f0f0f0;
+  margin-top: 2.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #495057;
+  color: #bdc3c7;
   font-size: 0.9rem;
+  background: rgba(0, 0, 0, 0.1);
+  margin-left: -1rem;
+  margin-right: -1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
 `
 
 export default function Footer() {

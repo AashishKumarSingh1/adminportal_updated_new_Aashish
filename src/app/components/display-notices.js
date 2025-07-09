@@ -3,18 +3,21 @@ import {
     TablePagination,
     Typography,
     Box,
-    Card,
-    CardContent,
-    CardActions,
+    Table,
+    TableBody,
+    TableCell,
+    TableContainer,
+    TableHead,
+    TableRow,
+    Paper,
     Tooltip,
     Chip
 } from '@mui/material'
 import Button from '@mui/material/Button'
-import Grid from '@mui/material/Grid'
-import { styled } from '@mui/material/styles'
 import {
     Edit as EditIcon,
     Visibility as VisibilityIcon,
+    Delete as DeleteIcon,
     Star as StarIcon,
     Description as DescriptionIcon,
     AttachFile as AttachFileIcon
@@ -26,94 +29,154 @@ import { useSession } from 'next-auth/react'
 import Filter from './common-props/filter'
 import TablePaginationActions from './common-props/TablePaginationActions'
 import ViewDetailsModal from './view-details-modal'
+import { ConfirmDelete } from './notices-props/confirm-delete'
 
-const StyledCard = styled(Card)(({ theme }) => ({
-    height: '100%',
-    display: 'flex',
-    flexDirection: 'column',
-    position: 'relative',
-    '& .MuiCardContent-root': {
-        flexGrow: 1,
-        padding: theme.spacing(2)
-    },
-    '& .MuiCardActions-root': {
-        padding: theme.spacing(1, 2)
-    },
-    '&:hover': {
-        boxShadow: theme.shadows[4]
+// Helper function to format dates safely
+const formatDate = (dateValue) => {
+    if (!dateValue) return 'N/A'
+    
+    let date
+    // Handle different date formats
+    if (typeof dateValue === 'string') {
+        // If it's a string timestamp, convert to number first
+        const timestamp = parseInt(dateValue, 10)
+        if (!isNaN(timestamp)) {
+            date = new Date(timestamp)
+            console.log('Parsing string timestamp:', dateValue, '-> Date:', date.toISOString())
+        } else {
+            // Try parsing as date string
+            date = new Date(dateValue)
+            console.log('Parsing date string:', dateValue, '-> Date:', date.toISOString())
+        }
+    } else if (typeof dateValue === 'number') {
+        // If it's already a number timestamp
+        date = new Date(dateValue)
+        console.log('Parsing number timestamp:', dateValue, '-> Date:', date.toISOString())
+    } else {
+        // If it's already a Date object
+        date = dateValue
     }
-}))
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+        console.error('Invalid date:', dateValue)
+        return 'Invalid Date'
+    }
+    
+    const formatted = date.toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit', 
+        year: 'numeric'
+    })
+    
+    console.log('Final formatted date:', formatted)
+    return formatted
+}
 
 const Notice = ({ detail }) => {
     const [editModal, setEditModal] = useState(false)
     const [viewModal, setViewModal] = useState(false)
+    const [deleteModal, setDeleteModal] = useState(false)
     const { data: session } = useSession()
-    const updatedAt = new Date(detail.updatedAt).toLocaleDateString('en-GB')
-    const openDate = new Date(detail.openDate).toLocaleDateString('en-GB')
+    const updatedAt = formatDate(detail.updatedAt)
+    const openDate = formatDate(detail.openDate)
 
     return (
-        <Grid item xs={12} sm={6} md={4}>
-            <StyledCard>
-                {detail.important && (
-                    <Chip
-                        icon={<StarIcon />}
-                        label="Important"
-                        color="error"
-                        size="small"
-                        sx={{ position: 'absolute', top: 8, right: 8 }}
-                    />
-                )}
-                <CardContent>
-                    <Typography 
-                        variant="subtitle1" 
-                        component="h2"
-                        sx={{ 
-                            fontWeight: 500,
-                            mb: 1,
-                            display: '-webkit-box',
-                            WebkitLineClamp: 2,
-                            WebkitBoxOrient: 'vertical',
-                            overflow: 'hidden'
-                        }}
-                    >
-                        {detail.title}
+        <>
+            <TableRow sx={{ '&:hover': { backgroundColor: '#f5f5f5' } }}>
+                <TableCell>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {detail.important && (
+                            <Chip
+                                icon={<StarIcon />}
+                                label="Important"
+                                color="error"
+                                size="small"
+                            />
+                        )}
+                        <Typography 
+                            variant="subtitle2" 
+                            sx={{ 
+                                fontWeight: 500,
+                                maxWidth: '300px',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                            }}
+                        >
+                            {detail.title}
+                        </Typography>
+                    </Box>
+                </TableCell>
+                <TableCell>
+                    <Typography variant="body2" color="text.secondary">
+                        {updatedAt}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                        Updated: {updatedAt}
+                </TableCell>
+                <TableCell>
+                    <Typography variant="body2" color="text.secondary">
+                        {openDate}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" display="block">
-                        Open Date: {openDate}
+                </TableCell>
+                <TableCell>
+                    <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+                        {detail.notice_type || 'General'}
                     </Typography>
-                    {detail.attachments?.length > 0 && (
-                        <Box display="flex" alignItems="center" mt={1}>
+                </TableCell>
+                <TableCell>
+                    {detail.attachments?.length > 0 ? (
+                        <Box display="flex" alignItems="center">
                             <AttachFileIcon fontSize="small" color="action" />
                             <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
-                                {detail.attachments.length} attachment{detail.attachments.length > 1 ? 's' : ''}
+                                {detail.attachments.length}
                             </Typography>
                         </Box>
+                    ) : (
+                        <Typography variant="caption" color="text.secondary">-</Typography>
                     )}
-                </CardContent>
-                <CardActions>
-                    <Tooltip title="View Details">
-                        <IconButton size="small" color="primary" onClick={() => setViewModal(true)} style={{ color: '#830001' }}>
-                            <VisibilityIcon />
-            </IconButton>
-                    </Tooltip>
-                    {(session?.user?.role === 'SUPER_ADMIN' || 
-                      (session?.user?.role === 'ACADEMIC_ADMIN' && detail.notice_type === 'academics')) && (
-                        <Tooltip title="Edit Notice">
-            <IconButton
+                </TableCell>
+                <TableCell>
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                        <Tooltip title="View Details">
+                            <IconButton 
                                 size="small" 
-                                color="primary" 
-                                onClick={() => setEditModal(true)}
-                                style={{ color: '#830001' }}
+                                onClick={() => setViewModal(true)} 
+                                sx={{ color: '#830001' }}
                             >
-                                <EditIcon />
-            </IconButton>
+                                <VisibilityIcon fontSize="small" />
+                            </IconButton>
                         </Tooltip>
-                    )}
-                </CardActions>
-            </StyledCard>
+                        {(session?.user?.role === 'SUPER_ADMIN' || 
+                          (session?.user?.role === 'ACADEMIC_ADMIN' && detail.notice_type === 'academics')) && (
+                            <>
+                                <Tooltip title="Edit Notice">
+                                    <IconButton
+                                        size="small" 
+                                        onClick={() => setEditModal(true)}
+                                        sx={{ color: '#830001' }}
+                                    >
+                                        <EditIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Delete Notice">
+                                    <IconButton
+                                        size="small" 
+                                        onClick={() => setDeleteModal(true)}
+                                        sx={{ 
+                                            color: '#d32f2f',
+                                            '&:hover': {
+                                                backgroundColor: 'rgba(211, 47, 47, 0.1)'
+                                            }
+                                        }}
+                                    >
+                                        <DeleteIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                            </>
+                        )}
+                    </Box>
+                </TableCell>
+            </TableRow>
 
             <EditForm
                 data={detail}
@@ -125,7 +188,12 @@ const Notice = ({ detail }) => {
                 handleClose={() => setViewModal(false)}
                 detail={detail}
             />
-        </Grid>
+            <ConfirmDelete
+                open={deleteModal}
+                handleClose={() => setDeleteModal(false)}
+                notice={detail}
+            />
+        </>
     )
 }
 
@@ -190,7 +258,7 @@ const DataDisplay = ({ data }) => {
     return (
         <Box sx={{ p: 3 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                <Typography variant="h4">
+                <Typography variant="h4" sx={{ color: '#333', fontWeight: 600 }}>
                     {session?.user?.role === 'ACADEMIC_ADMIN' ? 'Academic Notices' : 'Recent Notices'}
                 </Typography>
                 
@@ -209,11 +277,35 @@ const DataDisplay = ({ data }) => {
                 </Box>
             </Box>
 
-            <Grid container spacing={3}>
-                {details?.map((notice, index) => (
-                    <Notice key={notice.id || index} detail={notice} />
-                ))}
-            </Grid>
+            <TableContainer component={Paper} sx={{ boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', borderRadius: 2 }}>
+                <Table>
+                    <TableHead>
+                        <TableRow sx={{ backgroundColor: '#f8f9fa' }}>
+                            <TableCell sx={{ fontWeight: 600, color: '#333' }}>Notice Title</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#333' }}>Updated Date</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#333' }}>Open Date</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#333' }}>Type</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#333' }}>Attachments</TableCell>
+                            <TableCell sx={{ fontWeight: 600, color: '#333' }}>Actions</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {details?.length > 0 ? (
+                            details.map((notice, index) => (
+                                <Notice key={notice.id || index} detail={notice} />
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                                    <Typography variant="body1" color="text.secondary">
+                                        No notices found
+                                    </Typography>
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </TableContainer>
 
             <Box mt={3}>
                     <TablePagination

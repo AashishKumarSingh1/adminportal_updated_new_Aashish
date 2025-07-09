@@ -264,12 +264,19 @@ export default function Profilepage() {
             <Button
                 variant="contained"
                 style={{ 
-                    backgroundColor: '#830001', 
-                    color: 'white', 
-                    padding: '4px 8px', 
-                    fontSize: '1rem',
-                    minWidth: '180px',
-                    borderRadius: '8px'
+                    backgroundColor: '#8b000088',
+                            color: '#ffffffff',
+                            padding: '4px 10px',
+                            fontSize: '1rem',
+                            minWidth: '180px',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 8px rgba(178, 34, 34, 0.3)',  // subtle shadow for depth
+                            transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
+                            '&:hover': {
+                                backgroundColor: '#8B1A1A',  // darker shade on hover
+                                boxShadow: '0 6px 12px rgba(178, 34, 34, 0.4)'
+                            },
+                            fontWeight: 'semibold',
                 }}
                 onClick={() => handleModalOpen('profilePic')}
             >
@@ -356,22 +363,22 @@ export default function Profilepage() {
 
                                 <h4 style={{marginTop: '10px',fontWeight:'bold'}}>Social Media & Academic Links:</h4>
                                 {detail?.profile?.linkedin && (
-                                    <p>LinkedIn: <a href={detail.profile.linkedin} target="_blank" rel="noopener noreferrer">{detail.profile.linkedin}</a></p>
+                                    <p>LinkedIn: <a href={detail.profile.linkedin} target="_blank" rel="noopener noreferrer" style={{ color: '#00456aff' }}>{detail.profile.linkedin}🪪</a></p>
                                 )}
                                 {detail?.profile?.google_scholar && (
-                                    <p>Google Scholar: <a href={detail.profile.google_scholar} target="_blank" rel="noopener noreferrer">View Profile</a></p>
+                                    <p>Google Scholar: <a href={detail.profile.google_scholar} target="_blank" rel="noopener noreferrer" style={{ color: '#00456aff' }}>View Profile🪪</a></p>
                                 )}
                                 {detail?.profile?.personal_webpage && (
-                                    <p>Personal Webpage: <a href={detail.profile.personal_webpage} target="_blank" rel="noopener noreferrer">Visit Website</a></p>
+                                    <p>Personal Webpage: <a href={detail.profile.personal_webpage} target="_blank" rel="noopener noreferrer" style={{ color: '#00456aff' }}>Visit Website🪪</a></p>
                                 )}
                                 {detail?.profile?.scopus && (
-                                    <p>Scopus: <a href={detail.profile.scopus} target="_blank" rel="noopener noreferrer">View Profile</a></p>
+                                    <p>Scopus: <a href={detail.profile.scopus} target="_blank" rel="noopener noreferrer" style={{ color: '#00456aff' }}>View Profile🪪</a></p>
                                 )}
                                 {detail?.profile?.vidwan && (
-                                    <p>Vidwan: <a href={detail.profile.vidwan} target="_blank" rel="noopener noreferrer">View Profile</a></p>
+                                    <p>Vidwan: <a href={detail.profile.vidwan} target="_blank" rel="noopener noreferrer" style={{ color: '#00456aff' }}>View Profile🪪</a></p>
                                 )}
                                 {detail?.profile?.orcid && (
-                                    <p>ORCID: <a href={detail.profile.orcid} target="_blank" rel="noopener noreferrer">{detail.profile.orcid}</a></p>
+                                    <p>ORCID: <a href={detail.profile.orcid} target="_blank" rel="noopener noreferrer" style={{ color: '#00456aff' }}>{detail.profile.orcid}🪪</a></p>
                                 )}
                             </div>
                         </div>

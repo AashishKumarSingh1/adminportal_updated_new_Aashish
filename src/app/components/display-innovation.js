@@ -8,7 +8,7 @@ import { TablePagination } from '@mui/base/TablePagination';
 import Button from '@mui/material/Button';
 import Grid from '@material-ui/core/Grid'
 import Paper from '@material-ui/core/Paper'
-import { makeStyles, useTheme } from '@material-ui/core/styles'
+import { makeStyles } from '@material-ui/core/styles'
 import {
     Edit,
     Flag,
@@ -66,7 +66,6 @@ const useStyles1 = makeStyles((theme) => ({
 
 function TablePaginationActions(props) {
     const classes = useStyles1()
-    const theme = useTheme()
     const { count, page, rowsPerPage, onPageChange } = props
 
     const handleFirstPageButtonClick = (event) => {
@@ -92,44 +91,28 @@ function TablePaginationActions(props) {
                 disabled={page === 0}
                 aria-label="first page"
             >
-                {theme.direction === 'rtl' ? (
-                    <LastPageIcon />
-                ) : (
-                    <FirstPageIcon />
-                )}
+                <FirstPageIcon />
             </IconButton>
             <IconButton
                 onClick={handleBackButtonClick}
                 disabled={page === 0}
                 aria-label="previous page"
             >
-                {theme.direction === 'rtl' ? (
-                    <KeyboardArrowRight />
-                ) : (
-                    <KeyboardArrowLeft />
-                )}
+                <KeyboardArrowLeft />
             </IconButton>
             <IconButton
                 onClick={handleNextButtonClick}
                 // disabled={page >= Math.ceil(count / rowsPerPage) - 1}
                 aria-label="next page"
             >
-                {theme.direction === 'rtl' ? (
-                    <KeyboardArrowLeft />
-                ) : (
-                    <KeyboardArrowRight />
-                )}
+                <KeyboardArrowRight />
             </IconButton>
             <IconButton
                 onClick={handleLastPageButtonClick}
                 // disabled={page >= Math.ceil(count / rowsPerPage) - 1}
                 aria-label="last page"
             >
-                {theme.direction === 'rtl' ? (
-                    <FirstPageIcon />
-                ) : (
-                    <LastPageIcon />
-                )}
+                <LastPageIcon />
             </IconButton>
         </div>
     )

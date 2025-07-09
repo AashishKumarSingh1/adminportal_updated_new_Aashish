@@ -22,6 +22,7 @@ import React, { useState } from 'react'
 import { enGB } from 'date-fns/locale';
 
 import useRefreshData from '@/custom-hooks/refresh'
+import { useFacultyData } from '@/context/FacultyDataContext'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
@@ -34,6 +35,7 @@ import AddIcon from '@mui/icons-material/Add'
 // Add Form Component
 export const AddForm = ({ handleClose, modal }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const initialState = {
         event_type: '',
         role: '',
@@ -44,7 +46,6 @@ export const AddForm = ({ handleClose, modal }) => {
         participants_count: ''
     }
     const [content, setContent] = useState(initialState)
-    const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
 
     const handleChange = (e) => {
@@ -87,12 +88,20 @@ export const AddForm = ({ handleClose, modal }) => {
             });
     
             if (!result.ok) throw new Error('Failed to create');
+            
+            const updatedData = await result.json();
+                
+            // Update the context data
+            updateFacultySection(12, updatedData.data);
+            
+            // Update the component's state via the window reference
+            if (window.getWorkshopsConferencesComponent) {
+                window.getWorkshopsConferencesComponent().updateData(updatedData.data);
+            }
     
             handleClose();
-            refreshData();
             setContent(initialState);
             alert('Workshop/Conference added successfully');
-            window.location.reload();
         } catch (error) {
             console.error('Error:', error);
         } finally {
@@ -208,13 +217,13 @@ export const AddForm = ({ handleClose, modal }) => {
 // Edit Form Component
 export const EditForm = ({ handleClose, modal, values }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     // Parse dates when initializing content
     const [content, setContent] = useState({
         ...values,
         start_date: values.start_date ? new Date(values.start_date) : null,
         end_date: values.end_date ? new Date(values.end_date) : null
     })
-    const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
 
     const handleChange = (e) => {
@@ -245,9 +254,17 @@ export const EditForm = ({ handleClose, modal, values }) => {
 
             if (!result.ok) throw new Error('Failed to update')
             
+            const updatedData = await result.json();
+                
+            // Update the context data
+            updateFacultySection(12, updatedData.data);
+            
+            // Update the component's state via the window reference
+            if (window.getWorkshopsConferencesComponent) {
+                window.getWorkshopsConferencesComponent().updateData(updatedData.data);
+            }
+            
             handleClose()
-            refreshData()
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -378,26 +395,45 @@ const formatDate = (dateString) => {
 // Main Component
 export default function WorkshopConferenceManagement() {
     const { data: session } = useSession()
+    const { facultyData } = useFacultyData();
     const [events, setEvents] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedEvent, setSelectedEvent] = useState(null)
     const [loading, setLoading] = useState(true)
-    const refreshData = useRefreshData(false)
     const [toast, setToast] = useState({
         open: false,
         severity: 'success',
         message: ''
     })
+    
+    // Add window reference to this component
+    React.useEffect(() => {
+        // Expose the component instance to the window
+        window.getWorkshopsConferencesComponent = () => ({
+            updateData: (newData) => {
+                setEvents(newData);
+            }
+        });
+        
+        // Cleanup
+        return () => {
+            delete window.getWorkshopsConferencesComponent;
+        };
+    }, []);
 
     // Fetch data
     React.useEffect(() => {
         const fetchEvents = async () => {
             try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setEvents(data.workshops_conferences || [])
+                if (facultyData && facultyData.workshops_conferences) {
+                    setEvents(facultyData.workshops_conferences || []);
+                } else {
+                    const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
+                    if (!response.ok) throw new Error('Failed to fetch')
+                    const data = await response.json()
+                    setEvents(data.workshops_conferences || [])
+                }
             } catch (error) {
                 console.error('Error:', error)
             } finally {
@@ -408,7 +444,7 @@ export default function WorkshopConferenceManagement() {
         if (session?.user?.email) {
             fetchEvents()
         }
-    }, [session, refreshData])
+    }, [session, facultyData])
 
     const handleEdit = (event) => {
         setSelectedEvent(event)
@@ -429,13 +465,20 @@ export default function WorkshopConferenceManagement() {
                 })
 
                 if (!response.ok) throw new Error('Failed to delete')
+                
+                const updatedData = await response.json();
+                
+                // Update the context data
+                updateFacultySection(12, updatedData.data);
+                
+                // Update the local state
+                setEvents(updatedData.data);
+                
                 setToast({
                     open: true,
                     severity: 'success',
                     message: 'Workshop/Conference deleted successfully!'
-                  })
-                window.location.reload()
-                refreshData()
+                })
             } catch (error) {
                 console.error('Error:', error)
             }

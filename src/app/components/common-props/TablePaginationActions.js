@@ -1,4 +1,3 @@
-import { useTheme } from '@mui/material/styles';
 import { IconButton, Box } from '@mui/material';
 import FirstPageIcon from '@mui/icons-material/FirstPage';
 import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft';
@@ -6,7 +5,6 @@ import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight';
 import LastPageIcon from '@mui/icons-material/LastPage';
 
 export default function TablePaginationActions(props) {
-  const theme = useTheme();
   const { count, page, rowsPerPage, onPageChange } = props;
 
   // For infinite scroll, we'll always enable next unless explicitly disabled
@@ -20,7 +18,7 @@ export default function TablePaginationActions(props) {
         aria-label="first page"
         size="small"
       >
-        {theme.direction === 'rtl' ? <LastPageIcon /> : <FirstPageIcon />}
+        <FirstPageIcon />
       </IconButton>
       <IconButton
         onClick={(event) => onPageChange(event, page - 1)}
@@ -28,7 +26,7 @@ export default function TablePaginationActions(props) {
         aria-label="previous page"
         size="small"
       >
-        {theme.direction === 'rtl' ? <KeyboardArrowRight /> : <KeyboardArrowLeft />}
+        <KeyboardArrowLeft />
       </IconButton>
       <IconButton
         onClick={(event) => onPageChange(event, page + 1)}
@@ -36,7 +34,7 @@ export default function TablePaginationActions(props) {
         aria-label="next page"
         size="small"
       >
-        {theme.direction === 'rtl' ? <KeyboardArrowLeft /> : <KeyboardArrowRight />}
+        <KeyboardArrowRight />
       </IconButton>
       <IconButton
         onClick={(event) => onPageChange(event, Math.max(0, Math.ceil(count / rowsPerPage) - 1))}
@@ -44,7 +42,7 @@ export default function TablePaginationActions(props) {
         aria-label="last page"
         size="small"
       >
-        {theme.direction === 'rtl' ? <FirstPageIcon /> : <LastPageIcon />}
+        <FirstPageIcon />
       </IconButton>
     </Box>
   );

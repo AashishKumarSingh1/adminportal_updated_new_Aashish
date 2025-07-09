@@ -190,6 +190,7 @@ export const UplaodCSV = ({ handleClose, modal }) => {
 }
 export const AddForm = ({ handleClose, modal }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData();
     const initialState = {
         authors: '',
         title: '',
@@ -204,7 +205,6 @@ export const AddForm = ({ handleClose, modal }) => {
         doi_url: ''
     }
     const [content, setContent] = useState(initialState)
-    const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
 
     const handleChange = (e) => {
@@ -217,27 +217,37 @@ export const AddForm = ({ handleClose, modal }) => {
         e.preventDefault()
 
         try {
+            const newPaper = {
+                type: 'journal_papers',
+                ...content,
+                id: Date.now().toString(),
+                email: session?.user?.email,
+                publication_date: content.publication_date ? new Date(content.publication_date).toISOString().split("T")[0] : null,
+            };
+            
             const result = await fetch('/api/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'journal_papers',
-                    ...content,
-                    id: Date.now().toString(),
-                    email: session?.user?.email,
-                    publication_date: content.publication_date ? new Date(content.publication_date).toISOString().split("T")[0] : null,
-                }),
+                body: JSON.stringify(newPaper),
             })
 
             if (!result.ok) throw new Error('Failed to create')
             
+            // Update state through window component reference
+            if (window.getJournalPapersComponent) {
+                const currentPapers = window.getJournalPapersComponent().getPapers() || [];
+                const updatedPapers = [...currentPapers, newPaper];
+                
+                // Update both local state and context
+                window.getJournalPapersComponent().setPapers(updatedPapers);
+                updateFacultySection('journalPapers', updatedPapers);
+            }
+            
             handleClose()
-            refreshData()
             setContent(initialState)
         } catch (error) {
             console.error('Error:', error)
         } finally {
-            window.location.reload();
             setSubmitting(false)
         }
     }
@@ -373,7 +383,7 @@ export const AddForm = ({ handleClose, modal }) => {
 
 export const EditForm = ({ handleClose, modal, values }) => {
     const { data: session } = useSession();
-    const refreshData = useRefreshData(false);
+    const { updateFacultySection } = useFacultyData();
     const [submitting, setSubmitting] = useState(false);
 
     const [content, setContent] = useState({
@@ -418,13 +428,22 @@ export const EditForm = ({ handleClose, modal, values }) => {
                 throw new Error(errorData.message || 'Failed to update');
             }
 
+            // Get the updated data
+            if (window.getJournalPapersComponent) {
+                const updatedPapers = window.getJournalPapersComponent().getPapers().map(paper => 
+                    paper.id === content.id ? content : paper
+                );
+                
+                // Update both local state and context
+                window.getJournalPapersComponent().setPapers(updatedPapers);
+                updateFacultySection('journalPapers', updatedPapers);
+            }
+
             handleClose();
-            refreshData();
         } catch (error) {
             console.error('Error:', error);
         } finally {
             setSubmitting(false);
-            window.location.reload();
         }
     };
 
@@ -565,6 +584,14 @@ export default function JournalPaperManagement() {
     const [selectedPaper, setSelectedPaper] = useState(null)
     const refreshData = useRefreshData(false)
 
+    // Set up component reference for child components
+    React.useEffect(() => {
+        window.getJournalPapersComponent = () => ({
+            getPapers: () => papers,
+            setPapers: (newPapers) => setPapers(newPapers)
+        });
+    }, [papers]);
+
     // Get data from context
     React.useEffect(() => {
         const journalPapersData = getJournalPapers()
@@ -576,7 +603,7 @@ export default function JournalPaperManagement() {
         setOpenEdit(true)
     }
     const handleDelete = async (id) => {
-        if (confirm('Are you sure you want to delete this paper?')) {
+        if (window.confirm('Are you sure you want to delete this journal paper? This action cannot be undone.')) {
             try {
                 const response = await fetch('/api/delete', {
                     method: 'POST',

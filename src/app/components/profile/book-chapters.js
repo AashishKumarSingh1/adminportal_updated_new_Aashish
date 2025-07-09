@@ -21,6 +21,7 @@ import useRefreshData from '@/custom-hooks/refresh'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import AddIcon from '@mui/icons-material/Add'
+import { useFacultyData } from '../../../context/FacultyDataContext'
 
 // Add Form Component
 export const AddForm = ({ handleClose, modal }) => {
@@ -333,28 +334,30 @@ export default function BookChapterManagement() {
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedChapter, setSelectedChapter] = useState(null)
-    const [loading, setLoading] = useState(true)
-    const refreshData = useRefreshData(false)
+    const { facultyData, loading, updateFacultySection } = useFacultyData()
 
-    // Fetch data
+    // Use context data instead of API call
     React.useEffect(() => {
-        const fetchChapters = async () => {
-            try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setChapters(data.book_chapters || [])
-            } catch (error) {
-                console.error('Error:', error)
-            } finally {
-                setLoading(false)
-            }
+        if (facultyData?.book_chapters) {
+            console.log('BookChapters - Using context data:', facultyData.book_chapters)
+            setChapters(facultyData.book_chapters || [])
         }
-
-        if (session?.user?.email) {
-            fetchChapters()
-        }
-    }, [session, refreshData])
+    }, [facultyData])
+    
+    // Expose functions for child components
+    React.useEffect(() => {
+        window.getChaptersComponent = () => ({
+            updateFacultyData: (updatedChapters) => {
+                setChapters(updatedChapters);
+                updateFacultySection('book_chapters', updatedChapters);
+            },
+            facultyData: { book_chapters: chapters }
+        });
+        
+        return () => {
+            delete window.getChaptersComponent;
+        };
+    }, [chapters, updateFacultySection]);
 
     const handleEdit = (chapter) => {
         setSelectedChapter(chapter)
@@ -375,9 +378,13 @@ export default function BookChapterManagement() {
                 })
                 
                 if (!response.ok) throw new Error('Failed to delete')
-                    window.location.reload()
-                refreshData()
-            
+                
+                // Update local state directly
+                const updatedChapters = chapters.filter(chapter => chapter.id !== id);
+                setChapters(updatedChapters);
+                
+                // Update context
+                updateFacultySection('book_chapters', updatedChapters);
             } catch (error) {
                 console.error('Error:', error)
             }

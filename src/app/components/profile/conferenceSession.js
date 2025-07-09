@@ -21,31 +21,21 @@ import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useSession } from "next-auth/react";
+import { useFacultyData } from "../../../context/FacultyDataContext";
 
 export default function ConferenceSessionChairsPage() {
   const [chairs, setChairs] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [currentChair, setCurrentChair] = useState(null);
   const { data: session } = useSession();
+  const { facultyData, loading, updateFacultySection } = useFacultyData();
 
-  const fetchChairs = async () => {
-    try {
-      const res = await fetch(`/api/faculty?type=${session?.user?.email}`);
-      const data = await res.json();
-      setChairs(data?.conference_session_chairs || []);
-    } catch (err) {
-      console.error("Failed to fetch session chairs", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Use context data instead of making API call
   useEffect(() => {
-    if (session?.user?.email) {
-      fetchChairs();
+    if (facultyData?.conference_session_chairs) {
+      setChairs(facultyData.conference_session_chairs || []);
     }
-  }, [session]);
+  }, [facultyData]);
 
   const handleSave = async (chair) => {
     const url = chair.id
@@ -60,7 +50,30 @@ export default function ConferenceSessionChairsPage() {
     });
 
     if (res.ok) {
-      fetchChairs();
+      const result = await res.json();
+      
+      // If this is a new chair, add ID from response
+      if (!chair.id) {
+        chair.id = result.id || Date.now().toString();
+      }
+      
+      // Update local state
+      if (chair.id) {
+        // Edit existing chair
+        const updatedChairs = chairs.map(c => 
+          c.id === chair.id ? chair : c
+        );
+        setChairs(updatedChairs);
+        // Update context
+        updateFacultySection('conference_session_chairs', updatedChairs);
+      } else {
+        // Add new chair
+        const updatedChairs = [...chairs, chair];
+        setChairs(updatedChairs);
+        // Update context
+        updateFacultySection('conference_session_chairs', updatedChairs);
+      }
+      
       setOpenDialog(false);
       setCurrentChair(null);
     }
@@ -73,7 +86,12 @@ export default function ConferenceSessionChairsPage() {
       method: "DELETE",
     });
     if (res.ok) {
-      setChairs((prev) => prev.filter((chair) => chair.id !== id));
+      // Update local state directly
+      const updatedChairs = chairs.filter(chair => chair.id !== id);
+      setChairs(updatedChairs);
+      
+      // Update context
+      updateFacultySection('conference_session_chairs', updatedChairs);
     }
   };
 
@@ -110,7 +128,7 @@ export default function ConferenceSessionChairsPage() {
       {loading ? (
         <Typography sx={{ m: 2 }}>Loading...</Typography>
       ) : (
-        <TableContainer component={Paper} sx={{ m: 2 }}>
+        <TableContainer component={Paper}>
           <Table>
             <TableHead>
               <TableRow>

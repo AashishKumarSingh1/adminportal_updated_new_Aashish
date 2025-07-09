@@ -19,6 +19,7 @@ import {
 import { useSession } from 'next-auth/react'
 import React, { useState } from 'react'
 import useRefreshData from '@/custom-hooks/refresh'
+import { useFacultyData } from '@/context/FacultyDataContext'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
@@ -31,6 +32,7 @@ import Toast from '../common/Toast'
 // Add Form Component
 export function AddWork({ handleClose, modal }) {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const initialState = {
         designation: '',
         organization: '',
@@ -64,8 +66,17 @@ export function AddWork({ handleClose, modal }) {
 
             if (!result.ok) throw new Error('Failed to create')
             
+            const updatedData = await result.json();
+            
+            // Update the context data
+            updateFacultySection(14, updatedData.data);
+            
+            // Update the component's state via the window reference
+            if (window.getWorkExperienceComponent) {
+                window.getWorkExperienceComponent().updateWorkExperience(updatedData.data);
+            }
+            
             handleClose()
-            refreshData()
             setContent(initialState)
         } catch (error) {
             console.error('Error:', error)
@@ -150,6 +161,7 @@ export function AddWork({ handleClose, modal }) {
 // Edit Form Component
 export function EditWork({ handleClose, modal, values }) {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const [content, setContent] = useState(values)
     const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
@@ -175,8 +187,17 @@ export function EditWork({ handleClose, modal, values }) {
 
             if (!result.ok) throw new Error('Failed to update')
             
+            const updatedData = await result.json();
+            
+            // Update the context data
+            updateFacultySection(14, updatedData.data);
+            
+            // Update the component's state via the window reference
+            if (window.getWorkExperienceComponent) {
+                window.getWorkExperienceComponent().updateWorkExperience(updatedData.data);
+            }
+            
             handleClose()
-            refreshData()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -283,11 +304,107 @@ export function WorkExpRow({ data, onEdit, onDelete }) {
 }
 
 export function WorkExperience() {
+    const { data: session } = useSession();
+    const { facultyData, updateFacultySection } = useFacultyData();
+    const [workExperiences, setWorkExperiences] = useState([]);
+    const [openAdd, setOpenAdd] = useState(false);
+    const [openEdit, setOpenEdit] = useState(false);
+    const [selectedExperience, setSelectedExperience] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState({
         open: false,
         severity: 'success',
         message: ''
-    })
+    });
+
+    // Add window reference to this component
+    React.useEffect(() => {
+        // Expose the component instance to the window
+        window.getWorkExperienceComponent = () => ({
+            updateWorkExperience: (newData) => {
+                setWorkExperiences(newData);
+            }
+        });
+        
+        // Cleanup
+        return () => {
+            delete window.getWorkExperienceComponent;
+        };
+    }, []);
+
+    // Fetch data
+    React.useEffect(() => {
+        const fetchWorkExperience = async () => {
+            try {
+                if (facultyData) {
+                    setWorkExperiences(facultyData.work_experience || []);
+                    setLoading(false);
+                } else if (session?.user?.email) {
+                    const response = await fetch(`/api/faculty?type=${session.user.email}`);
+                    if (!response.ok) throw new Error('Failed to fetch');
+                    const data = await response.json();
+                    setWorkExperiences(data.work_experience || []);
+                    setLoading(false);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                setToast({
+                    open: true,
+                    severity: 'error',
+                    message: 'Failed to load work experiences'
+                });
+                setLoading(false);
+            }
+        };
+
+        fetchWorkExperience();
+    }, [session, facultyData]);
+
+    const handleEdit = (experience) => {
+        setSelectedExperience(experience);
+        setOpenEdit(true);
+    };
+
+    const handleDelete = async (id) => {
+        if (confirm('Are you sure you want to delete this work experience?')) {
+            try {
+                const response = await fetch('/api/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'work_experience',
+                        id,
+                        email: session?.user?.email,
+                    }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to delete');
+                }
+
+                const updatedData = await response.json();
+                
+                // Update the context data
+                updateFacultySection(14, updatedData.data);
+                
+                // Update the local state
+                setWorkExperiences(updatedData.data);
+                
+                setToast({
+                    open: true,
+                    severity: 'success',
+                    message: 'Work experience deleted successfully'
+                });
+            } catch (error) {
+                console.error('Error:', error);
+                setToast({
+                    open: true,
+                    severity: 'error',
+                    message: 'Failed to delete work experience'
+                });
+            }
+        }
+    };
 
     const handleCloseToast = (event, reason) => {
         if (reason === 'clickaway') return
@@ -298,6 +415,65 @@ export function WorkExperience() {
 
     return (
         <div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+                <Button 
+                    variant="contained"
+                    color="primary"
+                    onClick={() => setOpenAdd(true)}
+                >
+                    Add Work Experience
+                </Button>
+            </div>
+
+            <TableContainer component={Paper}>
+                <Table>
+                    <TableHead>
+                        <TableRow>
+                            <TableCell>Designation</TableCell>
+                            <TableCell>Organization</TableCell>
+                            <TableCell>From Date</TableCell>
+                            <TableCell>To Date</TableCell>
+                            <TableCell>Description</TableCell>
+                            <TableCell>Actions</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {workExperiences.length > 0 ? (
+                            workExperiences.map((exp) => (
+                                <WorkExpRow 
+                                    key={exp.id} 
+                                    data={exp} 
+                                    onEdit={handleEdit}
+                                    onDelete={handleDelete}
+                                />
+                            ))
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={6} align="center">
+                                    No work experiences found
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+
+            <AddWork
+                modal={openAdd}
+                handleClose={() => setOpenAdd(false)}
+            />
+
+            {selectedExperience && (
+                <EditWork
+                    modal={openEdit}
+                    handleClose={() => {
+                        setOpenEdit(false);
+                        setSelectedExperience(null);
+                    }}
+                    values={selectedExperience}
+                />
+            )}
+
             <Toast 
                 open={toast.open}
                 handleClose={handleCloseToast}

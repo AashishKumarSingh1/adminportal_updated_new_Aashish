@@ -20,6 +20,7 @@ import React, { useState } from 'react'
 import { enGB } from 'date-fns/locale';
 
 import useRefreshData from '@/custom-hooks/refresh'
+import { useFacultyData } from '@/context/FacultyDataContext'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
@@ -30,6 +31,7 @@ import AddIcon from '@mui/icons-material/Add'
 // Add Form Component
 export const AddForm = ({ handleClose, modal }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const initialState = {
         startup_name: '',
         incubation_place: '',
@@ -71,13 +73,21 @@ export const AddForm = ({ handleClose, modal }) => {
 
             if (!result.ok) throw new Error('Failed to create')
             
+            const updatedData = await result.json();
+            
+            // Update the context data
+            updateFacultySection(10, updatedData.data);
+            
+            // Update the component's state via the window reference
+            if (window.getStartupsComponent) {
+                window.getStartupsComponent().updateStartups(updatedData.data);
+            }
+            
             handleClose()
-            refreshData()
             setContent(initialState)
         } catch (error) {
             console.error('Error:', error)
         } finally {
-            window.location.reload();
             setSubmitting(false)
         }
     }
@@ -163,6 +173,7 @@ export const AddForm = ({ handleClose, modal }) => {
 
 export const EditForm = ({ handleClose, modal, values }) => {
     const { data: session } = useSession();
+    const { updateFacultySection } = useFacultyData();
     const [content, setContent] = useState({
         ...values,
         registration_date: values?.registration_date || null, // Ensure fallback for dates
@@ -204,10 +215,18 @@ export const EditForm = ({ handleClose, modal, values }) => {
             if (!response.ok) {
                 throw new Error('Failed to update. Please try again.');
             }
+            
+            const updatedData = await response.json();
+            
+            // Update the context data
+            updateFacultySection(10, updatedData.data);
+            
+            // Update the component's state via the window reference
+            if (window.getStartupsComponent) {
+                window.getStartupsComponent().updateStartups(updatedData.data);
+            }
 
             handleClose();
-            refreshData();
-            window.location.reload()
         } catch (error) {
             console.error('Submission Error:', error);
         } finally {
@@ -297,32 +316,52 @@ export const EditForm = ({ handleClose, modal, values }) => {
 // Main Component
 export default function StartupManagement() {
     const { data: session } = useSession()
+    const { facultyData, updateFacultySection } = useFacultyData();
     const [startups, setStartups] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedStartup, setSelectedStartup] = useState(null)
     const [loading, setLoading] = useState(true)
-    const refreshData = useRefreshData(false)
+    
+    // Add window reference to this component
+    React.useEffect(() => {
+        // Expose the component instance to the window
+        window.getStartupsComponent = () => ({
+            updateStartups: (newData) => {
+                setStartups(newData);
+            }
+        });
+        
+        // Cleanup
+        return () => {
+            delete window.getStartupsComponent;
+        };
+    }, []);
 
     // Fetch data
     React.useEffect(() => {
         const fetchStartups = async () => {
             try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setStartups(data.startups || [])
+                if (facultyData) {
+                    setStartups(facultyData.startups || []);
+                    setLoading(false);
+                } else {
+                    const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
+                    if (!response.ok) throw new Error('Failed to fetch')
+                    const data = await response.json()
+                    setStartups(data.startups || [])
+                    setLoading(false);
+                }
             } catch (error) {
                 console.error('Error:', error)
-            } finally {
-                setLoading(false)
+                setLoading(false);
             }
         }
 
         if (session?.user?.email) {
             fetchStartups()
         }
-    }, [session, refreshData])
+    }, [session, facultyData])
 
     const handleEdit = (startup) => {
         setSelectedStartup(startup)
@@ -346,13 +385,14 @@ export default function StartupManagement() {
                     const errorData = await response.json();
                     throw new Error(errorData.message || 'Failed to delete');
                 }
-    
-                // Update the local state to remove the deleted startup
-                setStartups((prevStartups) =>
-                    prevStartups.filter((startup) => startup.id !== id)
-                );
-    
-                alert('Startup deleted successfully.');
+                
+                const updatedData = await response.json();
+                
+                // Update the context data
+                updateFacultySection(10, updatedData.data);
+                
+                // Update the component's state
+                setStartups(updatedData.data);
             } catch (error) {
                 console.error('Error:', error);
                 alert('Failed to delete the startup. Please try again.');

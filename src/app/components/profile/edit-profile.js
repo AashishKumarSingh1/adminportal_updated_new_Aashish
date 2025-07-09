@@ -11,9 +11,11 @@ import {
 } from '@mui/material'
 import { useSession } from 'next-auth/react'
 import React, { useState } from 'react'
+import { useFacultyData } from '../../../context/FacultyDataContext'
 
-export const EditProfile = ({ handleClose, modal, currentProfile }) => {
+export const EditProfile = ({ handleClose, modal, currentProfile, onUpdate }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const [submitting, setSubmitting] = useState(false)
     const [error, setError] = useState('')
     const [formData, setFormData] = useState({
@@ -54,9 +56,16 @@ export const EditProfile = ({ handleClose, modal, currentProfile }) => {
             })
 
             if (!response.ok) throw new Error('Failed to update profile')
+            
+            // Update the faculty data context with new profile data
+            updateFacultySection('profile', formData)
+            
+            // Update parent component if callback provided
+            if (onUpdate) {
+                onUpdate(formData)
+            }
 
             handleClose()
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
             setError(error.message || 'Failed to update profile')

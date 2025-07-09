@@ -22,14 +22,21 @@ import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useSession } from "next-auth/react";
-
+import { useFacultyData } from "../../../context/FacultyDataContext";
 
 export default function JournalReviewersPage() {
   const [reviewers, setReviewers] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [currentReviewer, setCurrentReviewer] = useState(null);
   const { data: session } = useSession();
+  const { facultyData, loading, updateFacultySection } = useFacultyData();
+
+  // Use context data instead of making API call
+  useEffect(() => {
+    if (facultyData?.international_journal_reviewers) {
+      setReviewers(facultyData.international_journal_reviewers || []);
+    }
+  }, [facultyData]);
 
   const formatDate = (dateString) => {
     if (!dateString) return "-";
@@ -40,22 +47,6 @@ export default function JournalReviewersPage() {
       year: "numeric",
     });
   };
-
-  const fetchReviewers = async () => {
-    try {
-      const res = await fetch(`/api/faculty?type=${session?.user?.email}`);
-      const data = await res.json();
-      setReviewers(data?.international_journal_reviewers || []);
-    } catch (err) {
-      console.error("Failed to fetch reviewers", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchReviewers();
-  }, [session]);
 
   const handleSave = async (reviewer) => {
     const url = reviewer.id ? "/api/reviewers/edit" : "/api/reviewers/create";
@@ -68,7 +59,24 @@ export default function JournalReviewersPage() {
     });
 
     if (res.ok) {
-      fetchReviewers();
+      const result = await res.json();
+      // Update local state
+      if (reviewer.id) {
+        // Update existing reviewer
+        const updatedReviewers = reviewers.map(r => 
+          r.id === reviewer.id ? reviewer : r
+        );
+        setReviewers(updatedReviewers);
+        // Update context
+        updateFacultySection('international_journal_reviewers', updatedReviewers);
+      } else {
+        // Add new reviewer
+        const newReviewer = { ...reviewer, id: result.id };
+        const updatedReviewers = [...reviewers, newReviewer];
+        setReviewers(updatedReviewers);
+        // Update context
+        updateFacultySection('international_journal_reviewers', updatedReviewers);
+      }
       setOpenDialog(false);
       setCurrentReviewer(null);
     }
@@ -78,7 +86,10 @@ export default function JournalReviewersPage() {
     if (!window.confirm("Are you sure to delete?")) return;
     const res = await fetch(`/api/reviewers?id=${id}`, { method: "DELETE" });
     if (res.ok) {
-      setReviewers(reviewers.filter((r) => r.id !== id));
+      const updatedReviewers = reviewers.filter((r) => r.id !== id);
+      setReviewers(updatedReviewers);
+      // Update context
+      updateFacultySection('international_journal_reviewers', updatedReviewers);
     }
   };
 
@@ -108,7 +119,7 @@ export default function JournalReviewersPage() {
       {loading ? (
         <div>Loading...</div>
       ) : (
-        <TableContainer component={Paper} sx={{ m: 2 }}>
+        <TableContainer component={Paper}>
           <Table style={{ maxWidth: '90%' }}>
             <TableHead>
               <TableRow>
@@ -133,7 +144,7 @@ export default function JournalReviewersPage() {
                       <IconButton onClick={() => handleEdit(r)}>
                         <EditIcon />
                       </IconButton>
-                      <IconButton onClick={() => handleDelete(r.id)}>
+                      <IconButton onClick={() => handleDelete(r.id)} style={{ color: 'red' }}>
                         <DeleteIcon />
                       </IconButton>
                     </TableCell>

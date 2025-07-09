@@ -24,17 +24,18 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import AddIcon from '@mui/icons-material/Add'
+import { useFacultyData } from '../../../context/FacultyDataContext'
 
 // Add Form Component
 export const AddForm = ({ handleClose, modal }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const initialState = {
         title: '',
         description: '',
         patent_date: null
     }
     const [content, setContent] = useState(initialState)
-    const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
 
     const handleChange = (e) => {
@@ -46,28 +47,38 @@ export const AddForm = ({ handleClose, modal }) => {
         e.preventDefault()
 
         try {
-            const formattedPatentDate = new Date(content.patent_date).toISOString().split('T')[0]
+            const formattedPatentDate = new Date(content.patent_date).toISOString().split('T')[0];
+            const newPatent = {
+                type: 'patents',
+                ...content,
+                id: Date.now().toString(),
+                email: session?.user?.email,
+                patent_date: formattedPatentDate,
+            };
+            
             const result = await fetch('/api/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'patents',
-                    ...content,
-                    id: Date.now().toString(),
-                    email: session?.user?.email,
-                    patent_date: formattedPatentDate,
-                }),
+                body: JSON.stringify(newPatent),
             })
 
             if (!result.ok) throw new Error('Failed to create')
             
+            // Update state through window component reference
+            if (window.getPatentsComponent) {
+                const currentPatents = window.getPatentsComponent().getPatents() || [];
+                const updatedPatents = [...currentPatents, newPatent];
+                
+                // Update both local state and context
+                window.getPatentsComponent().setPatents(updatedPatents);
+                updateFacultySection('patents', updatedPatents);
+            }
+            
             handleClose()
-            refreshData()
             setContent(initialState)
         } catch (error) {
             console.error('Error:', error)
         } finally {
-            window.location.reload()
             setSubmitting(false)
         }
     }
@@ -127,8 +138,8 @@ export const AddForm = ({ handleClose, modal }) => {
 // Edit Form Component
 export const EditForm = ({ handleClose, modal, values }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData()
     const [content, setContent] = useState(values)
-    const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
 
     const handleChange = (e) => {
@@ -140,25 +151,37 @@ export const EditForm = ({ handleClose, modal, values }) => {
         e.preventDefault()
 
         try {
+            const updatedPatent = {
+                type: 'patents',
+                ...content,
+                email: session?.user?.email,
+                patent_date: new Date(content.patent_date).toISOString().split("T")[0]
+            };
+            
             const result = await fetch('/api/update', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'patents',
-                    ...content,
-                    email: session?.user?.email,
-                    patent_date:new Date(content.patent_date).toISOString().split("T")[[0]]
-                }),
+                body: JSON.stringify(updatedPatent),
             })
 
             if (!result.ok) throw new Error('Failed to update')
             
+            // Update state through window component reference
+            if (window.getPatentsComponent) {
+                const currentPatents = window.getPatentsComponent().getPatents();
+                const updatedPatents = currentPatents.map(patent => 
+                    patent.id === content.id ? content : patent
+                );
+                
+                // Update both local state and context
+                window.getPatentsComponent().setPatents(updatedPatents);
+                updateFacultySection('patents', updatedPatents);
+            }
+            
             handleClose()
-            refreshData()
         } catch (error) {
             console.error('Error:', error)
         } finally {
-            window.location.reload()
             setSubmitting(false)
         }
     }
@@ -218,32 +241,26 @@ export const EditForm = ({ handleClose, modal, values }) => {
 // Main Component
 export default function PatentManagement() {
     const { data: session } = useSession()
+    const { getPatents, loading: contextLoading, updateFacultySection } = useFacultyData()
     const [patents, setPatents] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedPatent, setSelectedPatent] = useState(null)
-    const [loading, setLoading] = useState(true)
-    const refreshData = useRefreshData(false)
+    const [loading, setLoading] = useState(false)
 
-    // Fetch data
+    // Set up component reference for child components
     React.useEffect(() => {
-        const fetchPatents = async () => {
-            try {
-                const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                if (!response.ok) throw new Error('Failed to fetch')
-                const data = await response.json()
-                setPatents(data.patents || [])
-            } catch (error) {
-                console.error('Error:', error)
-            } finally {
-                setLoading(false)
-            }
-        }
+        window.getPatentsComponent = () => ({
+            getPatents: () => patents,
+            setPatents: (newPatents) => setPatents(newPatents)
+        });
+    }, [patents]);
 
-        if (session?.user?.email) {
-            fetchPatents()
-        }
-    }, [session, refreshData])
+    // Get data from context
+    React.useEffect(() => {
+        const patentsData = getPatents() || [];
+        setPatents(patentsData);
+    }, [getPatents])
 
     const handleEdit = (patent) => {
         setSelectedPatent(patent)
@@ -264,15 +281,18 @@ export default function PatentManagement() {
                 })
                 
                 if (!response.ok) throw new Error('Failed to delete')
-                refreshData()
-            window.location.reload()
+                
+                // Update local state and context
+                const updatedPatents = patents.filter(patent => patent.id !== id);
+                setPatents(updatedPatents);
+                updateFacultySection('patents', updatedPatents);
             } catch (error) {
                 console.error('Error:', error)
             }
         }
     }
 
-    if (loading) return <div>Loading...</div>
+    if (loading || contextLoading) return <div>Loading...</div>
 
     return (
         <div>

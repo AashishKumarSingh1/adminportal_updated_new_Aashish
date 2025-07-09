@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { query } from '@/lib/db'
+import { query, parallel, batchQuery } from '@/lib/db'
 import { depList, facultyTables } from '@/lib/const'
 
 const allowedOrigins = [
@@ -132,8 +132,11 @@ export async function GET(request) {
           return NextResponse.json(results)
         }
 
-        // Individual faculty profile query
-        // Optimized: Get user profile data first
+        // Individual faculty profile query - OPTIMIZED WITH CONNECTION POOLING
+        console.log(`[Faculty API] Fetching data for: ${type}`)
+        const startTime = Date.now()
+        
+        // Get user profile data first
         const profileResult = await query(
           `SELECT * FROM user WHERE email = ?`,
           [type]
@@ -147,79 +150,78 @@ export async function GET(request) {
           profile: profileResult[0]
         }
 
-        // Super-optimized: Create a single UNION query instead of multiple individual queries
-        const nonEmptyTables = []
-        const emptyTables = []
-        
-        // First, let's do a quick check to see which tables have data
-        const quickCheckQuery = `
-          ${facultyTables.map(table => {
-            if (table === "patents") {
-              return `SELECT '${table}' as table_name, COUNT(*) as count FROM ipr WHERE email = ? AND type = "Patent"`
-            } else if (table === "user") {
-              return `SELECT '${table}' as table_name, 1 as count` // Skip user table
-            } else {
-              return `SELECT '${table}' as table_name, COUNT(*) as count FROM ${table} WHERE email = ?`
-            }
-          }).join(' UNION ALL ')}
-        `
-        
-        // Execute count check for all tables at once
-        const tableCounts = await query(quickCheckQuery, Array(facultyTables.length).fill(type))
-        
-        // Separate tables with data from empty tables
-        tableCounts.forEach(({ table_name, count }) => {
-          if (count > 0 && table_name !== 'user') {
-            nonEmptyTables.push(table_name)
-          } else {
-            emptyTables.push(table_name)
-          }
-        })
+        // Define all tables we need to query (excluding user which we already have)
+        const dataQueries = [
+          { table: 'about_me', query: 'SELECT * FROM about_me WHERE email = ?' },
+          { table: 'education', query: 'SELECT * FROM education WHERE email = ?' },
+          { table: 'work_experience', query: 'SELECT * FROM work_experience WHERE email = ?' },
+          { table: 'journal_papers', query: 'SELECT * FROM journal_papers WHERE email = ?' },
+          { table: 'conference_papers', query: 'SELECT * FROM conference_papers WHERE email = ?' },
+          { table: 'book_chapters', query: 'SELECT * FROM book_chapters WHERE email = ?' },
+          { table: 'edited_books', query: 'SELECT * FROM edited_books WHERE email = ?' },
+          { table: 'textbooks', query: 'SELECT * FROM textbooks WHERE email = ?' },
+          { table: 'patents', query: 'SELECT * FROM ipr WHERE email = ? AND type = "Patent"' },
+          { table: 'sponsored_projects', query: 'SELECT * FROM sponsored_projects WHERE email = ?' },
+          { table: 'consultancy_projects', query: 'SELECT * FROM consultancy_projects WHERE email = ?' },
+          { table: 'project_supervision', query: 'SELECT * FROM project_supervision WHERE email = ?' },
+          { table: 'phd_candidates', query: 'SELECT * FROM phd_candidates WHERE email = ?' },
+          { table: 'internships', query: 'SELECT * FROM internships WHERE email = ?' },
+          { table: 'teaching_engagement', query: 'SELECT * FROM teaching_engagement WHERE email = ?' },
+          { table: 'workshops_conferences', query: 'SELECT * FROM workshops_conferences WHERE email = ?' },
+          { table: 'institute_activities', query: 'SELECT * FROM institute_activities WHERE email = ?' },
+          { table: 'department_activities', query: 'SELECT * FROM department_activities WHERE email = ?' },
+          { table: 'memberships', query: 'SELECT * FROM memberships WHERE email = ?' },
+          { table: 'ipr', query: 'SELECT * FROM ipr WHERE email = ?' },
+          { table: 'startups', query: 'SELECT * FROM startups WHERE email = ?' },
+          { table: 'conference_session_chairs', query: 'SELECT * FROM conference_session_chairs WHERE email = ?' },
+          { table: 'international_journal_reviewers', query: 'SELECT * FROM international_journal_reviewers WHERE email = ?' },
+          { table: 'talks_and_lectures', query: 'SELECT * FROM talks_and_lectures WHERE email = ?' }
+        ]
 
-        // Only query tables that have data - parallel execution for non-empty tables only
-        if (nonEmptyTables.length > 0) {
-          const dataQueries = nonEmptyTables.map(async (table) => {
-            try {
-              let queryString;
-              if (table === "patents") {
-                queryString = `SELECT *, '${table}' as source_table FROM ipr WHERE email = ? AND type = "Patent"`
-              } else {
-                queryString = `SELECT *, '${table}' as source_table FROM ${table} WHERE email = ?`
-              }
-              
-              const tableData = await query(queryString, [type])
-              return { table, data: tableData }
-            } catch (e) {
-              console.error(`${table} query error:`, e)
-              return { table, data: null }
-            }
-          })
-
-          // Execute only necessary queries in parallel
-          const tableResults = await Promise.all(dataQueries)
+        try {
+          // Execute ALL queries using a single connection from pool for better performance
+          console.log(`[Faculty API] Executing ${dataQueries.length} queries with single connection...`)
           
-          // Process results
-          tableResults.forEach(({ table, data }) => {
-            if (data && data.length > 0) {
-              // Remove the source_table field we added for identification
-              const cleanData = data.map(item => {
-                const { source_table, ...cleanItem } = item
-                return cleanItem
-              })
-              
-              // Special handling for certain tables that need JSON parsing
-              if (table === 'publications') {
-                cleanData.forEach(item => {
-                  if (item.publications) item.publications = JSON.parse(item.publications)
-                  if (item.pub_pdf) item.pub_pdf = JSON.parse(item.pub_pdf)
+          // Use the new batchQuery function from db.js (single connection)
+          const batchQueries = dataQueries.map(({ query: q }) => ({ query: q, values: [type] }))
+          const results = await batchQuery(batchQueries)
+          
+          // Map results back to table names
+          dataQueries.forEach(({ table }, index) => {
+            const tableData = results[index]
+            if (tableData && tableData.length > 0) {
+              // Special handling for publications that need JSON parsing
+              if (table === 'publications' || table === 'journal_papers') {
+                tableData.forEach(item => {
+                  try {
+                    if (item.publications) item.publications = JSON.parse(item.publications)
+                    if (item.pub_pdf) item.pub_pdf = JSON.parse(item.pub_pdf)
+                  } catch (e) {
+                    // Skip JSON parsing errors
+                  }
                 })
               }
-              profileData[table] = cleanData
+              profileData[table] = tableData
+            } else {
+              profileData[table] = []
             }
           })
+          
+          const endTime = Date.now()
+          console.log(`[Faculty API] Completed in ${endTime - startTime}ms using connection pool`)
+          
+          return NextResponse.json(profileData)
+          
+        } catch (error) {
+          console.error('[Faculty API] Parallel query error:', error)
+          // Fallback to empty data structure instead of failing
+          dataQueries.forEach(({ table }) => {
+            if (!profileData[table]) {
+              profileData[table] = []
+            }
+          })
+          return NextResponse.json(profileData)
         }
-
-        return NextResponse.json(profileData)
     }
 
     // Return response with CORS headers

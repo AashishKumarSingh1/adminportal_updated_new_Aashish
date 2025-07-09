@@ -21,29 +21,21 @@ import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useSession } from "next-auth/react";
+import { useFacultyData } from "../../../context/FacultyDataContext";
 
 export default function TalksAndLecturesPage() {
   const [lectures, setLectures] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [currentLecture, setCurrentLecture] = useState(null);
   const { data: session } = useSession();
+  const { facultyData, loading, updateFacultySection } = useFacultyData();
 
-  const fetchLectures = async () => {
-    try {
-      const res = await fetch(`/api/faculty?type=${session?.user?.email}`);
-      const data = await res.json();
-      setLectures(data?.talks_and_lectures || []);
-    } catch (err) {
-      console.error("Failed to fetch lectures", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Use context data instead of making API call
   useEffect(() => {
-    fetchLectures();
-  }, [session]);
+    if (facultyData?.talks_and_lectures) {
+      setLectures(facultyData.talks_and_lectures || []);
+    }
+  }, [facultyData]);
 
   const handleSave = async (lecture) => {
     const url = lecture.id
@@ -58,7 +50,24 @@ export default function TalksAndLecturesPage() {
     });
 
     if (res.ok) {
-      fetchLectures();
+      const result = await res.json();
+      // Update local state
+      if (lecture.id) {
+        // Update existing lecture
+        const updatedLectures = lectures.map(lec => 
+          lec.id === lecture.id ? lecture : lec
+        );
+        setLectures(updatedLectures);
+        // Update context
+        updateFacultySection('talks_and_lectures', updatedLectures);
+      } else {
+        // Add new lecture
+        const newLecture = { ...lecture, id: result.id };
+        const updatedLectures = [...lectures, newLecture];
+        setLectures(updatedLectures);
+        // Update context
+        updateFacultySection('talks_and_lectures', updatedLectures);
+      }
       setOpenDialog(false);
       setCurrentLecture(null);
     }
@@ -70,7 +79,10 @@ export default function TalksAndLecturesPage() {
       method: "DELETE",
     });
     if (res.ok) {
-      setLectures((prev) => prev.filter((lec) => lec.id !== id));
+      const updatedLectures = lectures.filter((lec) => lec.id !== id);
+      setLectures(updatedLectures);
+      // Update context
+      updateFacultySection('talks_and_lectures', updatedLectures);
     }
   };
 
@@ -107,7 +119,7 @@ export default function TalksAndLecturesPage() {
       {loading ? (
         <Typography sx={{ m: 2 }}>Loading...</Typography>
       ) : (
-        <TableContainer component={Paper} sx={{ m: 2 }}>
+        <TableContainer component={Paper}>
           <Table>
             <TableHead>
               <TableRow>

@@ -49,27 +49,24 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     const body = await request.json()
-    let { type,from,to } = body
+    let { type } = body
     
     let results
     switch (type) {
-      case 'range':
-        const { start_date, end_date, from, to } = body
+      case 'all':
         results = await query(
           `SELECT * FROM events 
-           WHERE closeDate <= ? AND openDate >= ? 
-           ORDER BY openDate DESC LIMIT ?, ?`,
-          [end_date, start_date, from, to - from]
+           ORDER BY timestamp DESC`
         )
         break
 
-      case 'between':
-        const { from: fromIndex, to: toIndex } = body
+      case 'range':
+        const { start_date, end_date } = body
         results = await query(
           `SELECT * FROM events 
-           ORDER BY timestamp DESC 
-           LIMIT ?, ?`, //hardcoded need to fix 
-          [fromIndex, toIndex]
+           WHERE closeDate <= ? AND openDate >= ? 
+           ORDER BY openDate DESC`,
+          [end_date, start_date]
         )
         break
 
@@ -83,7 +80,15 @@ export async function POST(request) {
     // Parse attachments for each event
     const events = JSON.parse(JSON.stringify(results))
     events.forEach(event => {
-      event.attachments = JSON.parse(event.attachments)
+      if (event.attachments) {
+        try {
+          event.attachments = JSON.parse(event.attachments)
+        } catch (e) {
+          event.attachments = []
+        }
+      } else {
+        event.attachments = []
+      }
     })
 
     return NextResponse.json(events)
