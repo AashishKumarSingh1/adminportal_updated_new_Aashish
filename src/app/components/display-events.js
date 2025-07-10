@@ -71,8 +71,8 @@ const Event = ({ detail }) => {
     const [viewModal, setViewModal] = useState(false)
     const [deleteModal, setDeleteModal] = useState(false)
     const { data: session } = useSession()
-    const startDate = formatDate(detail.startDate)
-    const endDate = formatDate(detail.endDate)
+    const startDate = formatDate(detail.eventStartDate)
+    const endDate = formatDate(detail.eventEndDate)
 
     return (
         <>
@@ -169,7 +169,7 @@ const Event = ({ detail }) => {
                 detail={detail}
             />
             <ConfirmDelete
-                modal={deleteModal}
+                open={deleteModal}
                 handleClose={() => setDeleteModal(false)}
                 event={detail}
             />

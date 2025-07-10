@@ -23,6 +23,7 @@ import AddIcon from '@mui/icons-material/Add'
 import SearchIcon from '@mui/icons-material/Search'
 import { AddFaculty } from './faculty-management-props/addfaculty'
 import { EditFaculty } from './faculty-management-props/editfaculty'
+import { ConfirmDelete } from './faculty-management-props/confirm-delete'
 import Loading from './common/Loading'
 
 const columns = [
@@ -30,6 +31,7 @@ const columns = [
   { id: 'email', label: 'Email', minWidth: 200 },
   { id: 'department', label: 'Department', minWidth: 170 },
   { id: 'designation', label: 'Designation', minWidth: 170 },
+  { id: 'academic_responsibility', label: 'Academic Responsibility', minWidth: 180 },
   { id: 'role', label: 'Role', minWidth: 150 },
   { id: 'actions', label: 'Actions', minWidth: 120 },
 ]
@@ -41,25 +43,29 @@ export function FacultyTable() {
   const [loading, setLoading] = useState(true)
   const [openAdd, setOpenAdd] = useState(false)
   const [openEdit, setOpenEdit] = useState(false)
+  const [openDelete, setOpenDelete] = useState(false)
   const [selectedFaculty, setSelectedFaculty] = useState(null)
+  const [facultyToDelete, setFacultyToDelete] = useState(null)
   const [nameSearch, setNameSearch] = useState('')
   const [emailSearch, setEmailSearch] = useState('')
 
-  // Fetch faculty data
-  useEffect(() => {
-    const fetchFaculty = async () => {
-      try {
-        const res = await fetch('/api/faculty?type=all')
-        if (!res.ok) throw new Error('Failed to fetch')
-        const data = await res.json()
-        setRows(data)
-      } catch (error) {
-        console.error('Error fetching faculty:', error)
-      } finally {
-        setLoading(false)
-      }
+  // Fetch faculty data function
+  const fetchFaculty = async () => {
+    try {
+      setLoading(true)
+      const res = await fetch('/api/faculty?type=all')
+      if (!res.ok) throw new Error('Failed to fetch')
+      const data = await res.json()
+      setRows(data)
+    } catch (error) {
+      console.error('Error fetching faculty:', error)
+    } finally {
+      setLoading(false)
     }
+  }
 
+  // Fetch faculty data on component mount
+  useEffect(() => {
     fetchFaculty()
   }, [])
 
@@ -87,25 +93,41 @@ export function FacultyTable() {
     }
   }
 
-  const handleDelete = async (email) => {
-    if (!window.confirm('Are you sure you want to delete this faculty?')) return
-
+  const handleDelete = async (facultyRow) => {
     try {
-      const res = await fetch('/api/delete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'user',
-          email: email
-        })
-      })
-
-      if (!res.ok) throw new Error('Failed to delete')
-
-      setRows(prev => prev.filter(row => row.email !== email))
+      // Fetch complete faculty data for the delete confirmation
+      const res = await fetch(`/api/faculty?type=${facultyRow.email}`)
+      const fullFacultyData = await res.json()
+      
+      setFacultyToDelete(fullFacultyData)
+      setOpenDelete(true)
     } catch (error) {
-      console.error('Error deleting faculty:', error)
+      console.error('Error fetching faculty details:', error)
+      // Fallback: create basic faculty object from row data
+      const facultyData = {
+        profile: {
+          name: facultyRow.name,
+          email: facultyRow.email,
+          department: facultyRow.department,
+          designation: facultyRow.designation,
+          role: facultyRow.role,
+          ext_no: facultyRow.ext_no,
+          research_interest: facultyRow.research_interest,
+          academic_responsibility: facultyRow.academic_responsibility,
+          is_retired: facultyRow.is_retired,
+          retirement_date: facultyRow.retirement_date,
+          image: facultyRow.image
+        }
+      }
+      setFacultyToDelete(facultyData)
+      setOpenDelete(true)
     }
+  }
+
+  const handleDeleteFromEdit = (faculty) => {
+    setFacultyToDelete(faculty)
+    setOpenEdit(false)
+    setOpenDelete(true)
   }
 
   // Filter rows based on search
@@ -186,6 +208,7 @@ export function FacultyTable() {
                   <TableCell>{row.email}</TableCell>
                   <TableCell>{row.department}</TableCell>
                   <TableCell>{row.designation || 'N/A'}</TableCell>
+                  <TableCell>{row.academic_responsibility || 'N/A'}</TableCell>
                   <TableCell>{row.role}</TableCell>
                   <TableCell>
                     <IconButton 
@@ -196,7 +219,7 @@ export function FacultyTable() {
                       <EditIcon />
                     </IconButton>
                     <IconButton 
-                      onClick={() => handleDelete(row.email)}
+                      onClick={() => handleDelete(row)}
                       color="error"
                       size="small"
                     >
@@ -244,6 +267,19 @@ export function FacultyTable() {
             setOpenEdit(false)
             setSelectedFaculty(null)
           }}
+          onDelete={handleDeleteFromEdit}
+        />
+      )}
+
+      {openDelete && facultyToDelete && (
+        <ConfirmDelete
+          open={openDelete}
+          onClose={() => {
+            setOpenDelete(false)
+            setFacultyToDelete(null)
+          }}
+          faculty={facultyToDelete}
+          refreshTable={fetchFaculty}
         />
       )}
     </Paper>

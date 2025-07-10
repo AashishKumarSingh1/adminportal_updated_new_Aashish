@@ -64,7 +64,7 @@ export async function POST(request) {
       switch (type) {
         case 'user':
           const userResult = await query(
-            `INSERT INTO user(name, email, role, department, designation, ext_no, research_interest, is_retired, retirement_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO user(name, email, role, department, designation, ext_no, research_interest, academic_responsibility, is_retired, retirement_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               params.name,
               params.email,
@@ -73,6 +73,7 @@ export async function POST(request) {
               params.designation,
               params.ext_no,
               params.research_interest,
+              params.academic_responsibility || null,
               params.is_retired || false,
               params.retirement_date || null
             ]
@@ -106,8 +107,8 @@ export async function POST(request) {
               params.data.closeDate,
               params.data.venue,
               params.data.doclink,
-              JSON.stringify(params.data.attachments),
-              JSON.stringify(params.data.main_attachment),
+              JSON.stringify(params.data.attachments || []),
+              JSON.stringify(params.data.event_link),
               params.data.email,
               params.data.eventStartDate,
               params.data.eventEndDate,

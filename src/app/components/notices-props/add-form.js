@@ -22,11 +22,11 @@ import { AddAttachments } from './../common-props/add-attachment'
 import { handleNewAttachments } from './../common-props/add-attachment'
 import { administrationList, depList } from './../../../lib/const'
 
-// Helper function to get default close date (6 months from now)
+// Helper function to get default close date (1 month from now)
 const getDefaultCloseDate = () => {
     const now = new Date()
-    const sixMonthsLater = new Date(now.getFullYear(), now.getMonth() + 6, now.getDate())
-    return sixMonthsLater.toISOString().split('T')[0]
+    const oneMonthLater = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate())
+    return oneMonthLater.toISOString().split('T')[0]
 }
 
 // Helper function to get today's date
@@ -209,7 +209,7 @@ export const AddForm = ({ handleClose, modal }) => {
                                         shrink: true,
                                     }}
                                     variant="outlined"
-                                    helperText="Default: 6 months from today"
+                                    helperText="Default: 1 month from today"
                                 />
                             </Grid>
                         </Grid>

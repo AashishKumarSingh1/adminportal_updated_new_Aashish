@@ -9,14 +9,19 @@ import {
   TextField,
   MenuItem,
   Grid,
+  Typography,
+  Divider,
+  Box,
+  IconButton,
 } from '@mui/material'
+import { Delete } from '@mui/icons-material'
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { depList } from '@/lib/const'
 import { ROLES } from '@/lib/roles'
 import Toast from '../common/Toast'
 
-export function EditFaculty({ open, faculty, onClose, onSuccess }) {
+export function EditFaculty({ open, faculty, onClose, onSuccess, onDelete }) {
   const { data: session } = useSession()
   const [loading, setLoading] = useState(false)
   const [toast, setToast] = useState({
@@ -32,6 +37,7 @@ export function EditFaculty({ open, faculty, onClose, onSuccess }) {
     role: '',
     ext_no: '',
     research_interest: '',
+    academic_responsibility: '',
     is_retired: '0',
     retirement_date: null,
   })
@@ -46,6 +52,7 @@ export function EditFaculty({ open, faculty, onClose, onSuccess }) {
         role: faculty.profile.role || '',  
         ext_no: faculty.profile.ext_no || '',
         research_interest: faculty.profile.research_interest || '',
+        academic_responsibility: faculty.profile.academic_responsibility || '',
         is_retired: faculty.profile.is_retired ? '1' : '0',
         retirement_date: faculty.profile.retirement_date || null,
       })
@@ -109,121 +116,225 @@ export function EditFaculty({ open, faculty, onClose, onSuccess }) {
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
         <form onSubmit={handleSubmit}>
-          <DialogTitle>Edit Faculty</DialogTitle>
-          <DialogContent>
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Name"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  type="email"
-                  required
-                  value={formData.email}
-                  disabled
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  select
-                  label="Department"
-                  required
-                  value={formData.department}
-                  onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
-                >
-                  {[...depList].map(([key, value]) => (
-                    <MenuItem key={value} value={value}>
-                      {value}
-                    </MenuItem>
-                  ))}
-                  <MenuItem value="developer">Developer</MenuItem>
-                </TextField>
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Designation"
-                  value={formData.designation || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, designation: e.target.value }))}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Ext No"
-                  value={formData.ext_no || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, ext_no: e.target.value }))}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Research Interest"
-                  value={formData.research_interest || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, research_interest: e.target.value }))}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  select
-                  required
-                  label="Is Retired"
-                  value={formData.is_retired}
-                  onChange={(e) => setFormData(prev => ({ ...prev, is_retired: e.target.value }))}
-                >
-                  <MenuItem value="1">Yes</MenuItem>
-                  <MenuItem value="0">No</MenuItem>
-                </TextField>
-              </Grid>
-              {formData.is_retired === '1' && (
+          <DialogTitle 
+            sx={{ 
+              backgroundColor: '#830001', 
+              color: 'white',
+              fontWeight: 600,
+              fontSize: '1.25rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              position: 'sticky',
+              top: 0,
+              zIndex: 1300
+            }}
+          >
+            Edit Faculty
+            {onDelete && (
+              <IconButton
+                onClick={() => onDelete(faculty)}
+                sx={{
+                  color: 'white',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                  }
+                }}
+              >
+                <Delete />
+              </IconButton>
+            )}
+          </DialogTitle>
+          <DialogContent sx={{ 
+            mt: 2, 
+            maxHeight: '70vh', 
+            overflowY: 'auto',
+            '&::-webkit-scrollbar': {
+              display: 'none'
+            },
+            scrollbarWidth: 'none',  // Firefox
+            msOverflowStyle: 'none'  // IE and Edge
+          }}>
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333', fontWeight: 500 }}>
+                Faculty Information
+              </Typography>
+              
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Name"
+                    required
+                    value={formData.name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                    variant="outlined"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Email"
+                    type="email"
+                    required
+                    value={formData.email}
+                    disabled
+                    variant="outlined"
+                    sx={{
+                      '& .MuiInputBase-input.Mui-disabled': {
+                        WebkitTextFillColor: '#666',
+                      }
+                    }}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    select
+                    label="Department"
+                    required
+                    value={formData.department}
+                    onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
+                    variant="outlined"
+                  >
+                    {[...depList].map(([key, value]) => (
+                      <MenuItem key={value} value={value}>
+                        {value}
+                      </MenuItem>
+                    ))}
+                    <MenuItem value="developer">Developer</MenuItem>
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Designation"
+                    value={formData.designation || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, designation: e.target.value }))}
+                    variant="outlined"
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Extension Number"
+                    value={formData.ext_no || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, ext_no: e.target.value }))}
+                    variant="outlined"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    select
+                    label="Role"
+                    required
+                    value={formData.role}
+                    onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
+                    variant="outlined"
+                  >
+                    {Object.entries(ROLES).map(([key, value]) => (
+                      <MenuItem key={key} value={value}>
+                        {key}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
-                    type="date"
-                    label="Retirement Date"
-                    value={formData.retirement_date || '2025-02-27'}
-                    onChange={(e) => setFormData(prev => ({ ...prev, retirement_date: e.target.value }))}
-                    InputLabelProps={{ shrink: true }}
+                    label="Research Interest"
+                    multiline
+                    rows={3}
+                    value={formData.research_interest || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, research_interest: e.target.value }))}
+                    variant="outlined"
                   />
                 </Grid>
-              )}
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  select
-                  label="Role"
-                  required
-                  value={formData.role}
-                  onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
-                >
-                  {Object.entries(ROLES).map(([key, value]) => (
-                    <MenuItem key={key} value={value}>
-                      {key}
-                    </MenuItem>
-                  ))}
-                </TextField>
+                
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Academic Responsibility"
+                    value={formData.academic_responsibility || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, academic_responsibility: e.target.value }))}
+                    variant="outlined"
+                    placeholder="Enter academic responsibility (e.g., Dean - Academic, Student Welfare Dean, Head of Department - CSE, etc.)"
+                  />
+                </Grid>
               </Grid>
+            </Box>
+
+            <Divider sx={{ my: 3 }} />
+
+            <Box>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333', fontWeight: 500 }}>
+                Employment Status
+              </Typography>
               
-            </Grid>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    select
+                    required
+                    label="Is Retired"
+                    value={formData.is_retired}
+                    onChange={(e) => setFormData(prev => ({ ...prev, is_retired: e.target.value }))}
+                    variant="outlined"
+                  >
+                    <MenuItem value="0">Active</MenuItem>
+                    <MenuItem value="1">Retired</MenuItem>
+                  </TextField>
+                </Grid>
+                {formData.is_retired === '1' && (
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      type="date"
+                      label="Retirement Date"
+                      value={formData.retirement_date || '2025-02-27'}
+                      onChange={(e) => setFormData(prev => ({ ...prev, retirement_date: e.target.value }))}
+                      InputLabelProps={{ shrink: true }}
+                      variant="outlined"
+                    />
+                  </Grid>
+                )}
+              </Grid>
+            </Box>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={onClose}>Cancel</Button>
+          <DialogActions sx={{ p: 3, backgroundColor: '#f8f9fa', position: 'sticky', bottom: 0, zIndex: 1300 }}>
+            <Button 
+              onClick={onClose}
+              variant="outlined"
+              sx={{ 
+                color: '#830001', 
+                borderColor: '#830001',
+                '&:hover': {
+                  backgroundColor: '#830001',
+                  color: 'white'
+                }
+              }}
+            >
+              Cancel
+            </Button>
             <Button 
               type="submit" 
               variant="contained" 
               disabled={loading}
+              sx={{ 
+                backgroundColor: '#830001', 
+                color: 'white',
+                minWidth: 120,
+                '&:hover': {
+                  backgroundColor: '#6a0001'
+                }
+              }}
             >
               {loading ? 'Saving...' : 'Save Changes'}
             </Button>
