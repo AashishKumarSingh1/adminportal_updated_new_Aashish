@@ -390,6 +390,7 @@ await query(`CREATE TABLE IF NOT EXISTS user (
     designation VARCHAR(100),
     ext_no TEXT,
     research_interest TEXT,
+    academic_responsibility VARCHAR(255),
     image VARCHAR(1000),
     administration VARCHAR(1000),
     cv VARCHAR(1000),

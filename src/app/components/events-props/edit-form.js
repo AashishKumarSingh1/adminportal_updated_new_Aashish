@@ -23,6 +23,38 @@ import { ConfirmDelete } from './confirm-delete'
 import { AddAttachments } from './../common-props/add-attachment'
 import { handleNewAttachments } from './../common-props/add-attachment'
 
+// Helper function to format dates for edit form
+const formatDateForInput = (dateValue) => {
+    if (!dateValue) return ''
+    
+    let date
+    // Handle different date formats
+    if (typeof dateValue === 'string') {
+        // If it's a string timestamp, convert to number first
+        const timestamp = parseInt(dateValue, 10)
+        if (!isNaN(timestamp)) {
+            date = new Date(timestamp)
+        } else {
+            // Try parsing as date string
+            date = new Date(dateValue)
+        }
+    } else if (typeof dateValue === 'number') {
+        // If it's already a number timestamp
+        date = new Date(dateValue)
+    } else {
+        // If it's already a Date object
+        date = dateValue
+    }
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+        return ''
+    }
+    
+    // Return in YYYY-MM-DD format for input[type="date"]
+    return date.toISOString().split('T')[0]
+}
+
 export const EditForm = ({ data, handleClose, modal }) => {
     const deleteArray = useRef([])
     const { data: session } = useSession()
@@ -30,13 +62,14 @@ export const EditForm = ({ data, handleClose, modal }) => {
     const [content, setContent] = useState({
         id: data.id,
         title: data.title,
-        openDate: dateformatter(data.openDate),
-        closeDate: dateformatter(data.closeDate),
-        eventStartDate: dateformatter(data.eventStartDate),
-        eventEndDate: dateformatter(data.eventEndDate),
+        openDate: formatDateForInput(data.openDate),
+        closeDate: formatDateForInput(data.closeDate),
+        eventStartDate: formatDateForInput(data.eventStartDate),
+        eventEndDate: formatDateForInput(data.eventEndDate),
         venue: data.venue,
         doclink: data.doclink || '',
         type: data.type || 'general',
+        email: data?.email || null,
     })
 
     const [verifyDelete, setVerifyDelete] = useState(false)
@@ -46,15 +79,17 @@ export const EditForm = ({ data, handleClose, modal }) => {
 
     const [add_attach, setAdd_attach] = useState(() => {
         if (!data.attachments) return [];
-        if (typeof data.attachments === 'string') {
-            try {
-                return JSON.parse(data.attachments);
-            } catch (e) {
-                console.error('Error parsing attachments:', e);
-                return [];
-            }
+        
+        try {
+            const attachData = typeof data.attachments === 'string' ? 
+                JSON.parse(data.attachments) : 
+                data.attachments;
+                
+            return Array.isArray(attachData) ? attachData : [];
+        } catch (e) {
+            console.error('Error parsing attachments data:', e);
+            return [];
         }
-        return Array.isArray(data.attachments) ? data.attachments : [];
     });
 
     const [new_attach, setNew_attach] = useState([]);
@@ -75,6 +110,7 @@ export const EditForm = ({ data, handleClose, modal }) => {
                     id: Date.now() + Math.random(),
                     caption: attachment.caption,
                     url: attachment.url,
+                    key: attachment.key,
                     typeLink: attachment.typeLink
                 }))
                 attachments = [...attachments, ...newAttachmentsWithIds]
@@ -83,6 +119,7 @@ export const EditForm = ({ data, handleClose, modal }) => {
             const finaldata = {
                 id: content.id,
                 title: content.title,
+                email: content.email,
                 openDate: new Date(content.openDate).getTime(),
                 closeDate: new Date(content.closeDate).getTime(),
                 eventStartDate: new Date(content.eventStartDate).getTime(),
@@ -93,7 +130,7 @@ export const EditForm = ({ data, handleClose, modal }) => {
                 updatedAt: Date.now(),
                 updatedBy: session.user.email,
                 event_link: null,
-                attachments: JSON.stringify(attachments),
+                attachments: attachments,
                 deleteArray: deleteArray.current
             }
 
@@ -122,259 +159,273 @@ export const EditForm = ({ data, handleClose, modal }) => {
     }
 
     return (
-        <Dialog 
-            open={modal} 
-            onClose={handleClose} 
-            maxWidth="md" 
-            fullWidth
-            PaperProps={{
-                sx: {
-                    borderRadius: 2,
-                    '& .MuiDialogContent-root': {
-                        '&::-webkit-scrollbar': {
-                            display: 'none'
-                        },
-                        '-ms-overflow-style': 'none',
-                        'scrollbar-width': 'none'
-                    }
-                }
-            }}
-        >
+        <Dialog open={modal} onClose={handleClose} maxWidth="md" fullWidth>
             <form onSubmit={handleSubmit}>
-                <DialogTitle sx={{ 
-                    position: 'sticky', 
-                    top: 0, 
-                    bgcolor: 'background.paper', 
-                    zIndex: 1,
-                    borderBottom: '1px solid',
-                    borderColor: 'divider',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                }}>
-                    <Typography variant="h6" component="div">
-                        Edit Event
-                    </Typography>
+                <DialogTitle 
+                    sx={{ 
+                        backgroundColor: '#830001', 
+                        color: 'white',
+                        fontWeight: 600,
+                        fontSize: '1.25rem',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 1300
+                    }}
+                >
+                    Edit Event
                     <IconButton
                         onClick={handleDelete}
-                        color="error"
-                        sx={{ ml: 1 }}
+                        sx={{
+                            color: 'white',
+                            '&:hover': {
+                                backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }}
                     >
                         <Delete />
                     </IconButton>
                 </DialogTitle>
-                
-                <DialogContent sx={{ mt: 1 }}>
-                    <Grid container spacing={2}>
-                        {/* Basic Information Section */}
-                        <Grid item xs={12}>
-                            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, color: 'primary.main' }}>
-                                Basic Information
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                        </Grid>
+                <DialogContent sx={{ 
+                    mt: 2, 
+                    maxHeight: '70vh', 
+                    overflowY: 'auto',
+                    '&::-webkit-scrollbar': {
+                        display: 'none'
+                    },
+                    scrollbarWidth: 'none',  // Firefox
+                    msOverflowStyle: 'none'  // IE and Edge
+                }}>
+                    <Box sx={{ mb: 3 }}>
+                        <Typography variant="h6" sx={{ mb: 2, color: '#333', fontWeight: 500 }}>
+                            Event Details
+                        </Typography>
+                        <TextField
+                            margin="dense"
+                            label="Event Title"
+                            name="title"
+                            type="text"
+                            required
+                            fullWidth
+                            value={content.title}
+                            onChange={handleChange}
+                            sx={{ mb: 2 }}
+                            variant="outlined"
+                        />
                         
-                        <Grid item xs={12}>
-                            <TextField
-                                label="Event Title"
-                                name="title"
-                                type="text"
-                                required
-                                fullWidth
-                                value={content.title}
-                                onChange={handleChange}
-                                variant="outlined"
-                            />
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Venue"
-                                name="venue"
-                                type="text"
-                                required
-                                fullWidth
-                                value={content.venue}
-                                onChange={handleChange}
-                                variant="outlined"
-                            />
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
-                            <FormControl fullWidth variant="outlined">
-                                <InputLabel>Event Type</InputLabel>
-                                <Select
-                                    name="type"
-                                    value={content.type}
+                        <Grid container spacing={2} sx={{ mb: 2 }}>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    margin="dense"
+                                    label="Venue"
+                                    name="venue"
+                                    type="text"
+                                    required
+                                    fullWidth
+                                    value={content.venue}
                                     onChange={handleChange}
-                                    label="Event Type"
-                                >
-                                    <MenuItem value="general">General</MenuItem>
-                                    <MenuItem value="intranet">Intranet</MenuItem>
-                                </Select>
-                            </FormControl>
+                                    variant="outlined"
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <FormControl fullWidth margin="dense" variant="outlined">
+                                    <InputLabel>Event Type</InputLabel>
+                                    <Select
+                                        name="type"
+                                        value={content.type}
+                                        onChange={handleChange}
+                                        label="Event Type"
+                                    >
+                                        <MenuItem value="general">General</MenuItem>
+                                        <MenuItem value="intranet">Intranet</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Grid>
                         </Grid>
 
-                        {/* Date Information Section */}
-                        <Grid item xs={12} sx={{ mt: 2 }}>
-                            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, color: 'primary.main' }}>
-                                Date Information
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Registration Open Date"
-                                name="openDate"
-                                type="date"
-                                required
-                                fullWidth
-                                value={content.openDate}
-                                onChange={handleChange}
-                                InputLabelProps={{ shrink: true }}
-                                variant="outlined"
-                            />
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Registration Close Date"
-                                name="closeDate"
-                                type="date"
-                                required
-                                fullWidth
-                                value={content.closeDate}
-                                onChange={handleChange}
-                                InputLabelProps={{ shrink: true }}
-                                variant="outlined"
-                            />
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Event Start Date"
-                                name="eventStartDate"
-                                type="date"
-                                required
-                                fullWidth
-                                value={content.eventStartDate}
-                                onChange={handleChange}
-                                InputLabelProps={{ shrink: true }}
-                                variant="outlined"
-                            />
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Event End Date"
-                                name="eventEndDate"
-                                type="date"
-                                required
-                                fullWidth
-                                value={content.eventEndDate}
-                                onChange={handleChange}
-                                InputLabelProps={{ shrink: true }}
-                                variant="outlined"
-                            />
+                        <Grid container spacing={2} sx={{ mb: 2 }}>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    margin="dense"
+                                    label="Registration Open Date"
+                                    name="openDate"
+                                    type="date"
+                                    required
+                                    fullWidth
+                                    value={content.openDate}
+                                    onChange={handleChange}
+                                    InputLabelProps={{
+                                        shrink: true,
+                                    }}
+                                    variant="outlined"
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    margin="dense"
+                                    label="Registration Close Date"
+                                    name="closeDate"
+                                    type="date"
+                                    required
+                                    fullWidth
+                                    value={content.closeDate}
+                                    onChange={handleChange}
+                                    InputLabelProps={{
+                                        shrink: true,
+                                    }}
+                                    variant="outlined"
+                                />
+                            </Grid>
                         </Grid>
 
-                        {/* Additional Information Section */}
-                        <Grid item xs={12} sx={{ mt: 2 }}>
-                            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, color: 'primary.main' }}>
-                                Additional Information
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                        </Grid>
-                        
-                        <Grid item xs={12}>
-                            <TextField
-                                label="Registration Link (Optional)"
-                                name="doclink"
-                                type="url"
-                                fullWidth
-                                value={content.doclink}
-                                onChange={handleChange}
-                                variant="outlined"
-                                placeholder="https://..."
-                            />
+                        <Grid container spacing={2} sx={{ mb: 2 }}>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    margin="dense"
+                                    label="Event Start Date"
+                                    name="eventStartDate"
+                                    type="date"
+                                    required
+                                    fullWidth
+                                    value={content.eventStartDate}
+                                    onChange={handleChange}
+                                    InputLabelProps={{
+                                        shrink: true,
+                                    }}
+                                    variant="outlined"
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    margin="dense"
+                                    label="Event End Date"
+                                    name="eventEndDate"
+                                    type="date"
+                                    required
+                                    fullWidth
+                                    value={content.eventEndDate}
+                                    onChange={handleChange}
+                                    InputLabelProps={{
+                                        shrink: true,
+                                    }}
+                                    variant="outlined"
+                                />
+                            </Grid>
                         </Grid>
 
-                        {/* Existing Attachments Section */}
-                        {add_attach && add_attach.length > 0 && (
-                            <>
-                                <Grid item xs={12} sx={{ mt: 2 }}>
-                                    <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, color: 'primary.main' }}>
-                                        Existing Attachments
-                                    </Typography>
-                                    <Divider sx={{ mb: 2 }} />
-                                </Grid>
-                                
-                                <Grid item xs={12}>
-                                    <DisplayAdditionalAttach
-                                        add_attach={add_attach}
-                                        setAdd_attach={setAdd_attach}
-                                        deleteArray={deleteArray}
-                                    />
-                                </Grid>
-                            </>
+                        <TextField
+                            margin="dense"
+                            label="Registration Link (Optional)"
+                            name="doclink"
+                            type="url"
+                            fullWidth
+                            value={content.doclink}
+                            onChange={handleChange}
+                            variant="outlined"
+                            placeholder="https://..."
+                        />
+                    </Box>
+
+                    <Divider sx={{ my: 3 }} />
+
+                    <Box>
+                        <Typography variant="h6" sx={{ mb: 2, color: '#333', fontWeight: 500 }}>
+                            Attachments
+                        </Typography>
+                        
+                        {add_attach.length > 0 && (
+                            <Box sx={{ 
+                                mb: 3,
+                                p: 2, 
+                                border: '1px solid #e0e0e0', 
+                                borderRadius: 2,
+                                backgroundColor: '#f9f9f9'
+                            }}>
+                                <Typography variant="subtitle2" sx={{ mb: 2, color: '#666' }}>
+                                    Current Attachments
+                                </Typography>
+                                <DisplayAdditionalAttach
+                                    add_attach={add_attach}
+                                    setAdd_attach={setAdd_attach}
+                                    deleteArray={deleteArray}
+                                />
+                            </Box>
                         )}
 
-                        {/* New Attachments Section */}
-                        <Grid item xs={12} sx={{ mt: 2 }}>
-                            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, color: 'primary.main' }}>
+                        <Box sx={{ 
+                            p: 2, 
+                            border: '2px dashed #ddd', 
+                            borderRadius: 2,
+                            backgroundColor: '#fafafa'
+                        }}>
+                            <Typography variant="subtitle2" sx={{ mb: 2, color: '#666' }}>
                                 Add New Attachments
                             </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                        </Grid>
-                        
-                        <Grid item xs={12}>
                             <AddAttachments
                                 attachments={new_attach}
                                 setAttachments={setNew_attach}
                             />
-                        </Grid>
-                    </Grid>
+                        </Box>
+                    </Box>
                 </DialogContent>
 
-                <DialogActions sx={{ 
-                    position: 'sticky', 
-                    bottom: 0, 
-                    bgcolor: 'background.paper', 
-                    borderTop: '1px solid',
-                    borderColor: 'divider',
-                    p: 2
-                }}>
-                    <Button onClick={handleClose} variant="outlined">
+                <DialogActions sx={{ p: 3, backgroundColor: '#f8f9fa', position: 'sticky', bottom: 0, zIndex: 1300 }}>
+                    <Button 
+                        onClick={handleClose} 
+                        variant="outlined"
+                        sx={{ 
+                            color: '#830001', 
+                            borderColor: '#830001',
+                            '&:hover': {
+                                backgroundColor: '#830001',
+                                color: 'white'
+                            }
+                        }}
+                    >
                         Cancel
                     </Button>
                     <Button 
-                        type="submit"
-                        variant="contained"
-                        color="primary"
+                        type="submit" 
+                        variant="contained" 
+                        sx={{ 
+                            backgroundColor: '#830001', 
+                            color: 'white',
+                            minWidth: 120,
+                            '&:hover': {
+                                backgroundColor: '#6a0001'
+                            }
+                        }}
                         disabled={submitting}
-                        sx={{ minWidth: 100 }}
                     >
-                        {submitting ? 'Saving...' : 'Save Changes'}
+                        {submitting ? 'Updating...' : 'Update Event'}
                     </Button>
                 </DialogActions>
             </form>
 
             <ConfirmDelete
+                open={verifyDelete}
                 handleClose={() => setVerifyDelete(false)}
-                modal={verifyDelete}
                 event={data}
             />
         </Dialog>
     )
 }
 
-const DisplayAdditionalAttach = ({ add_attach, setAdd_attach, deleteArray }) => {
+function DisplayAdditionalAttach({ add_attach, setAdd_attach, deleteArray }) {
     const deleteAttachment = (idx) => {
         const values = [...add_attach]
-        if (values[idx].id) {
-            deleteArray.current = [...deleteArray.current, values[idx].id]
+        const attachmentToDelete = values[idx]
+        
+        if (attachmentToDelete.id) {
+            deleteArray.current = [...deleteArray.current, {
+                id: attachmentToDelete.id,
+                url: attachmentToDelete.url,
+                key: attachmentToDelete.key
+            }]
         }
+        
         values.splice(idx, 1)
         setAdd_attach(values)
     }
@@ -382,50 +433,86 @@ const DisplayAdditionalAttach = ({ add_attach, setAdd_attach, deleteArray }) => 
     return (
         <>
             {add_attach?.map((attachment, idx) => (
-                <div
+                <Box
                     key={idx}
-                    style={{
+                    sx={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '10px',
-                        marginTop: '10px'
+                        gap: 2,
+                        p: 2,
+                        mb: 2,
+                        border: '1px solid #e0e0e0',
+                        borderRadius: 2,
+                        backgroundColor: 'white',
+                        '&:hover': {
+                            backgroundColor: '#f5f5f5'
+                        }
                     }}
                 >
-                    <TextField
-                        type="text"
-                        value={attachment.caption || ''}
-                        fullWidth
-                        label={`Attachment ${idx + 1}`}
-                        InputLabelProps={{
-                            shrink: true,
-                        }}
-                        disabled
-                    />
+                    <Box sx={{ flexGrow: 1 }}>
+                        <TextField
+                            type="text"
+                            value={attachment.caption || `Attachment ${idx + 1}`}
+                            fullWidth
+                            label={`Attachment ${idx + 1}`}
+                            InputLabelProps={{
+                                shrink: true,
+                            }}
+                            variant="outlined"
+                            size="small"
+                            disabled
+                            sx={{
+                                '& .MuiInputBase-input.Mui-disabled': {
+                                    WebkitTextFillColor: '#666',
+                                }
+                            }}
+                        />
+                    </Box>
                     {attachment.url && (
-                        <a 
+                        <Button
                             href={attachment.url} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            style={{ 
-                                color: '#1976d2',
-                                textDecoration: 'none',
-                                display: 'flex',
-                                alignItems: 'center' 
+                            variant="outlined"
+                            size="small"
+                            startIcon={<Link />}
+                            sx={{ 
+                                color: '#830001',
+                                borderColor: '#830001',
+                                minWidth: 80,
+                                '&:hover': {
+                                    backgroundColor: '#830001',
+                                    color: 'white'
+                                }
                             }}
                         >
-                            <Link style={{ marginRight: '5px' }} />
                             View
-                        </a>
+                        </Button>
                     )}
-                    <Delete
+                    <IconButton
                         onClick={() => deleteAttachment(idx)}
-                        style={{
-                            cursor: 'pointer',
-                            color: '#d32f2f'
+                        sx={{
+                            color: '#d32f2f',
+                            '&:hover': {
+                                backgroundColor: 'rgba(211, 47, 47, 0.1)'
+                            }
                         }}
-                    />
-                </div>
+                        size="small"
+                    >
+                        <Delete />
+                    </IconButton>
+                </Box>
             ))}
         </>
     )
+}
+
+const deleteFileFromS3 = async (key) => {
+    try {
+        await fetch(`/api/delete/s3-file?key=${key}`, {
+            method: 'DELETE',
+        })
+    } catch (error) {
+        console.error('Error deleting file from S3:', error)
+    }
 }

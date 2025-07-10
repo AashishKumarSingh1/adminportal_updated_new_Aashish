@@ -37,6 +37,7 @@ export async function PUT(request) {
           'name',
           'designation',
           'research_interest',
+          'academic_responsibility',
           'ext_no',
           'linkedin',
           'google_scholar',
@@ -139,11 +140,11 @@ export async function PUT(request) {
               params.data.closeDate,
               params.data.venue,
               params.data.doclink,
-              JSON.stringify(params.data.attachments),
-              JSON.stringify(params.data.main_attachment),
+              JSON.stringify(params.data.attachments || []),
+              JSON.stringify(params.data.event_link),
               params.data.eventStartDate,
               params.data.eventEndDate,
-              params.data.email,
+              params.data.updatedBy || session.user.email,
               params.data.type || 'general',
               params.data.id
             ]
@@ -250,6 +251,7 @@ export async function PUT(request) {
               role,
               ext_no,
               research_interest,
+              academic_responsibility,
               is_retired,
               retirement_date
             } = params
@@ -265,6 +267,7 @@ export async function PUT(request) {
                 role = ?,
                 ext_no = ?,
                 research_interest = ?,
+                academic_responsibility = ?,
                 is_retired = ?,
                 retirement_date = ?
               WHERE email = ?`,
@@ -275,6 +278,7 @@ export async function PUT(request) {
                 role,
                 ext_no,
                 research_interest,
+                academic_responsibility || null,
                 is_retired,
                 formattedRetirementDate,
                 email

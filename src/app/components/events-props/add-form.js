@@ -19,18 +19,30 @@ import React, { useState } from 'react'
 import { AddAttachments } from './../common-props/add-attachment'
 import { handleNewAttachments } from './../common-props/add-attachment'
 
+// Helper function to get today's date
+const getTodayDate = () => {
+    const today = new Date()
+    return today.toISOString().split('T')[0]
+}
+
+// Helper function to get default close date (1 month from now)
+const getDefaultCloseDate = () => {
+    const now = new Date()
+    const oneMonthLater = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate())
+    return oneMonthLater.toISOString().split('T')[0]
+}
 
 export const AddForm = ({ handleClose, modal }) => {
     const { data: session } = useSession()
     const [submitting, setSubmitting] = useState(false)
     const [content, setContent] = useState({
         title: '',
-        openDate: '',
-        closeDate: '',
+        openDate: getTodayDate(),
+        closeDate: getDefaultCloseDate(),
         venue: '',
         doclink: '',
-        eventStartDate: '',
-        eventEndDate: '',
+        eventStartDate: getTodayDate(),
+        eventEndDate: getTodayDate(),
         type: 'general',
     })
 
@@ -50,7 +62,6 @@ export const AddForm = ({ handleClose, modal }) => {
             if (new_attach.length) {
                 const processedAttachments = await handleNewAttachments(new_attach)
                 attachments = processedAttachments.map(attachment => ({
-                    id: Date.now() + Math.random(),
                     caption: attachment.caption,
                     url: attachment.url,
                     typeLink: attachment.typeLink
@@ -71,7 +82,7 @@ export const AddForm = ({ handleClose, modal }) => {
                 email: session.user.email,
                 author: session.user.name,
                 event_link: null,
-                attachments: JSON.stringify(attachments)
+                attachments: attachments
             }
 
             const result = await fetch('/api/create', {
@@ -99,208 +110,212 @@ export const AddForm = ({ handleClose, modal }) => {
     }
 
     return (
-        <Dialog 
-            open={modal} 
-            onClose={handleClose} 
-            maxWidth="md" 
-            fullWidth
-            PaperProps={{
-                sx: {
-                    borderRadius: 2,
-                    '& .MuiDialogContent-root': {
-                        '&::-webkit-scrollbar': {
-                            display: 'none'
-                        },
-                        '-ms-overflow-style': 'none',
-                        'scrollbar-width': 'none'
-                    }
-                }
-            }}
-        >
+        <Dialog open={modal} onClose={handleClose} maxWidth="md" fullWidth>
             <form onSubmit={handleSubmit}>
-                <DialogTitle sx={{ 
-                    position: 'sticky', 
-                    top: 0, 
-                    bgcolor: 'background.paper', 
-                    zIndex: 1,
-                    borderBottom: '1px solid',
-                    borderColor: 'divider'
-                }}>
-                    <Typography variant="h6" component="div">
-                        Create New Event
-                    </Typography>
+                <DialogTitle 
+                    sx={{ 
+                        backgroundColor: '#830001', 
+                        color: 'white',
+                        fontWeight: 600,
+                        fontSize: '1.25rem',
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 1300
+                    }}
+                >
+                    Create New Event
                 </DialogTitle>
-                
-                <DialogContent sx={{ mt: 1 }}>
-                    <Grid container spacing={2}>
-                        {/* Basic Information Section */}
-                        <Grid item xs={12}>
-                            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, color: 'primary.main' }}>
-                                Basic Information
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                        </Grid>
+                <DialogContent sx={{ 
+                    mt: 2, 
+                    maxHeight: '70vh', 
+                    overflowY: 'auto',
+                    '&::-webkit-scrollbar': {
+                        display: 'none'
+                    },
+                    scrollbarWidth: 'none',  // Firefox
+                    msOverflowStyle: 'none'  // IE and Edge
+                }}>
+                    <Box sx={{ mb: 3 }}>
+                        <Typography variant="h6" sx={{ mb: 2, color: '#333', fontWeight: 500 }}>
+                            Event Details
+                        </Typography>
+                        <TextField
+                            margin="dense"
+                            label="Event Title"
+                            name="title"
+                            type="text"
+                            required
+                            fullWidth
+                            value={content.title}
+                            onChange={handleChange}
+                            sx={{ mb: 2 }}
+                            variant="outlined"
+                            placeholder="Enter event title..."
+                        />
                         
-                        <Grid item xs={12}>
-                            <TextField
-                                label="Event Title"
-                                name="title"
-                                type="text"
-                                required
-                                fullWidth
-                                value={content.title}
-                                onChange={handleChange}
-                                variant="outlined"
-                            />
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Venue"
-                                name="venue"
-                                type="text"
-                                required
-                                fullWidth
-                                value={content.venue}
-                                onChange={handleChange}
-                                variant="outlined"
-                            />
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
-                            <FormControl fullWidth variant="outlined">
-                                <InputLabel>Event Type</InputLabel>
-                                <Select
-                                    name="type"
-                                    value={content.type}
+                        <Grid container spacing={2} sx={{ mb: 2 }}>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    margin="dense"
+                                    label="Venue"
+                                    name="venue"
+                                    type="text"
+                                    required
+                                    fullWidth
+                                    value={content.venue}
                                     onChange={handleChange}
-                                    label="Event Type"
-                                >
-                                    <MenuItem value="general">General</MenuItem>
-                                    <MenuItem value="intranet">Intranet</MenuItem>
-                                </Select>
-                            </FormControl>
+                                    variant="outlined"
+                                    placeholder="Enter venue..."
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <FormControl fullWidth margin="dense" variant="outlined">
+                                    <InputLabel>Event Type</InputLabel>
+                                    <Select
+                                        name="type"
+                                        value={content.type}
+                                        onChange={handleChange}
+                                        label="Event Type"
+                                    >
+                                        <MenuItem value="general">General</MenuItem>
+                                        <MenuItem value="intranet">Intranet</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Grid>
                         </Grid>
 
-                        {/* Date Information Section */}
-                        <Grid item xs={12} sx={{ mt: 2 }}>
-                            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, color: 'primary.main' }}>
-                                Date Information
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Registration Open Date"
-                                name="openDate"
-                                type="date"
-                                required
-                                fullWidth
-                                value={content.openDate}
-                                onChange={handleChange}
-                                InputLabelProps={{ shrink: true }}
-                                variant="outlined"
-                            />
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Registration Close Date"
-                                name="closeDate"
-                                type="date"
-                                required
-                                fullWidth
-                                value={content.closeDate}
-                                onChange={handleChange}
-                                InputLabelProps={{ shrink: true }}
-                                variant="outlined"
-                            />
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Event Start Date"
-                                name="eventStartDate"
-                                type="date"
-                                required
-                                fullWidth
-                                value={content.eventStartDate}
-                                onChange={handleChange}
-                                InputLabelProps={{ shrink: true }}
-                                variant="outlined"
-                            />
-                        </Grid>
-                        
-                        <Grid item xs={12} sm={6}>
-                            <TextField
-                                label="Event End Date"
-                                name="eventEndDate"
-                                type="date"
-                                required
-                                fullWidth
-                                value={content.eventEndDate}
-                                onChange={handleChange}
-                                InputLabelProps={{ shrink: true }}
-                                variant="outlined"
-                            />
+                        <Grid container spacing={2} sx={{ mb: 2 }}>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    margin="dense"
+                                    label="Registration Open Date"
+                                    name="openDate"
+                                    type="date"
+                                    required
+                                    fullWidth
+                                    value={content.openDate}
+                                    onChange={handleChange}
+                                    InputLabelProps={{
+                                        shrink: true,
+                                    }}
+                                    variant="outlined"
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    margin="dense"
+                                    label="Registration Close Date"
+                                    name="closeDate"
+                                    type="date"
+                                    required
+                                    fullWidth
+                                    value={content.closeDate}
+                                    onChange={handleChange}
+                                    InputLabelProps={{
+                                        shrink: true,
+                                    }}
+                                    variant="outlined"
+                                    helperText="Default: 1 month from today"
+                                />
+                            </Grid>
                         </Grid>
 
-                        {/* Additional Information Section */}
-                        <Grid item xs={12} sx={{ mt: 2 }}>
-                            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, color: 'primary.main' }}>
-                                Additional Information
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                        </Grid>
-                        
-                        <Grid item xs={12}>
-                            <TextField
-                                label="Registration Link (Optional)"
-                                name="doclink"
-                                type="url"
-                                fullWidth
-                                value={content.doclink}
-                                onChange={handleChange}
-                                variant="outlined"
-                                placeholder="https://..."
-                            />
+                        <Grid container spacing={2} sx={{ mb: 2 }}>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    margin="dense"
+                                    label="Event Start Date"
+                                    name="eventStartDate"
+                                    type="date"
+                                    required
+                                    fullWidth
+                                    value={content.eventStartDate}
+                                    onChange={handleChange}
+                                    InputLabelProps={{
+                                        shrink: true,
+                                    }}
+                                    variant="outlined"
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <TextField
+                                    margin="dense"
+                                    label="Event End Date"
+                                    name="eventEndDate"
+                                    type="date"
+                                    required
+                                    fullWidth
+                                    value={content.eventEndDate}
+                                    onChange={handleChange}
+                                    InputLabelProps={{
+                                        shrink: true,
+                                    }}
+                                    variant="outlined"
+                                />
+                            </Grid>
                         </Grid>
 
-                        {/* Attachments Section */}
-                        <Grid item xs={12} sx={{ mt: 2 }}>
-                            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, color: 'primary.main' }}>
-                                Attachments
-                            </Typography>
-                            <Divider sx={{ mb: 2 }} />
-                        </Grid>
-                        
-                        <Grid item xs={12}>
+                        <TextField
+                            margin="dense"
+                            label="Registration Link (Optional)"
+                            name="doclink"
+                            type="url"
+                            fullWidth
+                            value={content.doclink}
+                            onChange={handleChange}
+                            variant="outlined"
+                            placeholder="https://..."
+                            sx={{ mb: 2 }}
+                        />
+                    </Box>
+
+                    <Divider sx={{ my: 3 }} />
+
+                    <Box>
+                        <Typography variant="h6" sx={{ mb: 2, color: '#333', fontWeight: 500 }}>
+                            Attachments
+                        </Typography>
+                        <Box sx={{ 
+                            p: 2, 
+                            border: '2px dashed #ddd', 
+                            borderRadius: 2,
+                            backgroundColor: '#fafafa'
+                        }}>
                             <AddAttachments
                                 attachments={new_attach}
                                 setAttachments={setNew_attach}
                             />
-                        </Grid>
-                    </Grid>
+                        </Box>
+                    </Box>
                 </DialogContent>
 
-                <DialogActions sx={{ 
-                    position: 'sticky', 
-                    bottom: 0, 
-                    bgcolor: 'background.paper', 
-                    borderTop: '1px solid',
-                    borderColor: 'divider',
-                    p: 2
-                }}>
-                    <Button onClick={handleClose} variant="outlined">
+                <DialogActions sx={{ p: 3, backgroundColor: '#f8f9fa', position: 'sticky', bottom: 0, zIndex: 1300 }}>
+                    <Button 
+                        onClick={handleClose} 
+                        variant="outlined"
+                        sx={{ 
+                            color: '#830001', 
+                            borderColor: '#830001',
+                            '&:hover': {
+                                backgroundColor: '#830001',
+                                color: 'white'
+                            }
+                        }}
+                    >
                         Cancel
                     </Button>
                     <Button 
                         type="submit"
                         variant="contained"
-                        color="primary"
+                        sx={{ 
+                            backgroundColor: '#830001', 
+                            color: 'white',
+                            minWidth: 120,
+                            '&:hover': {
+                                backgroundColor: '#6a0001'
+                            }
+                        }}
                         disabled={submitting}
-                        sx={{ minWidth: 100 }}
                     >
                         {submitting ? 'Creating...' : 'Create Event'}
                     </Button>
