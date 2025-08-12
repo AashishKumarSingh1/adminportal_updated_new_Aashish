@@ -20,11 +20,37 @@ export async function POST(request) {
 
     // Notice deletion (Super Admin, Academic Admin, Dept Admin)
     if (type === 'notice') {
+      // First, get the notice details to check authorization and delete associated files
+      const notice = await query(
+        `SELECT attachments, email, notice_type, department FROM notices WHERE id = ?`,
+        [params.id]
+      );
+
+      if (!notice || notice.length === 0) {
+        return NextResponse.json(
+          { message: 'Notice not found' },
+          { status: 404 }
+        )
+      }
+
+      const noticeData = notice[0];
+      
+      console.log('DEBUG: Notice deletion authorization check')
+      console.log('User role:', session.user.role)
+      console.log('User department:', session.user.department)
+      console.log('Notice department:', noticeData.department)
+      console.log('Notice type:', noticeData.notice_type)
+      console.log('User email:', session.user.email)
+      console.log('Notice email:', noticeData.email)
+
       const canDeleteNotice = 
         session.user.role === 'SUPER_ADMIN' ||
-        ((session.user.role === 'ACADEMIC_ADMIN' ||
-          session.user.role === 'DEPT_ADMIN') &&
-          session.user.email === params.data?.email)
+        (session.user.role === 'ACADEMIC_ADMIN' && noticeData.notice_type === 'academics') ||
+        (session.user.role === 'DEPT_ADMIN' && 
+         noticeData.notice_type === 'department' && 
+         noticeData.department === session.user.department)
+      
+      console.log('Can delete notice:', canDeleteNotice)
       
       if (!canDeleteNotice) {
         return NextResponse.json(
@@ -33,16 +59,10 @@ export async function POST(request) {
         )
       }
 
-      // First, get the notice details to delete associated files
-      const notice = await query(
-        `SELECT attachments FROM notices WHERE id = ?`,
-        [params.id]
-      );
-
       // Delete S3 files if attachments exist
-      if (notice && notice.length > 0 && notice[0].attachments) {
+      if (noticeData.attachments) {
         try {
-          const attachments = JSON.parse(notice[0].attachments);
+          const attachments = JSON.parse(noticeData.attachments);
           console.log(`[Notice Deletion] Notice ID ${params.id} has attachments:`, attachments);
           
           if (Array.isArray(attachments)) {

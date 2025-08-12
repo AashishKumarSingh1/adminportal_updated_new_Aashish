@@ -296,12 +296,17 @@ export const EditForm = ({ data, handleClose, modal }) => {
                                         value={content.type}
                                         onChange={handleChange}
                                         label="Notice Type"
+                                        disabled={session?.user?.role === 'DEPT_ADMIN'}
                                     >
-                                        <MenuItem value="general">General</MenuItem>
-                                        <MenuItem value="department">Department</MenuItem>
-                                        {Array.from(administrationList).map(([key, value]) => (
-                                            <MenuItem key={key} value={key}>{value}</MenuItem>
-                                        ))}
+                                        {session?.user?.role === 'DEPT_ADMIN' ? (
+                                            <MenuItem value="department">Department</MenuItem>
+                                        ) : [
+                                            <MenuItem value="general" key="general">General</MenuItem>,
+                                            <MenuItem value="department" key="department">Department</MenuItem>,
+                                            ...Array.from(administrationList).map(([key, value]) => (
+                                                <MenuItem key={key} value={key}>{value}</MenuItem>
+                                            ))
+                                        ]}
                                     </Select>
                                 </FormControl>
                             </Grid>
@@ -311,13 +316,18 @@ export const EditForm = ({ data, handleClose, modal }) => {
                                         <InputLabel>Department</InputLabel>
                                         <Select
                                             name="department"
-                                            value={content.department}
+                                            value={session?.user?.role === 'DEPT_ADMIN' ? session.user.department : content.department}
                                             onChange={handleChange}
                                             label="Department"
+                                            disabled={session?.user?.role === 'DEPT_ADMIN'}
                                         >
-                                            {Array.from(depList).map(([key, value]) => (
-                                                <MenuItem key={value} value={value}>{value}</MenuItem>
-                                            ))}
+                                            {session?.user?.role === 'DEPT_ADMIN' ? (
+                                                <MenuItem value={session.user.department}>{session.user.department}</MenuItem>
+                                            ) : (
+                                                Array.from(depList).map(([key, value]) => (
+                                                    <MenuItem key={value} value={value}>{value}</MenuItem>
+                                                ))
+                                            )}
                                         </Select>
                                     </FormControl>
                                 </Grid>

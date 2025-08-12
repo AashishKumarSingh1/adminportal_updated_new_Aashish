@@ -41,6 +41,7 @@ const StyledHeader = styled.header`
 
   .drawer-list {
     width: 280px;
+    min-width: 280px;
     height: 100%;
     background: linear-gradient(to bottom, #f5f5f5, #ffffff);
   }
@@ -151,19 +152,42 @@ export default function Header() {
   const facultyDataContext = useFacultyData()
   const [profileImage, setProfileImage] = useState(null)
   
+  console.log('Header - facultyDataContext:', facultyDataContext)
+  console.log('Header - facultyData:', facultyDataContext?.facultyData)
+  console.log('Header - profile image from context:', facultyDataContext?.facultyData?.profile?.image)
+  
+  // Use the same approach as profile page - watch for facultyData changes
+  useEffect(() => {
+    console.log('Header - facultyData changed:', facultyDataContext?.facultyData)
+    if (facultyDataContext?.facultyData?.profile?.image) {
+      console.log('Header - Setting profile image from facultyData:', facultyDataContext.facultyData.profile.image)
+      setProfileImage(facultyDataContext.facultyData.profile.image)
+    }
+  }, [facultyDataContext?.facultyData])
+
+  // Fallback to getBasicInfo if facultyData is not available
   useEffect(() => {
     if (session?.user?.email && facultyDataContext && typeof facultyDataContext.getBasicInfo === 'function') {
       try {
         const basicInfo = facultyDataContext.getBasicInfo()
-        console.log('FacultyDataContext - Basic Info:', basicInfo)
-        if (basicInfo?.image) {
+        console.log('Header - Basic Info:', basicInfo)
+        if (basicInfo?.image && !profileImage) {
+          console.log('Header - Setting profile image from basic info:', basicInfo.image)
           setProfileImage(basicInfo.image)
         }
       } catch (error) {
-        console.error('Error getting basic info:', error)
+        console.error('Error getting basic info in header:', error)
       }
     }
-  }, [session?.user?.email, facultyDataContext])
+  }, [session?.user?.email, facultyDataContext, profileImage])
+
+  // Force refresh when session changes
+  useEffect(() => {
+    if (session?.user?.email && facultyDataContext?.facultyData?.profile?.image) {
+      console.log('Header - Session changed, setting image:', facultyDataContext.facultyData.profile.image)
+      setProfileImage(facultyDataContext.facultyData.profile.image)
+    }
+  }, [session?.user?.email, facultyDataContext?.facultyData?.profile?.image])
 
   const toggleDrawer = (open) => (event) => {
     if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) {
@@ -190,10 +214,13 @@ export default function Header() {
     >
       <div className="drawer-header center text-center justify-center ">
         <Avatar 
-          src={profileImage} 
+          src={profileImage || '/faculty.png'} 
           alt={session?.user?.name || 'User'} 
           className="drawer-avatar"
-          
+          onError={(e) => {
+            e.target.onerror = null
+            e.target.src = '/faculty.png'
+          }}
         >
           {!profileImage && session?.user?.name?.charAt(0)}
         </Avatar>
@@ -266,8 +293,12 @@ export default function Header() {
           {session && (
             <div className="user-section">
               <Avatar 
-                src={profileImage} 
+                src={profileImage || '/faculty.png'} 
                 alt={session.user.name}
+                onError={(e) => {
+                  e.target.onerror = null
+                  e.target.src = '/faculty.png'
+                }}
                 sx={{ 
                   width: 40, 
                   height: 40, 
@@ -295,9 +326,16 @@ export default function Header() {
         anchor="left"
         open={drawerOpen}
         onClose={toggleDrawer(false)}
+        sx={{
+          '& .MuiDrawer-paper': {
+            minWidth: '280px',
+            width: '280px'
+          }
+        }}
       >
         {drawerList()}
       </Drawer>
     </StyledHeader>
   )
 }
+

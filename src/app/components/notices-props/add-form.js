@@ -43,11 +43,13 @@ export const AddForm = ({ handleClose, modal }) => {
         openDate: getTodayDate(),
         closeDate: getDefaultCloseDate(),
         
-        type: 'academics',
-        category: 'academics',
+        type: session?.user?.role === 'ACADEMIC_ADMIN' ? 'academics' : 
+              session?.user?.role === 'DEPT_ADMIN' ? 'department' : 'general',
+        category: session?.user?.role === 'ACADEMIC_ADMIN' ? 'academics' : 
+                 session?.user?.role === 'DEPT_ADMIN' ? 'department' : 'general',
         important: false,
-        department: null,
-        isDept: 0
+        department: session?.user?.role === 'DEPT_ADMIN' ? session.user.department : null,
+        isDept: session?.user?.role === 'DEPT_ADMIN' ? 1 : 0
     })
 
     const [new_attach, setNew_attach] = useState([])
@@ -121,6 +123,12 @@ export const AddForm = ({ handleClose, modal }) => {
         if (session?.user?.role === 'ACADEMIC_ADMIN') {
             return [
                 <MenuItem key="academics" value="academics">Academics</MenuItem>
+            ];
+        }
+
+        if (session?.user?.role === 'DEPT_ADMIN') {
+            return [
+                <MenuItem key="department" value="department">Department</MenuItem>
             ];
         }
 
@@ -247,6 +255,7 @@ export const AddForm = ({ handleClose, modal }) => {
                                         onChange={handleChange}
                                         defaultValue={session?.user?.role === 'ACADEMIC_ADMIN' ? 'academics' : 'general'}
                                         label="Notice Type"
+                                        disabled={session?.user?.role === 'DEPT_ADMIN'}
                                     >
                                         {getNoticeTypeOptions()}
                                     </Select>
@@ -261,6 +270,7 @@ export const AddForm = ({ handleClose, modal }) => {
                                             value={content.department}
                                             onChange={handleChange}
                                             label="Department"
+                                            disabled={session?.user?.role === 'DEPT_ADMIN'}
                                         >
                                             {Array.from(depList).map(([key, value]) => (
                                                 <MenuItem key={value} value={value}>{value}</MenuItem>

@@ -67,51 +67,81 @@ export async function PUT(request) {
 
     // Notice updates - Super Admin, Academic Admin, and Department Admin access
     if (type === 'notice') {
-      if (
-        session.user.role === 'SUPER_ADMIN' ||
-        ((session.user.role === 'ACADEMIC_ADMIN' ||
-          session.user.role === 'DEPT_ADMIN') &&
-          session.user.email === params.data.email)
-      ) {
-        // Log any attachments for debugging
-        if (params.data.attachments) {
-          console.log(`Notice update ID ${params.data.id}: Attachments:`, 
-            typeof params.data.attachments === 'string' 
-              ? params.data.attachments 
-              : JSON.stringify(params.data.attachments));
-        }
-        
-        const result = await query(
-          `UPDATE notices SET 
-              title = ?,
-              updatedAt = ?,
-              openDate = ?,
-              closeDate = ?,
-              important = ?,
-              attachments = ?,
-              notice_link = ?,
-              isVisible = ?,
-              updatedBy = ?,
-              notice_type = ?,
-              department = ?
-          WHERE id = ?`,
-          [
-              params.data.title,
-              new Date().getTime(),
-              params.data.openDate,
-              params.data.closeDate,
-              params.data.important || 0,
-              JSON.stringify(params.data.attachments),
-              params.data.notice_link || null,
-              params.data.isVisible === undefined ? 1 : Number(params.data.isVisible),
-              session.user.email,
-              params.data.notice_type || null,
-              params.data.department || null,
-              params.data.id
-          ]
-        )      
-        return NextResponse.json(result)
+      // First, get the notice details to check authorization
+      const notice = await query(
+        `SELECT notice_type, department FROM notices WHERE id = ?`,
+        [params.data.id]
+      );
+
+      if (!notice || notice.length === 0) {
+        return NextResponse.json(
+          { message: 'Notice not found' },
+          { status: 404 }
+        )
       }
+
+      const noticeData = notice[0];
+      
+      console.log('DEBUG: Notice update authorization check')
+      console.log('User role:', session.user.role)
+      console.log('User department:', session.user.department)
+      console.log('Notice department:', noticeData.department)
+      console.log('Notice type:', noticeData.notice_type)
+
+      const canUpdateNotice = 
+        session.user.role === 'SUPER_ADMIN' ||
+        (session.user.role === 'ACADEMIC_ADMIN' && noticeData.notice_type === 'academics') ||
+        (session.user.role === 'DEPT_ADMIN' && 
+         noticeData.notice_type === 'department' && 
+         noticeData.department === session.user.department)
+      
+      console.log('Can update notice:', canUpdateNotice)
+      
+      if (!canUpdateNotice) {
+        return NextResponse.json(
+          { message: 'Not authorized to update notices' },
+          { status: 403 }
+        )
+      }
+
+      // Log any attachments for debugging
+      if (params.data.attachments) {
+        console.log(`Notice update ID ${params.data.id}: Attachments:`, 
+          typeof params.data.attachments === 'string' 
+            ? params.data.attachments 
+            : JSON.stringify(params.data.attachments));
+      }
+        
+      const result = await query(
+        `UPDATE notices SET 
+            title = ?,
+            updatedAt = ?,
+            openDate = ?,
+            closeDate = ?,
+            important = ?,
+            attachments = ?,
+            notice_link = ?,
+            isVisible = ?,
+            updatedBy = ?,
+            notice_type = ?,
+            department = ?
+        WHERE id = ?`,
+        [
+            params.data.title,
+            new Date().getTime(),
+            params.data.openDate,
+            params.data.closeDate,
+            params.data.important || 0,
+            JSON.stringify(params.data.attachments),
+            params.data.notice_link || null,
+            params.data.isVisible === undefined ? 1 : Number(params.data.isVisible),
+            session.user.email,
+            params.data.notice_type || null,
+            params.data.department || null,
+            params.data.id
+        ]
+      )      
+      return NextResponse.json(result)
     }
 
     // Super Admin only access

@@ -22,17 +22,27 @@ export default function Page() {
 
     useEffect(() => {
         if (status === 'authenticated') {
+            const userRole = session?.user?.role;
+            const userDepartment = session?.user?.department;
+
+            let body = { from: 0, to: 15, type: "between" };
+
+            if (userRole === "DEPT_ADMIN") {
+                body = { 
+                    ...body, 
+                    type: 'between',
+                    notice_type: 'department',
+                    department: userDepartment 
+                };
+            }
+
             fetch('/api/notice', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     Accept: 'application/json',
                 },
-                body: JSON.stringify({
-                    from: 0,
-                    to: 15,
-                    type: "between"
-                }),
+                body: JSON.stringify(body),
             })
                 .then((res) => res.json())
                 .then((data) => {
@@ -57,7 +67,7 @@ export default function Page() {
     }
 
     // Handle authenticated state
-    if (session?.user?.role === "SUPER_ADMIN"||session?.user?.role === "ACADEMIC_ADMIN") {
+    if (session?.user?.role === "SUPER_ADMIN" || session?.user?.role === "ACADEMIC_ADMIN" || session?.user?.role === "DEPT_ADMIN") {
         return (
             <Layout>
                 <Wrap>
