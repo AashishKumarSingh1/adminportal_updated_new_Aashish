@@ -134,6 +134,20 @@ export async function POST(request) {
          LIMIT ${limit} OFFSET ${offset}`,
         ['academics']
       )
+    } 
+    // For DEPT_ADMIN, filter for department notices of their department
+    else if (notice_type === 'department' && department) {
+      const limit = Math.max(1, Math.min(100, to - from))
+      const offset = Math.max(0, from)
+      console.log('DEBUG: Department pagination params:', { offset, limit, department })
+      
+      results = await query(
+        `SELECT * FROM notices 
+         WHERE notice_type = ? AND department = ?
+         ORDER BY openDate DESC 
+         LIMIT ${limit} OFFSET ${offset}`,
+        ['department', department]
+      )
     } else {
       switch (type) {
         case 'range':

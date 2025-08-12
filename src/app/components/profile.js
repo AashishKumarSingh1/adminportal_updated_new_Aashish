@@ -193,10 +193,42 @@ export default function Profilepage() {
 
     // Update state when context data changes
     useEffect(() => {
+        console.log('Profile - facultyData changed:', facultyData)
         if (facultyData) {
             setDetails(facultyData)
         }
     }, [facultyData])
+
+    // Fetch basic info when component mounts or when facultyData is available
+    useEffect(() => {
+        console.log('Profile - Component mounted, session:', session?.user?.email, 'facultyData:', !!facultyData)
+        if (session?.user?.email && getBasicInfo && typeof getBasicInfo === 'function') {
+            try {
+                const basicInfo = getBasicInfo()
+                console.log('Profile - Basic Info:', basicInfo)
+                if (basicInfo && Object.keys(basicInfo).length > 0) {
+                    console.log('Profile - Setting details from basic info')
+                    setDetails(prev => prev || { profile: basicInfo })
+                }
+            } catch (error) {
+                console.error('Error getting basic info in profile:', error)
+            }
+        }
+    }, [session?.user?.email, getBasicInfo, facultyData])
+
+    // Ensure profile image is set when facultyData becomes available
+    useEffect(() => {
+        if (facultyData?.profile?.image && !detail?.profile?.image) {
+            console.log('Profile - Setting profile image from facultyData')
+            setDetails(prev => ({
+                ...prev,
+                profile: {
+                    ...prev?.profile,
+                    image: facultyData.profile.image
+                }
+            }))
+        }
+    }, [facultyData?.profile?.image, detail?.profile?.image])
 
     const handleModalOpen = (modalName) => {
         setOpenModals(prev => ({
@@ -214,6 +246,7 @@ export default function Profilepage() {
 
     if (status === "loading") return <Loading />
     if (!session) return null
+    if (loading) return <Loading />
 
     return (
                 <Profile>

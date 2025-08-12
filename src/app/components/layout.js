@@ -14,8 +14,8 @@ const Main = styled.main`
 export default function Layout({ children }) {
   return (
     <>
-      <Header />
       <FacultyDataProvider>
+        <Header />
         <Main>{children}</Main>
       </FacultyDataProvider>
       <Footer />

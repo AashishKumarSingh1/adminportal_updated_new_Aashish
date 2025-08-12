@@ -20,10 +20,18 @@ export async function POST(request) {
     // console.log(session.user.role,'dkfas;k')
     // Notice handling based on role
     if (type === 'notice') {
+      console.log('DEBUG: Authorization check for notice creation')
+      console.log('User role:', session.user.role)
+      console.log('User department:', session.user.department)
+      console.log('Notice department:', params.data.department)
+      console.log('Notice type:', params.data.notice_type)
+      
       const canCreateNotice = 
         session.user.role === 'SUPER_ADMIN' ||
-        (session.user.role === 'DEPT_ADMIN' && params.department === session.user.department) ||
+        (session.user.role === 'DEPT_ADMIN' && params.data.department === session.user.department) ||
         session.user.role === 'ACADEMIC_ADMIN'
+      
+      console.log('Can create notice:', canCreateNotice)
       
       if (!canCreateNotice) {
         return NextResponse.json(

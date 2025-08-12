@@ -146,8 +146,9 @@ const Notice = ({ detail }) => {
                                 <VisibilityIcon fontSize="small" />
                             </IconButton>
                         </Tooltip>
-                        {(session?.user?.role === 'SUPER_ADMIN' || 
-                          (session?.user?.role === 'ACADEMIC_ADMIN' && detail.notice_type === 'academics')) && (
+                        {(session?.user?.role === 'SUPER_ADMIN' ||
+                            (session?.user?.role === 'ACADEMIC_ADMIN' && detail.notice_type === 'academics') ||
+                            (session?.user?.role === 'DEPT_ADMIN' && detail.notice_type === 'department' && detail.department === session.user.department)) && (
                             <>
                                 <Tooltip title="Edit Notice">
                                     <IconButton
@@ -208,6 +209,15 @@ const DataDisplay = ({ data }) => {
 
     useEffect(() => {
         if (!filterQuery) {
+            let noticeType;
+            let department;
+            if (session?.user?.role === 'ACADEMIC_ADMIN') {
+                noticeType = 'academics';
+            } else if (session?.user?.role === 'DEPT_ADMIN') {
+                noticeType = 'department';
+                department = session.user.department;
+            }
+
             fetch('/api/notice', {
                 method: 'POST',
                 headers: {
@@ -217,17 +227,13 @@ const DataDisplay = ({ data }) => {
                     from: page * rowsPerPage,
                     to: (page + 1) * rowsPerPage,
                     type: 'between',
-                    notice_type: session?.user?.role === 'ACADEMIC_ADMIN' ? 'academics' : undefined
+                    notice_type: noticeType,
+                    department: department
                 })
             })
             .then(res => res.json())
             .then(data => {
-                let filteredData = data;
-                if (session?.user?.role === 'ACADEMIC_ADMIN') {
-                    filteredData = data.filter(notice => notice.notice_type === 'academics');
-                }
-                
-                const sortedData = [...filteredData].sort((a, b) => 
+                const sortedData = [...data].sort((a, b) => 
                     new Date(b.updatedAt) - new Date(a.updatedAt)
                 );
                 setDetails(sortedData);
@@ -238,6 +244,11 @@ const DataDisplay = ({ data }) => {
             
             if (session?.user?.role === 'ACADEMIC_ADMIN') {
                 filteredData = filteredData.filter(notice => notice.notice_type === 'academics');
+            } else if (session?.user?.role === 'DEPT_ADMIN') {
+                filteredData = filteredData.filter(notice => 
+                    notice.notice_type === 'department' && 
+                    notice.department === session.user.department
+                );
             } else if (filterQuery.notice_type && filterQuery.notice_type !== 'all') {
                 filteredData = filteredData.filter(notice => notice.notice_type === filterQuery.notice_type);
             }
@@ -259,7 +270,9 @@ const DataDisplay = ({ data }) => {
         <Box sx={{ p: 3 }}>
             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
                 <Typography variant="h4" sx={{ color: '#333', fontWeight: 600 }}>
-                    {session?.user?.role === 'ACADEMIC_ADMIN' ? 'Academic Notices' : 'Recent Notices'}
+                    {session?.user?.role === 'ACADEMIC_ADMIN' ? 'Academic Notices' : 
+                     session?.user?.role === 'DEPT_ADMIN' ? `${session.user.department} Notices` : 
+                     'Recent Notices'}
                 </Typography>
                 
                 <Box>
@@ -271,7 +284,7 @@ const DataDisplay = ({ data }) => {
                 >
                     Add New Notice
                 </Button>
-                    {session?.user?.role !== 'ACADEMIC_ADMIN' && (
+                    {session?.user?.role !== 'ACADEMIC_ADMIN' && session?.user?.role !== 'DEPT_ADMIN' && (
                 <Filter type="notice" setEntries={setFilterQuery} style={{ color: '#830001' }}/>
                     )}
                 </Box>
