@@ -530,9 +530,9 @@ export async function POST(request) {
               
               `INSERT INTO education (email, certification, institution, passing_year,specialization) VALUES (?, ?, ?, ?,?)`,[
         params.email, 
-        params.degree,
+        params.certification,
         params.institution,
-        params.year,
+        params.passing_year,
         params.specialization
       ]
 

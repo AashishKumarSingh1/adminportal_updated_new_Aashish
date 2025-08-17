@@ -457,7 +457,13 @@ export default function ProjectSupervisionManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {projects?.map((project) => (
+                        {projects?.sort((a, b) => {
+
+                            const aDate = a.end_date === "Continue" ? new Date() : new Date(a.end_date);
+                            const bDate = b.end_date === "Continue" ? new Date() : new Date(b.end_date);
+
+                            return bDate - aDate;
+                        })?.map((project) => (
                             <TableRow key={project.id}>
                                 <TableCell>{project.category}</TableCell>
                                 <TableCell>{project.project_title}</TableCell>

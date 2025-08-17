@@ -621,7 +621,7 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                             </TableRow>
                             </TableHead>
                             <TableBody>
-                            {papers?.map((paper) => (
+                            {papers?.sort((a,b)=>b.conference_year - a.conference_year).map((paper) => (
                             <TableRow key={paper.id}>
                             <TableCell>{paper.title}</TableCell>
                             <TableCell>{paper.authors}</TableCell>

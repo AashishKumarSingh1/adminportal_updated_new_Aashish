@@ -686,7 +686,7 @@ export default function JournalPaperManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {papers?.map((paper) => (
+                        {papers?.sort((a,b)=>b.publication_year - a.publication_year).map((paper) => (
                             <TableRow key={paper.id}>
                                 <TableCell>{paper.title}</TableCell>
                                 <TableCell>{paper.authors}</TableCell>

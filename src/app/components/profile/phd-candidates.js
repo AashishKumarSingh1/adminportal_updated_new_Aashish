@@ -443,25 +443,51 @@ export const EditForm = ({ handleClose, modal, values }) => {
 // Main Component
 export default function PhdCandidateManagement() {
     const { data: session } = useSession()
-    const { getPhdCandidates, loading, updateFacultySection } = useFacultyData()
+    const { getPhdCandidates, loading, updateFacultySection,facultyData } = useFacultyData()
     const [candidates, setCandidates] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedCandidate, setSelectedCandidate] = useState(null)
-
+//
     // Set up component reference for child components
-    React.useEffect(() => {
-        window.getPhdCandidatesComponent = () => ({
-            getCandidates: () => candidates,
-            setCandidates: (newCandidates) => setCandidates(newCandidates)
-        });
-    }, [candidates]);
+    // React.useEffect(() => {
+    //     window.getPhdCandidatesComponent = () => ({
+    //         getCandidates: () => candidates,
+    //         setCandidates: (newCandidates) => setCandidates(newCandidates)
+    //     });
+    // }, [candidates]);
 
-    // Get data from context
-    React.useEffect(() => {
-        const phdCandidatesData = getPhdCandidates()
-        setCandidates(phdCandidatesData)
-    }, [getPhdCandidates])
+    // // Get data from context
+    // React.useEffect(() => {
+    //     const phdCandidatesData = getPhdCandidates()
+    //     setCandidates(phdCandidatesData)
+    // }, [getPhdCandidates])
+    
+        // Fetch data
+        React.useEffect(() => {
+            const fetchCourses = async () => {
+                try {
+                    if (facultyData) {
+                        const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
+                        if (!response.ok) throw new Error('Failed to fetch')
+                        const data = await response.json()
+                        setCandidates(data.phd_candidates || [])
+                    } else {
+                        const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
+                        if (!response.ok) throw new Error('Failed to fetch')
+                        const data = await response.json()
+                        setCandidates(data.phd_candidates || [])
+                    }
+                } catch (error) {
+                    console.error('Error:', error)
+                }
+            }
+    
+            if (session?.user?.email) {
+                fetchCourses()
+            }
+        }, [session, facultyData])
+    
 
     const handleEdit = (candidate) => {
         setSelectedCandidate(candidate)
@@ -525,7 +551,10 @@ export default function PhdCandidateManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {candidates?.map((candidate) => (
+                        {candidates
+                            ?.slice()
+                            .sort((a, b) => b.registration_year - a.registration_year)
+                            .map((candidate) => (
                             <TableRow key={candidate.id}>
                                 <TableCell>{candidate.student_name}</TableCell>
                                 <TableCell>{candidate.roll_no}</TableCell>

@@ -132,7 +132,13 @@ export default function JournalReviewersPage() {
             </TableHead>
             <TableBody>
               {reviewers.length ? (
-                reviewers.map((r) => (
+                reviewers.sort((a, b) => {
+                  
+                  if (a.is_continuing && !b.is_continuing) return -1;
+                  if (!a.is_continuing && b.is_continuing) return 1;
+
+                  return new Date(b.to_date) - new Date(a.to_date);
+              }).map((r) => (
                   <TableRow key={r.id}>
                     <TableCell>{r.name}</TableCell>
                     <TableCell>{formatDate(r.from_date)}</TableCell>

@@ -528,7 +528,7 @@ export default function ConsultancyProjectManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {projects?.map((project) => (
+                        {projects?.sort((a, b) => new Date(b.start_date) - new Date(a.start_date))?.map((project) => (
                             <TableRow key={project.id}>
                                 <TableCell>{project.project_title}</TableCell>
                                 <TableCell>{project.funding_agency}</TableCell>

@@ -503,7 +503,16 @@ export default function InternshipManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {internships?.map((internship) => (
+                        {internships
+                            ?.sort((a, b) => {
+                                if (!a.end_date && b.end_date) return -1;
+                                if (a.end_date && !b.end_date) return 1;
+
+                                const endA = a.end_date ? new Date(a.end_date) : new Date();
+                                const endB = b.end_date ? new Date(b.end_date) : new Date();
+
+                                return endB - endA;
+                            }).map((internship) => (
                             <TableRow key={internship.id}>
                                 <TableCell>{internship.student_name}</TableCell>
                                 <TableCell>{internship.qualification}</TableCell>

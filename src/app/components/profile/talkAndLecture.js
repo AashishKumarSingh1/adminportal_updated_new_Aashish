@@ -131,7 +131,7 @@ export default function TalksAndLecturesPage() {
             </TableHead>
             <TableBody>
               {lectures.length ? (
-                lectures.map((lecture) => (
+                lectures.sort((a,b)=>new Date(b.date) - new Date(a.date)).map((lecture) => (
                   <TableRow key={lecture.id}>
                     <TableCell>{lecture.institute_name}</TableCell>
                     <TableCell>{lecture.event_name}</TableCell>

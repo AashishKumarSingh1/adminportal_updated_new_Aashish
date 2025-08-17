@@ -513,7 +513,10 @@ export default function TeachingEngagementManagement() {
         const fetchCourses = async () => {
             try {
                 if (facultyData && facultyData.teaching_engagement) {
-                    setCourses(facultyData.teaching_engagement || []);
+                    const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
+                    if (!response.ok) throw new Error('Failed to fetch')
+                    const data = await response.json()
+                    setCourses(data.teaching_engagement || [])
                 } else {
                     const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
                     if (!response.ok) throw new Error('Failed to fetch')
@@ -553,12 +556,14 @@ export default function TeachingEngagementManagement() {
                 if (!response.ok) throw new Error('Failed to delete')
                 
                 const updatedData = await response.json();
+
+                const updatedTeachingData = courses.filter((c)=>c.id !== id)
                 
                 // Update the context data
-                updateFacultySection(11, updatedData.data);
+                updateFacultySection('teaching_engagement', updatedTeachingData);
                 
                 // Update the local state
-                setCourses(updatedData.data);
+                setCourses(updatedTeachingData);
             } catch (error) {
                 console.error('Error:', error)
             }
@@ -596,7 +601,7 @@ export default function TeachingEngagementManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {courses?.map((course) => (
+                        {courses?.sort((a,b)=>b.years_offered - a.years_offered)?.map((course) => (
                             <TableRow key={course.id}>
                                 <TableCell>
                                     {course.course_number} - {course.course_title}

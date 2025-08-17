@@ -421,7 +421,7 @@ export default function BookChapterManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {chapters?.map((chapter) => (
+                        {chapters?.sort((a,b)=>(b.year - a.year)).map((chapter) => (
                             <TableRow key={chapter.id}>
                                 <TableCell>{chapter.chapter_title}</TableCell>
                                 <TableCell>{chapter.book_title}</TableCell>

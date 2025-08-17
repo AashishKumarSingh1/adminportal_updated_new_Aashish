@@ -373,7 +373,15 @@ export default function MembershipManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {memberships?.map((membership) => (
+                        {memberships
+                            ?.slice()
+                            .sort((a, b) => {
+                                const aEnd = a.end === "Continue" ? new Date() : new Date(a.end);
+                                const bEnd = b.end === "Continue" ? new Date() : new Date(b.end);
+
+                                return bEnd - aEnd;
+                            })
+                            .map((membership) => (
                             <TableRow key={membership.id}>
                                 <TableCell>{membership.membership_id}</TableCell>
                                 <TableCell>{membership.membership_society}</TableCell>

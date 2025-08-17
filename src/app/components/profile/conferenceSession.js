@@ -142,7 +142,7 @@ export default function ConferenceSessionChairsPage() {
             </TableHead>
             <TableBody>
               {chairs.length ? (
-                chairs.map((chair) => (
+                chairs.sort((a,b)=>new Date(a.to_date) - new Date(b.to_date)).map((chair) => (
                   <TableRow key={chair.id}>
                     <TableCell>{chair.conference_name}</TableCell>
                     <TableCell>{chair.institute_name}</TableCell>

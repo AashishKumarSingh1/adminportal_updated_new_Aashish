@@ -574,7 +574,13 @@ export default function SponsoredProjectManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {projects?.map((project) => (
+                        {projects
+                            ?.sort((a, b) => {
+                                const dateA = a.end_date ? new Date(a.end_date) : new Date();
+                                const dateB = b.end_date ? new Date(b.end_date) : new Date();
+
+                                return dateB - dateA;
+                            })?.map((project) => (
                             <TableRow key={project.id}>
                                 <TableCell>{project.project_title}</TableCell>
                                 <TableCell>{project.funding_agency}</TableCell>

@@ -431,7 +431,12 @@ export default function StartupManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {startups?.map((startup) => (
+                       {startups?.sort((a, b) => {
+                            if (!b.registration_date) return 1; 
+                            if (!a.registration_date) return -1;
+
+                            return new Date(b.registration_date) - new Date(a.registration_date);
+                        }).map((startup) => (
                             <TableRow key={startup.id}>
                                 <TableCell>{startup.startup_name}</TableCell>
                                 <TableCell>{startup.incubation_place}</TableCell>

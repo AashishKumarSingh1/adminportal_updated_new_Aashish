@@ -391,7 +391,7 @@ export default function EditedBookManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {books?.map((book) => (
+                        {books?.sort((a, b) => b.year - a.year) .map((book) => (
                             <TableRow key={book.id}>
                                 <TableCell>{book.title}</TableCell>
                                 <TableCell>{book.editors}</TableCell>

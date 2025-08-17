@@ -4,7 +4,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import { useSession } from 'next-auth/react';
 import { useFacultyData } from '../../../context/FacultyDataContext';
-
+//afa
 export function AboutYouPage() {
   const { data: session, status } = useSession();
   const { facultyData, loading, updateFacultySection } = useFacultyData();
