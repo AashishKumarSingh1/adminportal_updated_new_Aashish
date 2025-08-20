@@ -421,3 +421,56 @@ await query(`CREATE TABLE IF NOT EXISTS webteam (
 }
 
 migrate().then(() => process.exit())
+
+
+// -- 11. Honours and Awards
+// CREATE TABLE honours_awards (
+//     id INT AUTO_INCREMENT PRIMARY KEY,
+//     email VARCHAR(255) NOT NULL,
+//     honour_award VARCHAR(500) NOT NULL,
+//     start_date DATE NOT NULL,
+//     end_date DATE
+// );
+
+// -- 14. Special Lectures
+// CREATE TABLE special_lectures (
+//     id INT AUTO_INCREMENT PRIMARY KEY,
+//     email VARCHAR(255) NOT NULL,
+//     topic VARCHAR(500) NOT NULL,
+//     institute_name VARCHAR(500) NOT NULL,
+//     start_date DATE NOT NULL,
+//     end_date DATE,
+//     financed_by VARCHAR(255)
+// );
+
+// -- 15. Visits Abroad
+// CREATE TABLE visits_abroad (
+//     id INT AUTO_INCREMENT PRIMARY KEY,
+//     email VARCHAR(255) NOT NULL,
+//     country VARCHAR(255) NOT NULL,
+//     start_date DATE NOT NULL,  -- Date of leaving India
+//     end_date DATE,             -- Date of returning India
+//     purpose VARCHAR(500),
+//     funded_by VARCHAR(255)
+// );
+
+// -- 17. Editorial Boards of Journals
+// CREATE TABLE editorial_boards (
+//     id INT AUTO_INCREMENT PRIMARY KEY,
+//     email VARCHAR(255) NOT NULL,
+//     position VARCHAR(255) NOT NULL, -- Editor/Member
+//     journal_name VARCHAR(500) NOT NULL,
+//     start_date DATE NOT NULL,
+//     end_date DATE
+// );
+
+// -- 20. MOOC/NPTEL Courses
+// CREATE TABLE mooc_courses (
+//     id INT AUTO_INCREMENT PRIMARY KEY,
+//     email VARCHAR(255) NOT NULL,
+//     course_code VARCHAR(100) NOT NULL,
+//     course_name VARCHAR(500) NOT NULL,
+//     start_date DATE NOT NULL,
+//     end_date DATE,
+//     status ENUM('Completed','Floated') NOT NULL
+// );

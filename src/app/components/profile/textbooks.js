@@ -335,7 +335,10 @@ export default function TextbookManagement() {
         const fetchBooks = async () => {
             try {
                 if (facultyData && facultyData.textbooks) {
-                    setBooks(facultyData.textbooks || []);
+                    const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
+                    if (!response.ok) throw new Error('Failed to fetch')
+                    const data = await response.json()
+                    setBooks(data.textbooks || [])
                 } else {
                     const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
                     if (!response.ok) throw new Error('Failed to fetch')
