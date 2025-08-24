@@ -1,7 +1,20 @@
 import {
-  Button, Dialog, DialogActions, DialogContent, DialogTitle,
-  TextField, Typography, Paper, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, IconButton, Box
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
+  Box,
 } from "@mui/material";
 import { useSession } from "next-auth/react";
 import React, { useState, useEffect } from "react";
@@ -24,33 +37,6 @@ export default function VisitsAbroadPage() {
     }
   }, [facultyData]);
 
-  const handleSave = async (visit) => {
-    const payload = {
-      ...visit,
-      email: session?.user?.email,
-      id: visit.id || Date.now().toString(),
-      type: "visits_abroad",
-    };
-    await fetch("/api/create/faculty", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const exists = visits.some((v) => v.id === payload.id);
-    const updated = exists
-      ? visits.map((v) => (v.id === payload.id ? payload : v))
-      : [...visits, payload];
-    setVisits(updated);
-    updateFacultySection("visits_abroad", updated);
-  };
-
-  const handleDelete = async (id) => {
-    await fetch(`/api/create/faculty?type=visits_abroad&id=${id}`, { method: "DELETE" });
-    const updated = visits.filter((v) => v.id !== id);
-    setVisits(updated);
-    updateFacultySection("visits_abroad", updated);
-  };
-
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
@@ -59,6 +45,59 @@ export default function VisitsAbroadPage() {
       month: "short",
       year: "numeric",
     });
+  };
+
+  const formatDateForInput = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const handleSave = async (visit) => {
+    const payload = {
+      ...visit,
+      email: session?.user?.email,
+      type: "visits_abroad",
+    };
+
+    try {
+      const res = await fetch("/api/create/faculty", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        console.error("Failed to save visit:", await res.text());
+        return;
+      }
+
+      const data = await res.json();
+      const savedVisit = { ...payload, id: visit?.id || data.result.insertId };
+
+      const updated = visits.some((v) => v.id === savedVisit.id)
+        ? visits.map((v) => (v.id === savedVisit.id ? savedVisit : v))
+        : [...visits, savedVisit];
+
+      setVisits(updated);
+      updateFacultySection("visits_abroad", updated);
+    } catch (error) {
+      console.error("Error saving visit:", error);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await fetch(`/api/create/faculty?type=visits_abroad&id=${id}`, { method: "DELETE" });
+      const updated = visits.filter((v) => v.id !== id);
+      setVisits(updated);
+      updateFacultySection("visits_abroad", updated);
+    } catch (error) {
+      console.error("Error deleting visit:", error);
+    }
   };
 
   return (
@@ -122,18 +161,27 @@ export default function VisitsAbroadPage() {
           onClose={() => setOpenEdit(false)}
           onSave={handleSave}
           visit={editItem}
+          formatDateForInput={formatDateForInput}
         />
       )}
     </div>
   );
 }
 
-function EditVisitDialog({ open, onClose, onSave, visit }) {
-  const [country, setCountry] = useState(visit?.country || "");
-  const [startDate, setStartDate] = useState(visit?.start_date || "");
-  const [endDate, setEndDate] = useState(visit?.end_date || "");
-  const [purpose, setPurpose] = useState(visit?.purpose || "");
-  const [fundedBy, setFundedBy] = useState(visit?.funded_by || "");
+function EditVisitDialog({ open, onClose, onSave, visit, formatDateForInput }) {
+  const [country, setCountry] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [purpose, setPurpose] = useState("");
+  const [fundedBy, setFundedBy] = useState("");
+
+  useEffect(() => {
+    setCountry(visit?.country || "");
+    setStartDate(visit?.start_date ? formatDateForInput(visit.start_date) : "");
+    setEndDate(visit?.end_date ? formatDateForInput(visit.end_date) : "");
+    setPurpose(visit?.purpose || "");
+    setFundedBy(visit?.funded_by || "");
+  }, [visit, formatDateForInput]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

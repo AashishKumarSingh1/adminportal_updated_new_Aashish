@@ -41,33 +41,47 @@ export default function HonoursAwardsPage() {
     const payload = {
       ...newHonour,
       email: session?.user?.email,
-      id: newHonour.id || Date.now().toString(),
       type: "honours_awards",
     };
 
-    const res = await fetch("/api/create/faculty", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const res = await fetch("/api/create/faculty", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    if (res.ok) {
-      const exists = honours.some((h) => h.id === payload.id);
-      const updated = exists
-        ? honours.map((h) => (h.id === payload.id ? payload : h))
-        : [...honours, payload];
+      if (!res.ok) {
+        console.error("Failed to save honour:", await res.text());
+        return;
+      }
+
+      const data = await res.json();
+      const savedHonour = { ...payload, id: newHonour.id || data.result.insertId };
+
+      // Update local state
+      const updated = honours.some((h) => h.id === savedHonour.id)
+        ? honours.map((h) => (h.id === savedHonour.id ? savedHonour : h))
+        : [...honours, savedHonour];
+
       setHonours(updated);
       updateFacultySection("honours_awards", updated);
+    } catch (error) {
+      console.error("Error saving honour:", error);
     }
   };
 
   const handleDelete = async (id) => {
-    await fetch(`/api/create/faculty?type=honours_awards&id=${id}`, {
-      method: "DELETE",
-    });
-    const updated = honours.filter((h) => h.id !== id);
-    setHonours(updated);
-    updateFacultySection("honours_awards", updated);
+    try {
+      await fetch(`/api/create/faculty?type=honours_awards&id=${id}`, {
+        method: "DELETE",
+      });
+      const updated = honours.filter((h) => h.id !== id);
+      setHonours(updated);
+      updateFacultySection("honours_awards", updated);
+    } catch (error) {
+      console.error("Error deleting honour:", error);
+    }
   };
 
   const formatDate = (dateStr) => {
@@ -78,6 +92,15 @@ export default function HonoursAwardsPage() {
       month: "short",
       year: "numeric",
     });
+  };
+
+  const formatDateForInput = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
   };
 
   return (
@@ -137,16 +160,23 @@ export default function HonoursAwardsPage() {
           onClose={() => setOpenEdit(false)}
           onSave={handleSave}
           honour={editItem}
+          formatDateForInput={formatDateForInput}
         />
       )}
     </div>
   );
 }
 
-function EditHonourDialog({ open, onClose, onSave, honour }) {
-  const [award, setAward] = useState(honour?.honour_award || "");
-  const [startDate, setStartDate] = useState(honour?.start_date || "");
-  const [endDate, setEndDate] = useState(honour?.end_date || "");
+function EditHonourDialog({ open, onClose, onSave, honour, formatDateForInput }) {
+  const [award, setAward] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  useEffect(() => {
+    setAward(honour?.honour_award || "");
+    setStartDate(honour?.start_date ? formatDateForInput(honour.start_date) : "");
+    setEndDate(honour?.end_date ? formatDateForInput(honour.end_date) : "");
+  }, [honour, formatDateForInput]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

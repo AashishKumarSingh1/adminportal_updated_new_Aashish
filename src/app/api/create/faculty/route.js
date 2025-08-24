@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 import { query } from "@/lib/db";
 
+
 export async function POST(request) {
   try {
     const session = await getServerSession(authOptions);
@@ -14,61 +15,110 @@ export async function POST(request) {
     const { type, email, id, start_date, end_date } = body;
     const validEndDate = end_date === "continue" ? null : end_date;
 
-    let sql, params;
+    let sql, params, action, returnedId;
 
     switch (type) {
-      case "honours_awards":
-        sql = id
-          ? `UPDATE honours_awards SET honour_award=?, start_date=?, end_date=? WHERE id=?`
-          : `INSERT INTO honours_awards (id, email, honour_award, start_date, end_date) VALUES (?, ?, ?, ?, ?)`;
-        params = id
-          ? [body.honour_award, start_date, validEndDate, id]
-          : [Date.now().toString(), email, body.honour_award, start_date, validEndDate];
-        break;
+      case "honours_awards": {
+        const exists = id
+          ? await query("SELECT id FROM honours_awards WHERE id=?", [id])
+          : [];
 
-      case "special_lectures":
-        sql = id
-          ? `UPDATE special_lectures SET topic=?, institute_name=?, start_date=?, end_date=?, financed_by=? WHERE id=?`
-          : `INSERT INTO special_lectures (id, email, topic, institute_name, start_date, end_date, financed_by) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-        params = id
-          ? [body.topic, body.institute_name, start_date, validEndDate, body.financed_by, id]
-          : [Date.now().toString(), email, body.topic, body.institute_name, start_date, validEndDate, body.financed_by];
+        if (id && exists.length > 0) {
+          sql = `UPDATE honours_awards SET honour_award=?, start_date=?, end_date=? WHERE id=?`;
+          params = [body.honour_award, start_date, validEndDate, id];
+          action = "Updated";
+          returnedId = id;
+        } else {
+          sql = `INSERT INTO honours_awards (email, honour_award, start_date, end_date) VALUES (?, ?, ?, ?)`;
+          params = [email, body.honour_award, start_date, validEndDate];
+          action = "Inserted";
+        }
         break;
+      }
 
-      case "visits_abroad":
-        sql = id
-          ? `UPDATE visits_abroad SET country=?, start_date=?, end_date=?, purpose=?, funded_by=? WHERE id=?`
-          : `INSERT INTO visits_abroad (id, email, country, start_date, end_date, purpose, funded_by) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-        params = id
-          ? [body.country, start_date, validEndDate, body.purpose, body.funded_by, id]
-          : [Date.now().toString(), email, body.country, start_date, validEndDate, body.purpose, body.funded_by];
-        break;
+      case "special_lectures": {
+        const exists = id
+          ? await query("SELECT id FROM special_lectures WHERE id=?", [id])
+          : [];
 
-      case "editorial_boards":
-        sql = id
-          ? `UPDATE editorial_boards SET position=?, journal_name=?, start_date=?, end_date=? WHERE id=?`
-          : `INSERT INTO editorial_boards (id, email, position, journal_name, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?)`;
-        params = id
-          ? [body.position, body.journal_name, start_date, validEndDate, id]
-          : [Date.now().toString(), email, body.position, body.journal_name, start_date, validEndDate];
+        if (id && exists.length > 0) {
+          sql = `UPDATE special_lectures SET topic=?, institute_name=?, start_date=?, end_date=?, financed_by=? WHERE id=?`;
+          params = [body.topic, body.institute_name, start_date, validEndDate, body.financed_by, id];
+          action = "Updated";
+          returnedId = id;
+        } else {
+          sql = `INSERT INTO special_lectures (email, topic, institute_name, start_date, end_date, financed_by) VALUES (?, ?, ?, ?, ?, ?)`;
+          params = [email, body.topic, body.institute_name, start_date, validEndDate, body.financed_by];
+          action = "Inserted";
+        }
         break;
+      }
 
-      case "mooc_courses":
-        sql = id
-          ? `UPDATE mooc_courses SET course_code=?, course_name=?, start_date=?, end_date=?, status=? WHERE id=?`
-          : `INSERT INTO mooc_courses (id, email, course_code, course_name, start_date, end_date, status) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-        params = id
-          ? [body.course_code, body.course_name, start_date, validEndDate, body.status, id]
-          : [Date.now().toString(), email, body.course_code, body.course_name, start_date, validEndDate, body.status];
+      case "visits_abroad": {
+        const exists = id
+          ? await query("SELECT id FROM visits_abroad WHERE id=?", [id])
+          : [];
+
+        if (id && exists.length > 0) {
+          sql = `UPDATE visits_abroad SET country=?, start_date=?, end_date=?, purpose=?, funded_by=? WHERE id=?`;
+          params = [body.country, start_date, validEndDate, body.purpose, body.funded_by, id];
+          action = "Updated";
+          returnedId = id;
+        } else {
+          sql = `INSERT INTO visits_abroad (email, country, start_date, end_date, purpose, funded_by) VALUES (?, ?, ?, ?, ?, ?)`;
+          params = [email, body.country, start_date, validEndDate, body.purpose, body.funded_by];
+          action = "Inserted";
+        }
         break;
+      }
+
+      case "editorial_boards": {
+        const exists = id
+          ? await query("SELECT id FROM editorial_boards WHERE id=?", [id])
+          : [];
+
+        if (id && exists.length > 0) {
+          sql = `UPDATE editorial_boards SET position=?, journal_name=?, start_date=?, end_date=? WHERE id=?`;
+          params = [body.position, body.journal_name, start_date, validEndDate, id];
+          action = "Updated";
+          returnedId = id;
+        } else {
+          sql = `INSERT INTO editorial_boards (email, position, journal_name, start_date, end_date) VALUES (?, ?, ?, ?, ?)`;
+          params = [email, body.position, body.journal_name, start_date, validEndDate];
+          action = "Inserted";
+        }
+        break;
+      }
+
+      case "mooc_courses": {
+        const exists = id
+          ? await query("SELECT id FROM mooc_courses WHERE id=?", [id])
+          : [];
+
+        if (id && exists.length > 0) {
+          sql = `UPDATE mooc_courses SET course_code=?, course_name=?, start_date=?, end_date=?, status=? WHERE id=?`;
+          params = [body.course_code, body.course_name, start_date, validEndDate, body.status, id];
+          action = "Updated";
+          returnedId = id;
+        } else {
+          sql = `INSERT INTO mooc_courses (email, course_code, course_name, start_date, end_date, status) VALUES (?, ?, ?, ?, ?, ?)`;
+          params = [email, body.course_code, body.course_name, start_date, validEndDate, body.status];
+          action = "Inserted";
+        }
+        break;
+      }
 
       default:
         return NextResponse.json({ message: "Invalid type" }, { status: 400 });
     }
 
     const result = await query(sql, params);
+
+    // Set the returnedId if it was an insert
+    if (!returnedId) returnedId = result.insertId;
+
     return NextResponse.json(
-      { message: id ? "Updated successfully" : "Inserted successfully", result },
+      { message: `${action} successfully`, id: returnedId, result },
       { status: 200 }
     );
   } catch (error) {
@@ -76,7 +126,6 @@ export async function POST(request) {
     return NextResponse.json({ message: "Database error", error: error.message }, { status: 500 });
   }
 }
-
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);

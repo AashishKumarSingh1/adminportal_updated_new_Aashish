@@ -1,7 +1,21 @@
 import {
-  Button, Dialog, DialogActions, DialogContent, DialogTitle,
-  TextField, Typography, Paper, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, IconButton, MenuItem, Box
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
+  MenuItem,
+  Box,
 } from "@mui/material";
 import { useSession } from "next-auth/react";
 import React, { useState, useEffect } from "react";
@@ -24,43 +38,68 @@ export default function MoocCoursesPage() {
     }
   }, [facultyData]);
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatDateForInput = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
   const handleSave = async (course) => {
     const payload = {
       ...course,
       email: session?.user?.email,
-      id: course.id || Date.now().toString(),
       type: "mooc_courses",
     };
-    await fetch("/api/create/faculty", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const exists = courses.some((c) => c.id === payload.id);
-    const updated = exists
-      ? courses.map((c) => (c.id === payload.id ? payload : c))
-      : [...courses, payload];
-    setCourses(updated);
-    updateFacultySection("mooc_courses", updated);
+
+    try {
+      const res = await fetch("/api/create/faculty", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        console.error("Failed to save course:", await res.text());
+        return;
+      }
+
+      const data = await res.json();
+      const savedCourse = { ...payload, id: course?.id || data.result.insertId };
+
+      const updated = courses.some((c) => c.id === savedCourse.id)
+        ? courses.map((c) => (c.id === savedCourse.id ? savedCourse : c))
+        : [...courses, savedCourse];
+
+      setCourses(updated);
+      updateFacultySection("mooc_courses", updated);
+    } catch (error) {
+      console.error("Error saving course:", error);
+    }
   };
 
   const handleDelete = async (id) => {
-    await fetch(`/api/create/faculty?type=mooc_courses&id=${id}`, { method: "DELETE" });
-    const updated = courses.filter((c) => c.id !== id);
-    setCourses(updated);
-    updateFacultySection("mooc_courses", updated);
+    try {
+      await fetch(`/api/create/faculty?type=mooc_courses&id=${id}`, { method: "DELETE" });
+      const updated = courses.filter((c) => c.id !== id);
+      setCourses(updated);
+      updateFacultySection("mooc_courses", updated);
+    } catch (error) {
+      console.error("Error deleting course:", error);
+    }
   };
-
-  const formatDate = (dateStr) => {
-  if (!dateStr) return "";
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-};
-
 
   return (
     <div>
@@ -69,7 +108,10 @@ export default function MoocCoursesPage() {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => { setEditItem(null); setOpenEdit(true); }}
+          onClick={() => {
+            setEditItem(null);
+            setOpenEdit(true);
+          }}
         >
           Add Course
         </Button>
@@ -115,18 +157,27 @@ export default function MoocCoursesPage() {
           onClose={() => setOpenEdit(false)}
           onSave={handleSave}
           course={editItem}
+          formatDateForInput={formatDateForInput}
         />
       )}
     </div>
   );
 }
 
-function EditCourseDialog({ open, onClose, onSave, course }) {
-  const [code, setCode] = useState(course?.course_code || "");
-  const [name, setName] = useState(course?.course_name || "");
-  const [startDate, setStartDate] = useState(course?.start_date || "");
-  const [endDate, setEndDate] = useState(course?.end_date || "");
-  const [status, setStatus] = useState(course?.status || "Completed");
+function EditCourseDialog({ open, onClose, onSave, course, formatDateForInput }) {
+  const [code, setCode] = useState("");
+  const [name, setName] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [status, setStatus] = useState("Completed");
+
+  useEffect(() => {
+    setCode(course?.course_code || "");
+    setName(course?.course_name || "");
+    setStartDate(course?.start_date ? formatDateForInput(course.start_date) : "");
+    setEndDate(course?.end_date ? formatDateForInput(course.end_date) : "");
+    setStatus(course?.status || "Completed");
+  }, [course, formatDateForInput]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -182,7 +233,6 @@ function EditCourseDialog({ open, onClose, onSave, course }) {
             onChange={(e) => setEndDate(e.target.value)}
             required
           />
-          {/* Dropdown for Status */}
           <TextField
             select
             fullWidth

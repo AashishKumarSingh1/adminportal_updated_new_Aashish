@@ -1,7 +1,20 @@
 import {
-  Button, Dialog, DialogActions, DialogContent, DialogTitle,
-  TextField, Typography, Paper, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, IconButton, Box
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
+  Box,
 } from "@mui/material";
 import { useSession } from "next-auth/react";
 import React, { useState, useEffect } from "react";
@@ -24,35 +37,6 @@ export default function SpecialLecturesPage() {
     }
   }, [facultyData]);
 
-  const handleSave = async (lecture) => {
-    const payload = {
-      ...lecture,
-      email: session?.user?.email,
-      id: lecture.id || Date.now().toString(),
-      type: "special_lectures",
-    };
-
-    await fetch("/api/create/faculty", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    const exists = lectures.some((l) => l.id === payload.id);
-    const updated = exists
-      ? lectures.map((l) => (l.id === payload.id ? payload : l))
-      : [...lectures, payload];
-    setLectures(updated);
-    updateFacultySection("special_lectures", updated);
-  };
-
-  const handleDelete = async (id) => {
-    await fetch(`/api/create/faculty?type=special_lectures&id=${id}`, { method: "DELETE" });
-    const updated = lectures.filter((l) => l.id !== id);
-    setLectures(updated);
-    updateFacultySection("special_lectures", updated);
-  };
-
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
@@ -61,6 +45,59 @@ export default function SpecialLecturesPage() {
       month: "short",
       year: "numeric",
     });
+  };
+
+  const formatDateForInput = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const handleSave = async (lecture) => {
+    const payload = {
+      ...lecture,
+      email: session?.user?.email,
+      type: "special_lectures",
+    };
+
+    try {
+      const res = await fetch("/api/create/faculty", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        console.error("Failed to save lecture:", await res.text());
+        return;
+      }
+
+      const data = await res.json();
+      const savedLecture = { ...payload, id: lecture?.id || data.result.insertId };
+
+      const updated = lectures.some((l) => l.id === savedLecture.id)
+        ? lectures.map((l) => (l.id === savedLecture.id ? savedLecture : l))
+        : [...lectures, savedLecture];
+
+      setLectures(updated);
+      updateFacultySection("special_lectures", updated);
+    } catch (error) {
+      console.error("Error saving lecture:", error);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await fetch(`/api/create/faculty?type=special_lectures&id=${id}`, { method: "DELETE" });
+      const updated = lectures.filter((l) => l.id !== id);
+      setLectures(updated);
+      updateFacultySection("special_lectures", updated);
+    } catch (error) {
+      console.error("Error deleting lecture:", error);
+    }
   };
 
   return (
@@ -124,18 +161,27 @@ export default function SpecialLecturesPage() {
           onClose={() => setOpenEdit(false)}
           onSave={handleSave}
           lecture={editItem}
+          formatDateForInput={formatDateForInput}
         />
       )}
     </div>
   );
 }
 
-function EditLectureDialog({ open, onClose, onSave, lecture }) {
-  const [topic, setTopic] = useState(lecture?.topic || "");
-  const [institute, setInstitute] = useState(lecture?.institute_name || "");
-  const [startDate, setStartDate] = useState(lecture?.start_date || "");
-  const [endDate, setEndDate] = useState(lecture?.end_date || "");
-  const [financedBy, setFinancedBy] = useState(lecture?.financed_by || "");
+function EditLectureDialog({ open, onClose, onSave, lecture, formatDateForInput }) {
+  const [topic, setTopic] = useState("");
+  const [institute, setInstitute] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [financedBy, setFinancedBy] = useState("");
+
+  useEffect(() => {
+    setTopic(lecture?.topic || "");
+    setInstitute(lecture?.institute_name || "");
+    setStartDate(lecture?.start_date ? formatDateForInput(lecture.start_date) : "");
+    setEndDate(lecture?.end_date ? formatDateForInput(lecture.end_date) : "");
+    setFinancedBy(lecture?.financed_by || "");
+  }, [lecture, formatDateForInput]);
 
   const handleSubmit = (e) => {
     e.preventDefault();

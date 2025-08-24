@@ -11,6 +11,7 @@ const pool = mysql.createPool({
   
   // Optimized connection pool settings
   queueLimit: 50,             // Limit queued requests
+  connectionLimit: 50,
   
   // Performance optimizations
   charset: 'utf8mb4',

@@ -1,7 +1,20 @@
 import {
-  Button, Dialog, DialogActions, DialogContent, DialogTitle,
-  TextField, Typography, Paper, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, IconButton, Box
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
+  Box,
 } from "@mui/material";
 import { useSession } from "next-auth/react";
 import React, { useState, useEffect } from "react";
@@ -24,39 +37,67 @@ export default function EditorialBoardsPage() {
     }
   }, [facultyData]);
 
-  const handleSave = async (board) => {
-    const payload = {
-      ...board,
-      email: session?.user?.email,
-      id: board.id || Date.now().toString(),
-      type: "editorial_boards",
-    };
-    await fetch("/api/create/faculty", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    const exists = boards.some((b) => b.id === payload.id);
-    const updated = exists ? boards.map((b) => (b.id === payload.id ? payload : b)) : [...boards, payload];
-    setBoards(updated);
-    updateFacultySection("editorial_boards", updated);
-  };
-
-  const handleDelete = async (id) => {
-    await fetch(`/api/create/faculty?type=editorial_boards&id=${id}`, { method: "DELETE" });
-    const updated = boards.filter((b) => b.id !== id);
-    setBoards(updated);
-    updateFacultySection("editorial_boards", updated);
-  };
-
   const formatDate = (dateStr) => {
     if (!dateStr) return "";
     const date = new Date(dateStr);
     return date.toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "short",
-      year: "numeric"
+      year: "numeric",
     });
+  };
+
+  const formatDateForInput = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const handleSave = async (board) => {
+    const payload = {
+      ...board,
+      email: session?.user?.email,
+      type: "editorial_boards",
+    };
+
+    try {
+      const res = await fetch("/api/create/faculty", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        console.error("Failed to save board:", await res.text());
+        return;
+      }
+
+      const data = await res.json();
+      const savedBoard = { ...payload, id: board?.id || data.result.insertId };
+
+      const updated = boards.some((b) => b.id === savedBoard.id)
+        ? boards.map((b) => (b.id === savedBoard.id ? savedBoard : b))
+        : [...boards, savedBoard];
+
+      setBoards(updated);
+      updateFacultySection("editorial_boards", updated);
+    } catch (error) {
+      console.error("Error saving board:", error);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await fetch(`/api/create/faculty?type=editorial_boards&id=${id}`, { method: "DELETE" });
+      const updated = boards.filter((b) => b.id !== id);
+      setBoards(updated);
+      updateFacultySection("editorial_boards", updated);
+    } catch (error) {
+      console.error("Error deleting board:", error);
+    }
   };
 
   return (
@@ -66,7 +107,10 @@ export default function EditorialBoardsPage() {
         <Button
           variant="contained"
           startIcon={<AddIcon />}
-          onClick={() => { setEditItem(null); setOpenEdit(true); }}
+          onClick={() => {
+            setEditItem(null);
+            setOpenEdit(true);
+          }}
         >
           Add Editorial Role
         </Button>
@@ -91,7 +135,12 @@ export default function EditorialBoardsPage() {
                 <TableCell>{formatDate(b.start_date)}</TableCell>
                 <TableCell>{b.end_date ? formatDate(b.end_date) : "Continue"}</TableCell>
                 <TableCell>
-                  <IconButton onClick={() => { setEditItem(b); setOpenEdit(true); }}>
+                  <IconButton
+                    onClick={() => {
+                      setEditItem(b);
+                      setOpenEdit(true);
+                    }}
+                  >
                     <EditIcon />
                   </IconButton>
                   <IconButton onClick={() => handleDelete(b.id)}>
@@ -110,21 +159,35 @@ export default function EditorialBoardsPage() {
           onClose={() => setOpenEdit(false)}
           onSave={handleSave}
           board={editItem}
+          formatDateForInput={formatDateForInput}
         />
       )}
     </div>
   );
 }
 
-function EditBoardDialog({ open, onClose, onSave, board }) {
-  const [position, setPosition] = useState(board?.position || "");
-  const [journal, setJournal] = useState(board?.journal_name || "");
-  const [startDate, setStartDate] = useState(board?.start_date || "");
-  const [endDate, setEndDate] = useState(board?.end_date || "");
+function EditBoardDialog({ open, onClose, onSave, board, formatDateForInput }) {
+  const [position, setPosition] = useState("");
+  const [journal, setJournal] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  useEffect(() => {
+    setPosition(board?.position || "");
+    setJournal(board?.journal_name || "");
+    setStartDate(board?.start_date ? formatDateForInput(board.start_date) : "");
+    setEndDate(board?.end_date ? formatDateForInput(board.end_date) : "");
+  }, [board, formatDateForInput]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave({ position, journal_name: journal, start_date: startDate, end_date: endDate, id: board?.id });
+    onSave({
+      position,
+      journal_name: journal,
+      start_date: startDate,
+      end_date: endDate,
+      id: board?.id,
+    });
     onClose();
   };
 
@@ -134,22 +197,39 @@ function EditBoardDialog({ open, onClose, onSave, board }) {
         <DialogTitle>{board ? "Edit Editorial Role" : "Add Editorial Role"}</DialogTitle>
         <DialogContent>
           <TextField
-            fullWidth margin="normal" label="Position"
-            value={position} onChange={(e) => setPosition(e.target.value)} required
+            fullWidth
+            margin="normal"
+            label="Position"
+            value={position}
+            onChange={(e) => setPosition(e.target.value)}
+            required
           />
           <TextField
-            fullWidth margin="normal" label="Journal Name"
-            value={journal} onChange={(e) => setJournal(e.target.value)} required
+            fullWidth
+            margin="normal"
+            label="Journal Name"
+            value={journal}
+            onChange={(e) => setJournal(e.target.value)}
+            required
           />
           <TextField
-            fullWidth margin="normal" type="date" label="Start Date"
+            fullWidth
+            margin="normal"
+            type="date"
+            label="Start Date"
             InputLabelProps={{ shrink: true }}
-            value={startDate} onChange={(e) => setStartDate(e.target.value)} required
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            required
           />
           <TextField
-            fullWidth margin="normal" type="date" label="End Date"
+            fullWidth
+            margin="normal"
+            type="date"
+            label="End Date"
             InputLabelProps={{ shrink: true }}
-            value={endDate} onChange={(e) => setEndDate(e.target.value)}
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
           />
         </DialogContent>
         <DialogActions>

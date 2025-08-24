@@ -517,9 +517,9 @@ export default function Profilepage() {
                     <DepartmentActivityManagement/>
                         </div>
 
-                        <div className="fac-card">
+                        {/* <div className="fac-card">
                     <DepartmentActivityManagement/>
-                        </div>   
+                        </div>    */}
 
                         <div className="fac-card">
                     <HonoursAwardsPage />
