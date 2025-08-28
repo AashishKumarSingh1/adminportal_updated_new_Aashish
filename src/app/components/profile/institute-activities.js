@@ -42,6 +42,8 @@ const formatDate = (dateString) => {
     }
 };
 
+const isOngoing = (activity) => !activity.end_date || activity.end_date === "Continue";
+
 // Main Component
 export default function InstituteActivityManagement() {
     const { data: session } = useSession()
@@ -135,7 +137,7 @@ export default function InstituteActivityManagement() {
             role_position: '',
             start_date: null,
             end_date: null,
-            institute_name: 'National Institute of Technology, Patna'
+            institute_name: 'National Institute of Technology Patna'
         }
         const [content, setContent] = useState(initialState)
         const refreshData = useRefreshData(false)
@@ -435,6 +437,20 @@ export default function InstituteActivityManagement() {
         )
     }
 
+    const sortedActivities = [...activities].sort((a, b) => {
+        const aOngoing = isOngoing(a);
+        const bOngoing = isOngoing(b);
+
+        if (aOngoing && !bOngoing) return -1;
+        if (!aOngoing && bOngoing) return 1;
+
+        if (aOngoing && bOngoing) {
+            return new Date(b.start_date) - new Date(a.start_date);
+        }
+
+        return new Date(b.end_date) - new Date(a.end_date);
+    });
+
     return (
         <div>
            
@@ -462,7 +478,7 @@ export default function InstituteActivityManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {activities?.map((activity) => (
+                        {sortedActivities?.map((activity) => (
                             <TableRow key={activity.id}>
                                 <TableCell>{activity.role_position}</TableCell>
                                 <TableCell>{activity.institute_name?activity.institute_name:"-"}</TableCell>
@@ -498,7 +514,7 @@ export default function InstituteActivityManagement() {
                                 </TableCell>
                             </TableRow>
                         ))}
-                        {activities?.length === 0 && (
+                        {sortedActivities?.length === 0 && (
                             <TableRow>
                                 <TableCell colSpan={4} align="center">
                                     No institute activities found

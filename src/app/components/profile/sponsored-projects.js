@@ -33,6 +33,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import AddIcon from '@mui/icons-material/Add'
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Checkbox from '@mui/material/Checkbox';
+import { useFacultySection } from '../../../context/FacultyDataContext';
 
 // Add Form Component
 export const AddForm = ({ handleClose, modal }) => {
@@ -53,6 +54,7 @@ export const AddForm = ({ handleClose, modal }) => {
     const [content, setContent] = useState(initialState)
     const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
+    const {data:sponsored_projects_data} = useFacultySection("sponsored_projects")
 
     const handleChange = (e) => {
         setContent({ ...content, [e.target.name]: e.target.value })
@@ -82,16 +84,11 @@ export const AddForm = ({ handleClose, modal }) => {
 
             if (!result.ok) throw new Error('Failed to create')
             
-            const updatedData = await result.json();
+            const updatedData = [...sponsored_projects_data,content]
             
             // Update the context data
-            updateFacultySection(11, updatedData.data);
+            updateFacultySection("sponsored_projects", updatedData);
             
-            // Update the component's state via the window reference
-            if (window.getSponsoredProjectsComponent) {
-                window.getSponsoredProjectsComponent().updateProjects(updatedData.data);
-            }
-
             handleClose()
             setContent(initialState)
         } catch (error) {
@@ -256,6 +253,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
     const [content, setContent] = useState(values)
     const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
+    const {data:project_supervision_data} = useFacultySection("project_supervision")
 
     const handleChange = (e) => {
         setContent({ ...content, [e.target.name]: e.target.value })
@@ -283,15 +281,12 @@ export const EditForm = ({ handleClose, modal, values }) => {
 
             if (!result.ok) throw new Error('Failed to update')
             
-            const updatedData = await result.json();
+            const updatedData = project_supervision_data.map((p)=>{
+                return p.id === content.id ? content:p
+            })
             
             // Update the context data
-            updateFacultySection(11, updatedData.data);
-            
-            // Update the component's state via the window reference
-            if (window.getSponsoredProjectsComponent) {
-                window.getSponsoredProjectsComponent().updateProjects(updatedData.data);
-            }
+            updateFacultySection("project_supervision", updatedData);
 
             handleClose()
         } catch (error) {
@@ -315,7 +310,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
             onClose={handleClose}
             maxWidth="md"
             fullWidth
-            disableBackdropClick
+            disablebackdropclick
             disableEscapeKeyDown
         >
             <form onSubmit={handleSubmit}>
@@ -574,8 +569,14 @@ export default function SponsoredProjectManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {projects?.map((project) => (
-                            <TableRow key={project.id}>
+                        {projects
+                            ?.sort((a, b) => {
+                                const dateA = a.end_date ? new Date(a.end_date) : new Date();
+                                const dateB = b.end_date ? new Date(b.end_date) : new Date();
+
+                                return dateB - dateA;
+                            })?.map((project,index) => (
+                            <TableRow key={index}>
                                 <TableCell>{project.project_title}</TableCell>
                                 <TableCell>{project.funding_agency}</TableCell>
                                 <TableCell>{project.role? project.role:"-"}</TableCell>

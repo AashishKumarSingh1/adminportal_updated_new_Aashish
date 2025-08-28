@@ -21,7 +21,7 @@ import useRefreshData from '@/custom-hooks/refresh'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import AddIcon from '@mui/icons-material/Add'
-import { useFacultyData } from '../../../context/FacultyDataContext'
+import { useFacultyData, useFacultySection } from '../../../context/FacultyDataContext'
 
 // Add Form Component
 export const AddForm = ({ handleClose, modal }) => {
@@ -40,6 +40,8 @@ export const AddForm = ({ handleClose, modal }) => {
     const [content, setContent] = useState(initialState)
     const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
+    const { updateFacultySection } = useFacultyData()
+    const {data:book_chapters_data} = useFacultySection("book_chapters")
 
     const handleChange = (e) => {
         setContent({ ...content, [e.target.name]: e.target.value })
@@ -68,9 +70,10 @@ export const AddForm = ({ handleClose, modal }) => {
             if (!result.ok) throw new Error('Failed to create')
             
             handleClose()
-            refreshData()
+            const updatedData = [...book_chapters_data,content]
+            updateFacultySection("book_chapters",updatedData)
             setContent(initialState)
-            window.location.reload()
+            handleClose()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -185,7 +188,8 @@ export const EditForm = ({ handleClose, modal, values }) => {
     const [content, setContent] = useState(values)
     const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
-
+    const {updateFacultySection} = useFacultyData();
+    const {data:book_chapter_data} = useFacultySection("book_chapters")
     const handleChange = (e) => {
         setContent({ ...content, [e.target.name]: e.target.value })
     }
@@ -206,10 +210,14 @@ export const EditForm = ({ handleClose, modal, values }) => {
             })
 
             if (!result.ok) throw new Error('Failed to update')
+
+            const updatedData = book_chapter_data.map((data)=>{
+                return data.id === content.id ? content : data
+            })
             
+            updateFacultySection("book_chapters",updatedData)
             handleClose()
             refreshData()
-            window.location.reload()
         } catch (error) {
             console.error('Error:', error)
         } finally {
@@ -421,8 +429,8 @@ export default function BookChapterManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {chapters?.map((chapter) => (
-                            <TableRow key={chapter.id}>
+                        {chapters?.sort((a,b)=>(b.year - a.year)).map((chapter,index) => (
+                            <TableRow key={index}>
                                 <TableCell>{chapter.chapter_title}</TableCell>
                                 <TableCell>{chapter.book_title}</TableCell>
                                 <TableCell>{chapter.authors}</TableCell>

@@ -87,7 +87,7 @@ export function EducationManagement() {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {educations.map((edu) => (
+                            {educations.sort((a,b)=>b.passing_year - a.passing_year).map((edu) => (
                                 <TableRow key={edu.id}>
                                     <TableCell>{edu.certification}</TableCell>
                                     <TableCell>{edu.specialization?edu.specialization :"-"}</TableCell>

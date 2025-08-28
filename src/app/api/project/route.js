@@ -39,7 +39,7 @@ export async function GET(request) {
               { status: 500 }
             );
           }
-          const totalCount = sponsoredCount[0].count + consultancyCount[0].count;
+          const totalCount = parseInt(sponsoredCount[0].count) + parseInt(consultancyCount[0].count);
           return NextResponse.json({ 
             projectCount: totalCount 
           });

@@ -63,7 +63,12 @@ export async function GET(request) {
       'webteam',
       'work_experience',
       'workshops_conferences',
-      "user"
+      "user",
+      "honours_awards",
+      "special_lectures",
+      "visits_abroad",
+      'editorial_boards',
+      'mooc_courses'
     ];
 
     let subqueries = facultyTables.map(
@@ -175,7 +180,13 @@ export async function GET(request) {
           { table: 'startups', query: 'SELECT * FROM startups WHERE email = ?' },
           { table: 'conference_session_chairs', query: 'SELECT * FROM conference_session_chairs WHERE email = ?' },
           { table: 'international_journal_reviewers', query: 'SELECT * FROM international_journal_reviewers WHERE email = ?' },
-          { table: 'talks_and_lectures', query: 'SELECT * FROM talks_and_lectures WHERE email = ?' }
+          { table: 'talks_and_lectures', query: 'SELECT * FROM talks_and_lectures WHERE email = ?' },
+
+          {table:"honours_awards",query:"SELECT * FROM honours_awards WHERE email = ?"},
+          {table:"special_lectures",query:"SELECT * FROM special_lectures WHERE email = ?"},
+          {table:"visits_abroad",query:"SELECT * FROM visits_abroad WHERE email = ?"},
+          {table:"editorial_boards",query:"SELECT * FROM editorial_boards WHERE email = ?"},
+          {table:"mooc_courses",query:"SELECT * FROM mooc_courses WHERE email = ?"},
         ]
 
         try {

@@ -334,18 +334,20 @@ export async function PUT(request) {
               other_supervisors = ?,
               current_status = ?,
               completion_year = ?,
-              supervisor_type = ? 
+              supervisor_type = ? ,
+              registration_date = ?
             WHERE id = ? AND email = ?`,
             [
               params.student_name,
               params.roll_no,
-              params.registration_year,
+              new Date(params.registration_date).getFullYear(),
               params.registration_type,
               params.research_area,
               params.other_supervisors,
               params.current_status,
               params.completion_year,
               params.supervisor_type,
+              params.registration_date,
               params.id,
               params.email
             ]
@@ -365,7 +367,10 @@ export async function PUT(request) {
              publication_date = ?,
              student_involved = ?,
              student_details = ?,
-             doi_url = ?
+             doi_url = ?,
+             indexing = ? , 
+             foreign_author_details = ? , 
+             nationality_type = ?
              WHERE id = ? AND email = ?`,
             [
               params.authors,
@@ -380,7 +385,10 @@ export async function PUT(request) {
               params.student_details,
               params.doi_url,
               params.id,
-              params.email
+              params.email,
+              params.indexing,
+              params.foreign_author_details,
+              params.nationality_type
             ]
           )
           return NextResponse.json(journalResult)
@@ -388,33 +396,46 @@ export async function PUT(request) {
         case 'conference_papers':
           const conferenceResult = await query(
             `UPDATE conference_papers SET 
-             authors = ?,
-             title = ?,
-             conference_name = ?,
-             location = ?,
-             conference_year = ?,
-             pages = ?,
-             indexing = ?,
-             foreign_author = ?,
-             student_involved = ?,
-             doi = ?
-             WHERE id = ? AND email = ?`,
+              authors = ?,
+              title = ?,
+              conference_name = ?,
+              location = ?,
+              conference_year = ?,
+              conference_type = ?,
+              student_name = ?,
+              student_roll_no = ?,
+              foreign_author_name = ?,
+              foreign_author_country_name = ?,
+              foreign_author_institute_name = ?,
+              pages = ?,
+              indexing = ?,
+              foreign_author = ?,
+              student_involved = ?,
+              doi = ?
+            WHERE id = ? AND email = ?`,
             [
               params.authors,
               params.title,
               params.conference_name,
               params.location,
               params.conference_year,
+              params.conference_type,
+              params.student_name,
+              params.student_roll_no,
+              params.foreign_author_name,
+              params.foreign_author_country_name,
+              params.foreign_author_institute_name,
               params.pages,
               params.indexing,
-              params.foreign_author,
-              params.student_involved,
+              params.foreign_author_name ? "yes" : "no",
+              params.student_name ? "yes" : "no",
               params.doi,
               params.id,
               params.email
             ]
           )
           return NextResponse.json(conferenceResult)
+
 
         // Books
         case 'textbooks':

@@ -50,7 +50,7 @@ export const AddForm = ({ handleClose, modal }) => {
         activity_description: '',
         start_date: null,
         end_date: null,
-        institute_name: 'National Institute of Technology, Patna'
+        institute_name: 'National Institute of Technology Patna'
     }
     const [content, setContent] = useState(initialState)
     const refreshData = useRefreshData(false)
@@ -359,6 +359,8 @@ export default function DepartmentActivityManagement() {
     const [selectedActivity, setSelectedActivity] = useState(null)
     const { facultyData, loading, updateFacultySection } = useFacultyData()
 
+    const isOngoing = (activity) => !activity.end_date || activity.end_date === "Continue";
+
     // Use context data instead of API call
     React.useEffect(() => {
         if (facultyData?.department_activities) {
@@ -416,6 +418,20 @@ export default function DepartmentActivityManagement() {
 
     if (loading) return <Loading />
 
+    const sortedActivities = [...activities].sort((a, b) => {
+        const aOngoing = isOngoing(a);
+        const bOngoing = isOngoing(b);
+
+        if (aOngoing && !bOngoing) return -1;
+        if (!aOngoing && bOngoing) return 1;
+
+        if (aOngoing && bOngoing) {
+            return new Date(b.start_date) - new Date(a.start_date);
+        }
+
+        return new Date(b.end_date) - new Date(a.end_date);
+    });
+
     return (
         <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem' }}>
@@ -442,7 +458,7 @@ export default function DepartmentActivityManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {activities?.map((activity) => (
+                        {sortedActivities?.map((activity) => (
                             <TableRow key={activity.id}>
                                 <TableCell>{activity.activity_description}</TableCell>
                                 <TableCell>{activity.institute_name?activity.institute_name:"-"}</TableCell>

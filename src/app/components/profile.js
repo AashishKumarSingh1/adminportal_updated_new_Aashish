@@ -38,6 +38,11 @@ import JournalReviewersPage from './profile/journalReviewerPage'
 import TalksAndLecturesPage from './profile/talkAndLecture'
 import ConferenceSessionChairsPage from './profile/conferenceSession'
 import EditIcon from '@mui/icons-material/Edit'
+import HonoursAwardsPage from '../components/profile/HonoursPage'
+import SpecialLecturePage from "../components/profile/SpecialLecture"
+import VisitAbroadPage from "../components/profile/VisitAbroad"
+import EditorialBoardsPage from "../components/profile/EditorialPage" 
+import MoocCoursesPage from "../components/profile/nptel"
 
 const Profile = styled.div`
     font-family: 'Source Sans Pro';
@@ -512,26 +517,27 @@ export default function Profilepage() {
                     <DepartmentActivityManagement/>
                         </div>
 
-                
-              
-                
-               
-                
-               
-                
-               
-               
-              
-               
-               
-                
+                        <div className="fac-card">
+                    <HonoursAwardsPage />
+                        </div>   
+{/* 
+                        <div className="fac-card">
+                    <SpecialLecturePage />
+                        </div>          */}
 
+                        <div className="fac-card">
+                    <VisitAbroadPage />
+                        </div>          
 
+                        <div className="fac-card">
+                    <EditorialBoardsPage />
+                        </div>    
 
+                        <div className="fac-card">
+                    <MoocCoursesPage />
+                        </div>          
+                           
                             </div>
-
-          
-
                 </Profile>
     )
 }

@@ -146,7 +146,7 @@ export const AddForm = ({ handleClose, modal }) => {
                     </TextField>
                     <TextField
                         margin="dense"
-                        label="Affiliation"
+                        label="Student Affiliation"
                         name="affiliation"
                         fullWidth
                         required
@@ -326,7 +326,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
                     </TextField>
                     <TextField
                         margin="dense"
-                        label="Affiliation"
+                        label="Student Affiliation"
                         name="affiliation"
                         fullWidth
                         required
@@ -496,14 +496,23 @@ export default function InternshipManagement() {
                             <TableCell>Student Name</TableCell>
                             <TableCell>Qualification</TableCell>
                             <TableCell>Project Title</TableCell>
-                            <TableCell>Affiliation</TableCell>
+                            <TableCell>Student Affiliation</TableCell>
                             <TableCell>Duration</TableCell>
                             <TableCell>Type</TableCell>
                             <TableCell align="right">Actions</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {internships?.map((internship) => (
+                        {internships
+                            ?.sort((a, b) => {
+                                if (!a.end_date && b.end_date) return -1;
+                                if (a.end_date && !b.end_date) return 1;
+
+                                const endA = a.end_date ? new Date(a.end_date) : new Date();
+                                const endB = b.end_date ? new Date(b.end_date) : new Date();
+
+                                return endB - endA;
+                            }).map((internship) => (
                             <TableRow key={internship.id}>
                                 <TableCell>{internship.student_name}</TableCell>
                                 <TableCell>{internship.qualification}</TableCell>

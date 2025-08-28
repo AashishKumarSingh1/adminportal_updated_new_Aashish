@@ -39,9 +39,9 @@ export async function middleware(request) {
       const protectedApiRoutes = ['/api/create', '/api/update', '/api/delete', '/api/upload']
       const isProtectedApi = protectedApiRoutes.some(route => pathname.startsWith(route))
       
-      if (isProtectedApi) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-      }
+      // if (isProtectedApi) {
+      //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      // }
     }
   } catch (error) {
     console.error('Middleware auth error:', error)

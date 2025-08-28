@@ -20,7 +20,7 @@ import {
 } from '@mui/material'
 import { useSession } from 'next-auth/react'
 import { enGB } from 'date-fns/locale';
-import { useFacultyData } from '../../../context/FacultyDataContext';
+import { useFacultyData, useFacultySection } from '../../../context/FacultyDataContext';
 
 import React, { useState } from 'react'
 import useRefreshData from '@/custom-hooks/refresh'
@@ -36,10 +36,14 @@ import Checkbox from '@mui/material/Checkbox';
 export const AddForm = ({ handleClose, modal }) => {
     const { data: session } = useSession()
     const { updateFacultySection } = useFacultyData()
+    const {data:projectSupervisionData} = useFacultySection("project_supervision");
+
     const initialState = {
         category: '',
         project_title: '',
         student_details: '',
+        student_name:"",
+        student_roll:"",
         internal_supervisors: '',
         external_supervisors: '',
         start_date:'',
@@ -55,6 +59,18 @@ export const AddForm = ({ handleClose, modal }) => {
     const handleSubmit = async (e) => {
         setSubmitting(true)
         e.preventDefault()
+
+        const studentsName = content.student_name.split(",").map(s => s.trim());
+        const studentRoll = content.student_roll.split(",").map(s => s.trim());
+
+        if (studentsName.length !== studentRoll.length) {
+        alert("Number of names and roll numbers do not match!");
+        setSubmitting(false)
+        } else {
+        content.student_details = studentsName
+            .map((name, i) => `${name} - ${studentRoll[i]}`)
+            .join(", ");
+        }
 
         try {
             const newProject = {
@@ -76,16 +92,9 @@ export const AddForm = ({ handleClose, modal }) => {
             });
               
             if (!result.ok) throw new Error('Failed to create')
-            
-            // Update state through window component reference
-            if (window.getProjectSupervisionComponent) {
-                const currentProjects = window.getProjectSupervisionComponent().getProjects() || [];
-                const updatedProjects = [...currentProjects, newProject];
-                
-                // Update both local state and context
-                window.getProjectSupervisionComponent().setProjects(updatedProjects);
-                updateFacultySection('projectSupervision', updatedProjects);
-            }
+
+            const updatedProjects = [...projectSupervisionData,content]
+            updateFacultySection('project_supervision', updatedProjects);
             
             handleClose()
             setContent(initialState)
@@ -130,7 +139,7 @@ export const AddForm = ({ handleClose, modal }) => {
                         value={content.project_title}
                         onChange={handleChange}
                     />
-                    <TextField
+                    {/* <TextField
                         margin="dense"
                         label="Student Details"
                         name="student_details"
@@ -141,6 +150,30 @@ export const AddForm = ({ handleClose, modal }) => {
                         value={content.student_details}
                         onChange={handleChange}
                         helperText="Enter student names-rollNumbers, etc. in the format Name1-RollNumber1, Name2-Roll Number2, etc."
+                    /> */}
+                    <TextField
+                        margin="dense"
+                        label="Student Names"
+                        name="student_name"
+                        fullWidth
+                        required
+                        multiline
+                        rows={1}
+                        value={content.student_name}
+                        onChange={handleChange}
+                        helperText="Enter student names, etc. in the format Name1, Name2,Name 3 etc."
+                    />
+                    <TextField
+                        margin="dense"
+                        label="Student Roll Number"
+                        name="student_roll"
+                        fullWidth
+                        required
+                        multiline
+                        rows={1}
+                        value={content.student_roll}
+                        onChange={handleChange}
+                        helperText="Enter student rollNumbers, etc. in the format RollNumber1, Roll Number2, etc."
                     />
                     <TextField
                         margin="dense"
@@ -220,6 +253,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
     const { updateFacultySection } = useFacultyData()
     const [content, setContent] = useState(values)
     const [submitting, setSubmitting] = useState(false)
+    const {data:projectSupervisionData} = useFacultySection("project_supervision");
 
     const handleChange = (e) => {
         setContent({ ...content, [e.target.name]: e.target.value })
@@ -242,15 +276,11 @@ export const EditForm = ({ handleClose, modal, values }) => {
 
             if (!result.ok) throw new Error('Failed to update')
             
-            const updatedData = await result.json();
-                
-            // Update the context data
-            updateFacultySection(17, updatedData.data);
-            
-            // Update the component's state via the window reference
-            if (window.getProjectSupervisionComponent) {
-                window.getProjectSupervisionComponent().updateData(updatedData.data);
-            }
+            const updatedData = projectSupervisionData.map((p) => 
+                p.id === content.id ? { ...p, ...content } : p
+            );
+
+            updateFacultySection("project_supervision", updatedData);
             
             handleClose()
         } catch (error) {
@@ -457,7 +487,13 @@ export default function ProjectSupervisionManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {projects?.map((project) => (
+                        {projects?.sort((a, b) => {
+
+                            const aDate = a.end_date === "Continue" ? new Date() : new Date(a.end_date);
+                            const bDate = b.end_date === "Continue" ? new Date() : new Date(b.end_date);
+
+                            return bDate - aDate;
+                        })?.map((project) => (
                             <TableRow key={project.id}>
                                 <TableCell>{project.category}</TableCell>
                                 <TableCell>{project.project_title}</TableCell>

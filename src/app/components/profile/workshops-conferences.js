@@ -31,6 +31,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import Loading from '../common/Loading'
 import { Typography } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
+import { useFacultySection } from '../../../context/FacultyDataContext';
 
 // Add Form Component
 export const AddForm = ({ handleClose, modal }) => {
@@ -47,7 +48,7 @@ export const AddForm = ({ handleClose, modal }) => {
     }
     const [content, setContent] = useState(initialState)
     const [submitting, setSubmitting] = useState(false)
-
+    const {data:workshops_conferences_data} = useFacultySection("workshops_conferences")
     const handleChange = (e) => {
         setContent({ ...content, [e.target.name]: e.target.value })
     }
@@ -89,16 +90,11 @@ export const AddForm = ({ handleClose, modal }) => {
     
             if (!result.ok) throw new Error('Failed to create');
             
-            const updatedData = await result.json();
+            const updatedData = [...workshops_conferences_data,content];
                 
             // Update the context data
-            updateFacultySection(12, updatedData.data);
-            
-            // Update the component's state via the window reference
-            if (window.getWorkshopsConferencesComponent) {
-                window.getWorkshopsConferencesComponent().updateData(updatedData.data);
-            }
-    
+            updateFacultySection("workshops_conferences", updatedData);
+                
             handleClose();
             setContent(initialState);
             alert('Workshop/Conference added successfully');
@@ -215,9 +211,10 @@ export const AddForm = ({ handleClose, modal }) => {
 }
 
 // Edit Form Component
-export const EditForm = ({ handleClose, modal, values }) => {
+export const EditForm = ({ handleClose, modal, values , allEvents,onSuccess }) => {
     const { data: session } = useSession()
     const { updateFacultySection } = useFacultyData()
+    const {data:workshops_conferences_data} = useFacultySection("workshops_conferences")
     // Parse dates when initializing content
     const [content, setContent] = useState({
         ...values,
@@ -225,6 +222,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
         end_date: values.end_date ? new Date(values.end_date) : null
     })
     const [submitting, setSubmitting] = useState(false)
+
 
     const handleChange = (e) => {
         setContent({ ...content, [e.target.name]: e.target.value })
@@ -255,15 +253,20 @@ export const EditForm = ({ handleClose, modal, values }) => {
             if (!result.ok) throw new Error('Failed to update')
             
             const updatedData = await result.json();
-                
-            // Update the context data
-            updateFacultySection(12, updatedData.data);
-            
-            // Update the component's state via the window reference
-            if (window.getWorkshopsConferencesComponent) {
-                window.getWorkshopsConferencesComponent().updateData(updatedData.data);
+
+            const newEvents={
+                ...content,
+                    start_date: content.start_date 
+                        ? new Date(content.start_date).toISOString().split('T')[0]
+                        : null,
+                    end_date: content.end_date
+                        ? new Date(content.end_date).toISOString().split('T')[0]
+                        : null,
+                    email: session?.user?.email
             }
-            
+                
+            onSuccess(newEvents)
+                        
             handleClose()
         } catch (error) {
             console.error('Error:', error)
@@ -395,7 +398,7 @@ const formatDate = (dateString) => {
 // Main Component
 export default function WorkshopConferenceManagement() {
     const { data: session } = useSession()
-    const { facultyData } = useFacultyData();
+    const { facultyData,loading:load,updateFacultySection } = useFacultyData();
     const [events, setEvents] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
@@ -413,38 +416,25 @@ export default function WorkshopConferenceManagement() {
         window.getWorkshopsConferencesComponent = () => ({
             updateData: (newData) => {
                 setEvents(newData);
-            }
+            },
+            facultyData:{workshops_conferences:events}
         });
         
         // Cleanup
         return () => {
             delete window.getWorkshopsConferencesComponent;
         };
-    }, []);
+    }, [events,updateFacultySection]);
 
-    // Fetch data
-    React.useEffect(() => {
-        const fetchEvents = async () => {
-            try {
-                if (facultyData && facultyData.workshops_conferences) {
-                    setEvents(facultyData.workshops_conferences || []);
-                } else {
-                    const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                    if (!response.ok) throw new Error('Failed to fetch')
-                    const data = await response.json()
-                    setEvents(data.workshops_conferences || [])
-                }
-            } catch (error) {
-                console.error('Error:', error)
-            } finally {
-                setLoading(false)
-            }
+     React.useEffect(() => {
+        if (facultyData?.workshops_conferences?.length > 0) {
+            setEvents(facultyData.workshops_conferences);
+            setLoading(false)
+        } else {
+            setEvents([]);
         }
+        }, [facultyData]);
 
-        if (session?.user?.email) {
-            fetchEvents()
-        }
-    }, [session, facultyData])
 
     const handleEdit = (event) => {
         setSelectedEvent(event)
@@ -467,12 +457,12 @@ export default function WorkshopConferenceManagement() {
                 if (!response.ok) throw new Error('Failed to delete')
                 
                 const updatedData = await response.json();
-                
+                const data = events.filter((evt)=>evt.id !== id);
                 // Update the context data
-                updateFacultySection(12, updatedData.data);
+                updateFacultySection('workshops_conferences',data);
                 
                 // Update the local state
-                setEvents(updatedData.data);
+                setEvents(data);
                 
                 setToast({
                     open: true,
@@ -485,9 +475,10 @@ export default function WorkshopConferenceManagement() {
         }
     }
 
-    if (loading) return <div>
-        <Loading />
-    </div>
+    // if (loading) return <div>
+    //     <Loading />
+    // </div>
+    
 
     return (
         <div>
@@ -520,8 +511,8 @@ export default function WorkshopConferenceManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {events?.map((event) => (
-                            <TableRow key={event.id}>
+                        {events?.sort((a, b) => new Date(b.end_date) - new Date(a.end_date)).map((event,index) => (
+                            <TableRow key={index}>
                                 <TableCell>{event.event_name}</TableCell>
                                 <TableCell>{event.event_type}</TableCell>
                                 <TableCell>{event.role}</TableCell>
@@ -575,11 +566,21 @@ export default function WorkshopConferenceManagement() {
             {selectedEvent && (
                 <EditForm
                     modal={openEdit}
+                    allEvents = {events}
                     handleClose={() => {
                         setOpenEdit(false)
                         setSelectedEvent(null)
                     }}
                     values={selectedEvent}
+                    onSuccess={(updatedData)=>{
+                        const updatedEvents = events.map(
+                            evt => 
+                                evt.id === updatedData.id ? updatedData : evt 
+                        );
+
+                        setEvents(updatedEvents);
+                        updateFacultySection("workshops_conferences",updatedEvents);
+                    }}
                 />
             )}
         </div>
