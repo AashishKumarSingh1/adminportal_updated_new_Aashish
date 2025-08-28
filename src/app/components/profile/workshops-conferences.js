@@ -31,6 +31,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import Loading from '../common/Loading'
 import { Typography } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
+import { useFacultySection } from '../../../context/FacultyDataContext';
 
 // Add Form Component
 export const AddForm = ({ handleClose, modal }) => {
@@ -47,7 +48,7 @@ export const AddForm = ({ handleClose, modal }) => {
     }
     const [content, setContent] = useState(initialState)
     const [submitting, setSubmitting] = useState(false)
-
+    const {data:workshops_conferences_data} = useFacultySection("workshops_conferences")
     const handleChange = (e) => {
         setContent({ ...content, [e.target.name]: e.target.value })
     }
@@ -89,16 +90,11 @@ export const AddForm = ({ handleClose, modal }) => {
     
             if (!result.ok) throw new Error('Failed to create');
             
-            const updatedData = await result.json();
+            const updatedData = [...workshops_conferences_data,content];
                 
             // Update the context data
-            updateFacultySection(12, updatedData.data);
-            
-            // Update the component's state via the window reference
-            if (window.getWorkshopsConferencesComponent) {
-                window.getWorkshopsConferencesComponent().updateData(updatedData.data);
-            }
-    
+            updateFacultySection("workshops_conferences", updatedData);
+                
             handleClose();
             setContent(initialState);
             alert('Workshop/Conference added successfully');
@@ -218,6 +214,7 @@ export const AddForm = ({ handleClose, modal }) => {
 export const EditForm = ({ handleClose, modal, values , allEvents,onSuccess }) => {
     const { data: session } = useSession()
     const { updateFacultySection } = useFacultyData()
+    const {data:workshops_conferences_data} = useFacultySection("workshops_conferences")
     // Parse dates when initializing content
     const [content, setContent] = useState({
         ...values,
@@ -225,6 +222,7 @@ export const EditForm = ({ handleClose, modal, values , allEvents,onSuccess }) =
         end_date: values.end_date ? new Date(values.end_date) : null
     })
     const [submitting, setSubmitting] = useState(false)
+
 
     const handleChange = (e) => {
         setContent({ ...content, [e.target.name]: e.target.value })
@@ -477,9 +475,9 @@ export default function WorkshopConferenceManagement() {
         }
     }
 
-    if (loading) return <div>
-        <Loading />
-    </div>
+    // if (loading) return <div>
+    //     <Loading />
+    // </div>
     
 
     return (
@@ -513,8 +511,8 @@ export default function WorkshopConferenceManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {events?.sort((a, b) => new Date(b.end_date) - new Date(a.end_date)).map((event) => (
-                            <TableRow key={event.id}>
+                        {events?.sort((a, b) => new Date(b.end_date) - new Date(a.end_date)).map((event,index) => (
+                            <TableRow key={index}>
                                 <TableCell>{event.event_name}</TableCell>
                                 <TableCell>{event.event_type}</TableCell>
                                 <TableCell>{event.role}</TableCell>

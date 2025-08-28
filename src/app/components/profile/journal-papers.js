@@ -18,7 +18,7 @@ import React, { useState } from 'react'
 
 import { useSession } from 'next-auth/react';
 //import { useFacultyData } from '../../../context/FacultyDataContext'
-import { useFacultyData } from '../../../context/FacultyDataContext';
+import { useFacultyData, useFacultySection } from '../../../context/FacultyDataContext';
 import { Typography } from '@mui/material';
 import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Paper } from '@mui/material';
 import { IconButton } from '@mui/material';
@@ -202,10 +202,22 @@ export const AddForm = ({ handleClose, modal }) => {
         publication_date: null,
         student_involved: false,
         student_details: '',
-        doi_url: ''
+        doi_url: '',
+        student_name:"",
+        student_roll:"",
+        // new fields
+        nationality_type:"",
+        foreign_author_name : "",
+        foreign_author_involved:false,
+        foreign_author_country_name:"",
+        foreign_author_institute_name:"",
+        foreign_author_details:"",
+        indexing:""
+
     }
     const [content, setContent] = useState(initialState)
     const [submitting, setSubmitting] = useState(false)
+    const {data:journal_papers_data} = useFacultySection("journal_papers")
 
     const handleChange = (e) => {
         const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value
@@ -217,6 +229,50 @@ export const AddForm = ({ handleClose, modal }) => {
         e.preventDefault()
 
         try {
+       // ---- Student part ----
+        if (content.student_involved) {
+        const studentsName = toArray(content.student_name);
+        const studentRoll = toArray(content.student_roll);
+
+        if (studentsName.length !== studentRoll.length) {
+            alert("Number of names and roll numbers do not match!");
+            setSubmitting(false);
+        } else {
+            content.student_details = studentsName
+            .map((name, i) => `${name} - ${studentRoll[i]}`)
+            .join(", ");
+        }
+        } else {
+        content.student_details = "";
+        }
+
+        // ---- Foreign authors part ----
+        if (content.foreign_author_involved) {
+        const foreignAuthorNames = toArray(content.foreign_author_name);
+        const foreignAuthorCountries = toArray(content.foreign_author_country_name);
+        const foreignAuthorInstitutes = toArray(content.foreign_author_institute_name);
+
+        const len = foreignAuthorNames.length;
+
+        if (
+            foreignAuthorCountries.length !== len ||
+            foreignAuthorInstitutes.length !== len
+        ) {
+            alert("Number of foreign author fields do not match!");
+            setSubmitting(false);
+        } else {
+            content.foreign_author_details = foreignAuthorNames
+            .map(
+                (name, i) =>
+                `${name} - ${foreignAuthorCountries[i]} - ${foreignAuthorInstitutes[i]}`
+            )
+            .join(", ");
+        }
+        } else {
+        content.foreign_author_details = "";
+        }
+
+
             const newPaper = {
                 type: 'journal_papers',
                 ...content,
@@ -233,15 +289,8 @@ export const AddForm = ({ handleClose, modal }) => {
 
             if (!result.ok) throw new Error('Failed to create')
             
-            // Update state through window component reference
-            if (window.getJournalPapersComponent) {
-                const currentPapers = window.getJournalPapersComponent().getPapers() || [];
-                const updatedPapers = [...currentPapers, newPaper];
-                
-                // Update both local state and context
-                window.getJournalPapersComponent().setPapers(updatedPapers);
-                updateFacultySection('journalPapers', updatedPapers);
-            }
+            const updatedData = [...journal_papers_data,content]
+            updateFacultySection("journal_papers",updatedData)
             
             handleClose()
             setContent(initialState)
@@ -324,6 +373,37 @@ export const AddForm = ({ handleClose, modal }) => {
                         <MenuItem value="Q3">Q3</MenuItem>
                         <MenuItem value="Q4">Q4</MenuItem>
                     </Select>
+
+                    <InputLabel id="nationality_type">Type</InputLabel>
+                    <Select
+                        labelId="nationality_type"
+                        name="nationality_type"
+                        value={content.nationality_type}
+                        onChange={handleChange}
+                        fullWidth
+                    >
+                        <MenuItem value="National">National</MenuItem>
+                        <MenuItem value="International">International</MenuItem>
+                    </Select>
+
+                    <InputLabel id="indexing">Indexing</InputLabel>
+                    <Select
+                    labelId="indexing"
+                    name="indexing"
+                    value={content.indexing}
+                    onChange={handleChange}
+                    fullWidth
+                    >
+                    <MenuItem value="SCI">SCI</MenuItem>
+                    <MenuItem value="SCIE">SCIE</MenuItem>
+                    <MenuItem value="SSCI">SSCI</MenuItem>
+                    <MenuItem value="AHCI">AHCI (Arts & Humanities Citation Index)</MenuItem>
+                    <MenuItem value="ESCI">ESCI</MenuItem>
+                    <MenuItem value="SCOPUS">SCOPUS</MenuItem>
+                    <MenuItem value="Web of Sciences">Web of Sciences</MenuItem>
+                    </Select>
+
+
                     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enGB}>
                         <DatePicker
                             label="Publication Date"
@@ -348,15 +428,87 @@ export const AddForm = ({ handleClose, modal }) => {
                         label="Student Involved"
                     />
                     {content.student_involved && (
-                        <TextField
-                            margin="dense"
-                            label="Student Details"
-                            name="student_details"
-                            fullWidth
-                            required
-                            value={content.student_details}
-                            onChange={handleChange}
-                        />
+                        (
+                            <>
+                            <TextField
+                                margin="dense"
+                                label="Student Names"
+                                name="student_name"
+                                fullWidth
+                                required
+                                multiline
+                                rows={1}
+                                value={content.student_name}
+                                onChange={handleChange}
+                                helperText="Enter student names, etc. in the format Name1, Name2,Name 3 etc."
+                            />
+                            <TextField
+                                margin="dense"
+                                label="Student Roll Number"
+                                name="student_roll"
+                                fullWidth
+                                required
+                                multiline
+                                rows={1}
+                                value={content.student_roll}
+                                onChange={handleChange}
+                                helperText="Enter student rollNumbers, etc. in the format RollNumber1, Roll Number2, etc."
+                            />
+                            </>
+                        )
+                    )}
+
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={content.foreign_author_involved}
+                                onChange={handleChange}
+                                name="foreign_author_involved"
+                            />
+                        }
+                        label="Foreign Author Involved"
+                    />
+                    {content.foreign_author_involved && (
+                        (
+                            <>
+                            <TextField
+                                margin="dense"
+                                label="Foreign Author Names"
+                                name="foreign_author_name"
+                                fullWidth
+                                required
+                                multiline
+                                rows={1}
+                                value={content.foreign_author_name}
+                                onChange={handleChange}
+                                helperText="Enter Foreign Author names, etc. in the format AuthorName1, AuthorName2,AuthorName 3 etc."
+                            />
+                            <TextField
+                                margin="dense"
+                                label="Foreign Author Country Name"
+                                name="foreign_author_country_name"
+                                fullWidth
+                                required
+                                multiline
+                                rows={1}
+                                value={content.foreign_author_country_name}
+                                onChange={handleChange}
+                                helperText="Enter Foreign Author Country Name , comma separated."
+                            />
+                            <TextField
+                                margin="dense"
+                                label="Foreign Author Institute Name"
+                                name="foreign_author_institute_name"
+                                fullWidth
+                                required
+                                multiline
+                                rows={1}
+                                value={content.foreign_author_institute_name}
+                                onChange={handleChange}
+                                helperText="Enter Foreign Author Institute Name , comma separated."
+                            />
+                            </>
+                        )
                     )}
                     <TextField
                         margin="dense"
@@ -385,6 +537,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
     const { data: session } = useSession();
     const { updateFacultySection } = useFacultyData();
     const [submitting, setSubmitting] = useState(false);
+    const {data:journal_papers_data} = useFacultyData("journal_papers");
 
     const [content, setContent] = useState({
         ...values,
@@ -428,16 +581,11 @@ export const EditForm = ({ handleClose, modal, values }) => {
                 throw new Error(errorData.message || 'Failed to update');
             }
 
-            // Get the updated data
-            if (window.getJournalPapersComponent) {
-                const updatedPapers = window.getJournalPapersComponent().getPapers().map(paper => 
-                    paper.id === content.id ? content : paper
-                );
-                
-                // Update both local state and context
-                window.getJournalPapersComponent().setPapers(updatedPapers);
-                updateFacultySection('journalPapers', updatedPapers);
-            }
+            const updatedPapers = journal_papers_data.map((data)=>{
+                return data.id === content.id ? content : data
+            })
+
+            updateFacultySection('journalPapers', updatedPapers);
 
             handleClose();
         } catch (error) {
@@ -518,6 +666,33 @@ export const EditForm = ({ handleClose, modal, values }) => {
                         <MenuItem value="Q3">Q3</MenuItem>
                         <MenuItem value="Q4">Q4</MenuItem>
                     </Select>
+                    <InputLabel id="nationality_type">Type</InputLabel>
+                    <Select
+                        labelId="nationality_type"
+                        name="nationality_type"
+                        value={content?.nationality_type || "Type"}
+                        onChange={handleChange}
+                        fullWidth
+                    >
+                        <MenuItem value="National">National</MenuItem>
+                        <MenuItem value="International">International</MenuItem>
+                    </Select>
+                    <InputLabel id="indexing">Indexing</InputLabel>
+                    <Select
+                    labelId="indexing"
+                    name="indexing"
+                    value={content.indexing}
+                    onChange={handleChange}
+                    fullWidth
+                    >
+                    <MenuItem value="SCI">SCI</MenuItem>
+                    <MenuItem value="SCIE">SCIE</MenuItem>
+                    <MenuItem value="SSCI">SSCI</MenuItem>
+                    <MenuItem value="AHCI">AHCI (Arts & Humanities Citation Index)</MenuItem>
+                    <MenuItem value="ESCI">ESCI</MenuItem>
+                    <MenuItem value="SCOPUS">SCOPUS</MenuItem>
+                    <MenuItem value="Web of Sciences">Web of Sciences</MenuItem>
+                    </Select>
                     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enGB}>
                         <DatePicker
                             label="Publication Date"
@@ -553,6 +728,16 @@ export const EditForm = ({ handleClose, modal, values }) => {
                         fullWidth
                         value={content.student_details}
                         onChange={handleChange}
+                        helperText="format : name1 - roll1 , name2 - roll2 etc."
+                    />
+                    <TextField
+                        margin="dense"
+                        label="Foreign Author Details"
+                        name="foreign_author_details"
+                        fullWidth
+                        value={content.foreign_author_details}
+                        onChange={handleChange}
+                        helperText="format : name1 - country1 - institute1 , name2 - country2 - institute2 etc."
                     />
                     <TextField
                         margin="dense"
@@ -686,8 +871,8 @@ export default function JournalPaperManagement() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {papers?.sort((a,b)=>b.publication_year - a.publication_year).map((paper) => (
-                            <TableRow key={paper.id}>
+                        {papers?.sort((a,b)=>b.publication_year - a.publication_year).map((paper,index) => (
+                            <TableRow key={index}>
                                 <TableCell>{paper.title}</TableCell>
                                 <TableCell>{paper.authors}</TableCell>
                                 <TableCell>{paper.journal_name}</TableCell>

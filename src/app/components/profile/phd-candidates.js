@@ -19,7 +19,7 @@ import {
   Typography
 } from '@mui/material'
 import { useSession } from 'next-auth/react'
-import { useFacultyData } from '../../../context/FacultyDataContext'
+import { useFacultyData, useFacultySection } from '../../../context/FacultyDataContext'
 import React, { useState } from 'react'
 import { enGB } from 'date-fns/locale';
 
@@ -35,10 +35,12 @@ import FormControl from '@mui/material/FormControl'
 export const AddForm = ({ handleClose, modal }) => {
     const { data: session } = useSession()
     const { updateFacultySection } = useFacultyData()
+    const {data:phd_candidates , loading,error} = useFacultySection("phd_candidates")
     const initialState = {
         student_name: '',
         roll_no: '',
         registration_year: new Date().getFullYear(),
+        registration_date : new Date(),
         registration_type: '',
         research_area: '',
         other_supervisors: '',
@@ -89,16 +91,22 @@ export const AddForm = ({ handleClose, modal }) => {
 
             if (!result.ok) throw new Error('Failed to create')
 
-            // Update state through window component reference
-            if (window.getPhdCandidatesComponent) {
-                const currentCandidates = window.getPhdCandidatesComponent().getCandidates() || [];
-                const updatedCandidates = [...currentCandidates, newCandidate];
+            // // Update state through window component reference
+            // if (window.getPhdCandidatesComponent) {
+            //     const currentCandidates = window.getPhdCandidatesComponent().getCandidates() || [];
+            //     const updatedCandidates = [...currentCandidates, newCandidate];
                 
-                // Update both local state and context
-                window.getPhdCandidatesComponent().setCandidates(updatedCandidates);
-                updateFacultySection('phdCandidates', updatedCandidates);
-            }
+            //     // Update both local state and context
+            //     window.getPhdCandidatesComponent().setCandidates(updatedCandidates);
+            //     updateFacultySection('phdCandidates', updatedCandidates);
+            // }else{
+            //     // const updatedCandidates = 
+            // }
 
+            const updatedCandidate = [...phd_candidates,newCandidate]
+            console.log('updated candidate is : ',updatedCandidate)
+            updateFacultySection("phd_candidates",updatedCandidate)
+            window.location.reload()
             handleClose()
             setContent(initialState)
         } catch (error) {
@@ -141,6 +149,29 @@ export const AddForm = ({ handleClose, modal }) => {
                         value={content.registration_year}
                         onChange={handleChange}
                     />
+                    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enGB}>
+                        <DatePicker
+                            label="Registration Date"
+                            value={content.registration_date ? parseISO(content.registration_date) : null}
+                            onChange={(date) => handleChange({ 
+                                target: { 
+                                    name: "registration_date", 
+                                    value: date.toLocaleDateString('en-CA')
+                                } 
+                            })}
+                            format="dd/MM/yyyy"
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    margin="dense"
+                                    fullWidth
+                                    required
+                                    name="registration_date"
+                                    onChange={handleChange}
+                                />
+                            )}
+                        />
+                    </LocalizationProvider>
                     <InputLabel id="reg-type">Registration Type</InputLabel>
                     <Select
                         labelId="reg-type"
@@ -201,17 +232,19 @@ export const AddForm = ({ handleClose, modal }) => {
                       
                         <MenuItem value="Admission">Admission</MenuItem>
                         <MenuItem value="Comprehension">Comprehension</MenuItem>
+                        <MenuItem value="Registered">Registered</MenuItem>
                         <MenuItem value="Presubmission">Presubmission</MenuItem>
                         <MenuItem value="Thesis_Submitted">Thesis Submitted</MenuItem>
                         <MenuItem value="Awarded">Awarded</MenuItem>
-                        <MenuItem value="Registered">Registered</MenuItem>
+                        <MenuItem value="Convocation">Convocation</MenuItem>
+                        
                         {/* <MenuItem value="Completed">Completed</MenuItem>
                         <MenuItem value="Discontinued">Discontinued</MenuItem> */}
                     </Select>
                     { (
                         <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enGB}>
                         <DatePicker
-    label="Completion Year"
+    label="Completion Date"
     value={content.completion_year ? parseISO(content.completion_year) : null}
     onChange={(date) => handleChange({ 
         target: { 
@@ -256,6 +289,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
         student_name: values.student_name || '',
         roll_no: values.roll_no || '',
         registration_year: values.registration_year || new Date().getFullYear(),
+        registration_date: values.registration_date || new Date().getFullYear(),        
         registration_type: values.registration_type || '',
         research_area: values.research_area || '',
         other_supervisors: values.other_supervisors || '',
@@ -350,6 +384,29 @@ export const EditForm = ({ handleClose, modal, values }) => {
                         value={content.registration_year}
                         onChange={handleChange}
                     />
+                    <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enGB}>
+                        <DatePicker
+                            label="Registration Date"
+                            value={content.registration_date ? parseISO(content.registration_date) : null}
+                            onChange={(date) => handleChange({ 
+                                target: { 
+                                    name: "registration_date", 
+                                    value: date.toLocaleDateString('en-CA')
+                                } 
+                            })}
+                            format="dd/MM/yyyy"
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    margin="dense"
+                                    fullWidth
+                                    required
+                                    name="registration_date"
+                                    onChange={handleChange}
+                                />
+                            )}
+                        />
+                    </LocalizationProvider>   
                     <TextField
                         margin="dense"
                         label="Registration Type"
@@ -443,41 +500,18 @@ export const EditForm = ({ handleClose, modal, values }) => {
 // Main Component
 export default function PhdCandidateManagement() {
     const { data: session } = useSession()
-    const { getPhdCandidates, loading, updateFacultySection,facultyData } = useFacultyData()
+    // const { getPhdCandidates, loading, updateFacultySection,facultyData } = useFacultyData()
+    const { updateFacultySection } = useFacultyData()
+    const {data:phd_candidates , loading,error} = useFacultySection("phd_candidates")
     const [candidates, setCandidates] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedCandidate, setSelectedCandidate] = useState(null)
-//
-    // Set up component reference for child components
-    // React.useEffect(() => {
-    //     window.getPhdCandidatesComponent = () => ({
-    //         getCandidates: () => candidates,
-    //         setCandidates: (newCandidates) => setCandidates(newCandidates)
-    //     });
-    // }, [candidates]);
 
-    // // Get data from context
-    // React.useEffect(() => {
-    //     const phdCandidatesData = getPhdCandidates()
-    //     setCandidates(phdCandidatesData)
-    // }, [getPhdCandidates])
-    
-        // Fetch data
         React.useEffect(() => {
             const fetchCourses = async () => {
                 try {
-                    if (facultyData) {
-                        const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                        if (!response.ok) throw new Error('Failed to fetch')
-                        const data = await response.json()
-                        setCandidates(data.phd_candidates || [])
-                    } else {
-                        const response = await fetch(`/api/faculty?type=${session?.user?.email}`)
-                        if (!response.ok) throw new Error('Failed to fetch')
-                        const data = await response.json()
-                        setCandidates(data.phd_candidates || [])
-                    }
+                    setCandidates(phd_candidates || [])
                 } catch (error) {
                     console.error('Error:', error)
                 }
@@ -486,7 +520,7 @@ export default function PhdCandidateManagement() {
             if (session?.user?.email) {
                 fetchCourses()
             }
-        }, [session, facultyData])
+        }, [session,loading])
     
 
     const handleEdit = (candidate) => {

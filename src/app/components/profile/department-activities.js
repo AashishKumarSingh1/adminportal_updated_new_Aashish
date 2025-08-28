@@ -50,7 +50,7 @@ export const AddForm = ({ handleClose, modal }) => {
         activity_description: '',
         start_date: null,
         end_date: null,
-        institute_name: 'National Institute of Technology, Patna'
+        institute_name: 'National Institute of Technology Patna'
     }
     const [content, setContent] = useState(initialState)
     const refreshData = useRefreshData(false)

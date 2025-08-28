@@ -120,12 +120,12 @@ export default function SpecialLecturesPage() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Topic</TableCell>
-              <TableCell>Institute</TableCell>
-              <TableCell>Start Date</TableCell>
-              <TableCell>End Date</TableCell>
-              <TableCell>Financed By</TableCell>
-              <TableCell>Actions</TableCell>
+                <TableCell>Topic</TableCell>
+                <TableCell>Institute</TableCell>
+                <TableCell>Start Date</TableCell>
+                <TableCell>End Date</TableCell>
+                <TableCell>Financed By</TableCell>
+                <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>

@@ -27,6 +27,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import AddIcon from '@mui/icons-material/Add'
+import { useFacultySection } from '../../../context/FacultyDataContext';
 
 // Add Form Component
 export const AddForm = ({ handleClose, modal }) => {
@@ -43,6 +44,7 @@ export const AddForm = ({ handleClose, modal }) => {
     const [content, setContent] = useState(initialState)
     const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
+    const {data:start_up_data} = useFacultySection("startups")
 
     const handleChange = (e) => {
         setContent({ ...content, [e.target.name]: e.target.value })
@@ -73,15 +75,10 @@ export const AddForm = ({ handleClose, modal }) => {
 
             if (!result.ok) throw new Error('Failed to create')
             
-            const updatedData = await result.json();
+            const updatedData = [...start_up_data,content]
             
             // Update the context data
-            updateFacultySection(10, updatedData.data);
-            
-            // Update the component's state via the window reference
-            if (window.getStartupsComponent) {
-                window.getStartupsComponent().updateStartups(updatedData.data);
-            }
+            updateFacultySection("startups", updatedData);
             
             handleClose()
             setContent(initialState)
@@ -180,6 +177,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
     });
     const refreshData = useRefreshData(false);
     const [submitting, setSubmitting] = useState(false);
+    const {data:start_up_data} = useFacultySection("startups")
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -216,15 +214,14 @@ export const EditForm = ({ handleClose, modal, values }) => {
                 throw new Error('Failed to update. Please try again.');
             }
             
-            const updatedData = await response.json();
+
+            const updatedData = start_up_data.map((data)=>{
+                return data.id === content.id ? content:data
+            });
             
             // Update the context data
-            updateFacultySection(10, updatedData.data);
+            updateFacultySection("startups", updatedData);
             
-            // Update the component's state via the window reference
-            if (window.getStartupsComponent) {
-                window.getStartupsComponent().updateStartups(updatedData.data);
-            }
 
             handleClose();
         } catch (error) {
@@ -436,8 +433,8 @@ export default function StartupManagement() {
                             if (!a.registration_date) return -1;
 
                             return new Date(b.registration_date) - new Date(a.registration_date);
-                        }).map((startup) => (
-                            <TableRow key={startup.id}>
+                        }).map((startup,index) => (
+                            <TableRow key={index}>
                                 <TableCell>{startup.startup_name}</TableCell>
                                 <TableCell>{startup.incubation_place}</TableCell>
                                 <TableCell>

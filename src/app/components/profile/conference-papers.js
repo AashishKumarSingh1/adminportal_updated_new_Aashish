@@ -26,7 +26,7 @@ import {
   import DeleteIcon from '@mui/icons-material/Delete'
   import AddIcon from '@mui/icons-material/Add'
   import Papa from 'papaparse'
-  import { useFacultyData } from '../../../context/FacultyDataContext'
+  import { useFacultyData, useFacultySection } from '../../../context/FacultyDataContext'
   
 export const UploadCSVConference = ({ handleClose, modal }) => {
     const { data: session } = useSession();
@@ -171,335 +171,424 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
 
   
   export const AddForm = ({ handleClose, modal }) => {
-      const { data: session } = useSession()
-      const { updateFacultySection } = useFacultyData()
-      const initialState = {
-          authors: '',
-          title: '',
-          conference_name: '',
-          location: '',
-          conference_year: new Date().getFullYear(),
-          pages: '',
-          indexing: '',
-          foreign_author: '',
-          student_involved: '',
-          doi: ''
-      }
-      const [content, setContent] = useState(initialState)
-      const [submitting, setSubmitting] = useState(false)
-  
-      const handleChange = (e) => {
-          setContent({ ...content, [e.target.name]: e.target.value })
-      }
-  
-      const handleSubmit = async (e) => {
-          setSubmitting(true)
-          e.preventDefault()
-  
-          try {
-              const result = await fetch('/api/create', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                      type: 'conference_papers',
-                      ...content,
-                      id: Date.now().toString(),
-                      email: session?.user?.email
-                  }),
-              })
-  
-              if (!result.ok) throw new Error('Failed to create')
-              
-              const updatedData = await result.json();
-                
-              // Update the context data
-              updateFacultySection(4, updatedData.data);
-              
-              // Update the component's state via the window reference
-              if (window.getConferencePapersComponent) {
-                  window.getConferencePapersComponent().updateData(updatedData.data);
-              }
-              
-              handleClose()
-              setContent(initialState)
-          } catch (error) {
-              console.error('Error:', error)
-          } finally {
-              setSubmitting(false)
-          }
-      }
-  
-      return (
-          <Dialog open={modal} onClose={handleClose} maxWidth="md" fullWidth>
-              <form onSubmit={handleSubmit}>
-                  <DialogTitle>Add Conference Paper</DialogTitle>
-                  <DialogContent>
-                      <TextField
-                          margin="dense"
-                          label="Paper Title"
-                          name="title"
-                          fullWidth
-                          required
-                          value={content.title}
-                          onChange={handleChange}
-                      />
-                      <TextField
-                          margin="dense"
-                          label="Authors"
-                          name="authors"
-                          fullWidth
-                          required
-                          value={content.authors}
-                          onChange={handleChange}
-                          helperText="Enter names separated by commas"
-                      />
-                      <TextField
-                          margin="dense"
-                          label="Conference Name"
-                          name="conference_name"
-                          fullWidth
-                          required
-                          value={content.conference_name}
-                          onChange={handleChange}
-                      />
-                      <TextField
-                          margin="dense"
-                          label="Location"
-                          name="location"
-                          fullWidth
-                          required
-                          value={content.location}
-                          onChange={handleChange}
-                      />
-                      <TextField
-                          margin="dense"
-                          label="Conference Year"
-                          name="conference_year"
-                          type="number"
-                          fullWidth
-                          required
-                          value={content.conference_year}
-                          onChange={handleChange}
-                      />
-                      <TextField
-                          margin="dense"
-                          label="Pages"
-                          name="pages"
-                          fullWidth
-                          value={content.pages}
-                          onChange={handleChange}
-                      />
-                      <FormControl fullWidth margin="dense">
-                          <InputLabel>Indexing</InputLabel>
-                          <Select
-                              name="indexing"
-                              value={content.indexing}
-                              onChange={handleChange}
-                              label="Indexing"
-                          >
-                              <MenuItem value="Scopus">Scopus</MenuItem>
-                              <MenuItem value="Web of Science">Web of Science</MenuItem>
-                              <MenuItem value="Other">Other</MenuItem>
+        const { data: session } = useSession();
+        const { updateFacultySection } = useFacultyData();
+        const {data:conference_papers_data} = useFacultySection("conference_papers")
 
-                          </Select>
-                      </FormControl>
-                      <TextField
-                          margin="dense"
-                          label="Foreign Author"
-                          name="foreign_author"
-                          fullWidth
-                          value={content.foreign_author}
-                          onChange={handleChange}
-                      />
-                      <TextField
-                          margin="dense"
-                          label="Student Involved"
-                          name="student_involved"
-                          fullWidth
-                          value={content.student_involved}
-                          onChange={handleChange}
-                      />
-                      <TextField
-                          margin="dense"
-                          label="DOI"
-                          name="doi"
-                          fullWidth
-                          value={content.doi}
-                          onChange={handleChange}
-                      />
-                  </DialogContent>
-                  <DialogActions>
-                      <Button
-                          type="submit"
-                          color="primary"
-                          disabled={submitting}
-                      >
-                          {submitting ? 'Submitting...' : 'Submit'}
-                      </Button>
-                  </DialogActions>
-              </form>
-          </Dialog>
-      )
-  }
-  
+        const initialState = {
+            authors: "",
+            title: "",
+            conference_name: "",
+            location: "",
+            conference_year: new Date().getFullYear(),
+            conference_type: "National",
+            student_name: "",
+            student_roll_no: "",
+            foreign_author_name: "",
+            foreign_author_country_name: "",
+            foreign_author_institute_name: "",
+            pages: "",
+            indexing: "",
+            doi: "",
+        };
+
+        const [content, setContent] = useState(initialState);
+        const [submitting, setSubmitting] = useState(false);
+
+        const handleChange = (e) => {
+            setContent({ ...content, [e.target.name]: e.target.value });
+        };
+
+        const handleSubmit = async (e) => {
+            setSubmitting(true);
+            e.preventDefault();
+
+            try {
+            const result = await fetch("/api/create", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                type: "conference_papers",
+                ...content,
+                id: Date.now().toString(),
+                email: session?.user?.email,
+                }),
+            });
+
+            if (!result.ok) throw new Error("Failed to create");
+
+            const updatedData = [...conference_papers_data,content]
+
+            updateFacultySection("conference_papers", updatedData);
+
+            handleClose();
+            setContent(initialState);
+            } catch (error) {
+            console.error("Error:", error);
+            } finally {
+            setSubmitting(false);
+            }
+        };
+
+        return (
+            <Dialog open={modal} onClose={handleClose} maxWidth="md" fullWidth>
+            <form onSubmit={handleSubmit}>
+                <DialogTitle>Add Conference Paper</DialogTitle>
+                <DialogContent>
+                <TextField
+                    margin="dense"
+                    label="Paper Title"
+                    name="title"
+                    fullWidth
+                    required
+                    value={content.title}
+                    onChange={handleChange}
+                />
+                <TextField
+                    margin="dense"
+                    label="Authors"
+                    name="authors"
+                    fullWidth
+                    required
+                    value={content.authors}
+                    onChange={handleChange}
+                    helperText="Enter names separated by commas"
+                />
+                <TextField
+                    margin="dense"
+                    label="Conference Name"
+                    name="conference_name"
+                    fullWidth
+                    required
+                    value={content.conference_name}
+                    onChange={handleChange}
+                />
+                <TextField
+                    margin="dense"
+                    label="Location"
+                    name="location"
+                    fullWidth
+                    required
+                    value={content.location}
+                    onChange={handleChange}
+                />
+                <TextField
+                    margin="dense"
+                    label="Conference Year"
+                    name="conference_year"
+                    type="number"
+                    fullWidth
+                    required
+                    value={content.conference_year}
+                    onChange={handleChange}
+                />
+
+                <FormControl fullWidth margin="dense">
+                    <InputLabel>Conference Type</InputLabel>
+                    <Select
+                    name="conference_type"
+                    value={content.conference_type}
+                    onChange={handleChange}
+                    label="Conference Type"
+                    >
+                    <MenuItem value="National">National</MenuItem>
+                    <MenuItem value="International">International</MenuItem>
+                    </Select>
+                </FormControl>
+
+                <TextField
+                    margin="dense"
+                    label="Pages"
+                    name="pages"
+                    fullWidth
+                    value={content.pages}
+                    onChange={handleChange}
+                />
+
+                <FormControl fullWidth margin="dense">
+                    <InputLabel>Indexing</InputLabel>
+                    <Select
+                    name="indexing"
+                    value={content.indexing}
+                    onChange={handleChange}
+                    label="Indexing"
+                    >
+                    <MenuItem value="Scopus">Scopus</MenuItem>
+                    <MenuItem value="Web of Science">Web of Science</MenuItem>
+                    <MenuItem value="Other">Other</MenuItem>
+                    </Select>
+                </FormControl>
+
+                {/* Student Info */}
+                <TextField
+                    margin="dense"
+                    label="Student Names"
+                    name="student_name"
+                    fullWidth
+                    value={content.student_name}
+                    onChange={handleChange}
+                    helperText="Comma separated student names"
+                />
+                <TextField
+                    margin="dense"
+                    label="Student Roll Numbers"
+                    name="student_roll_no"
+                    fullWidth
+                    value={content.student_roll_no}
+                    onChange={handleChange}
+                    helperText="Comma separated roll numbers"
+                />
+
+                {/* Foreign Author Info */}
+                <TextField
+                    margin="dense"
+                    label="Foreign Author Names"
+                    name="foreign_author_name"
+                    fullWidth
+                    value={content.foreign_author_name}
+                    onChange={handleChange}
+                    helperText="Comma separated foreign author names"
+                />
+                <TextField
+                    margin="dense"
+                    label="Foreign Author Countries"
+                    name="foreign_author_country_name"
+                    fullWidth
+                    value={content.foreign_author_country_name}
+                    onChange={handleChange}
+                    helperText="Comma separated countries"
+                />
+                <TextField
+                    margin="dense"
+                    label="Foreign Author Institutes"
+                    name="foreign_author_institute_name"
+                    fullWidth
+                    value={content.foreign_author_institute_name}
+                    onChange={handleChange}
+                    helperText="Comma separated institutes"
+                />
+
+                <TextField
+                    margin="dense"
+                    label="DOI"
+                    name="doi"
+                    fullWidth
+                    value={content.doi}
+                    onChange={handleChange}
+                />
+                </DialogContent>
+                <DialogActions>
+                <Button type="submit" color="primary" disabled={submitting}>
+                    {submitting ? "Submitting..." : "Submit"}
+                </Button>
+                </DialogActions>
+            </form>
+            </Dialog>
+        );
+        };
+
   // Edit Form Component
-  export const EditForm = ({ handleClose, modal, values }) => {
-      const { data: session } = useSession()
-      const { updateFacultySection } = useFacultyData()
-      const [content, setContent] = useState(values)
-      const [submitting, setSubmitting] = useState(false)
-  
-      const handleChange = (e) => {
-          setContent({ ...content, [e.target.name]: e.target.value })
-      }
-  
-      const handleSubmit = async (e) => {
-          setSubmitting(true)
-          e.preventDefault()
-  
-          try {
-              const result = await fetch('/api/update', {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                      type: 'conference_papers',
-                      ...content,
-                      email: session?.user?.email
-                  }),
-              })
-  
-              if (!result.ok) throw new Error('Failed to update')
-              
-              const updatedData = await result.json();
-                  
-              // Update the context data
-              updateFacultySection(4, updatedData.data);
-              
-              // Update the component's state via the window reference
-              if (window.getConferencePapersComponent) {
-                  window.getConferencePapersComponent().updateData(updatedData.data);
-              }
-              
-              handleClose()
-          } catch (error) {
-              console.error('Error:', error)
-          } finally {
-              setSubmitting(false)
-          }
-      }
-  
-      return (
-          <Dialog open={modal} onClose={handleClose} maxWidth="md" fullWidth>
-              <form onSubmit={handleSubmit}>
-                  <DialogTitle>Edit Conference Paper</DialogTitle>
-                  <DialogContent>
-                      <TextField
-                          margin="dense"
-                          label="Paper Title"
-                          name="title"
-                          fullWidth
-                          required
-                          value={content.title}
-                          onChange={handleChange}
-                      />
-                      <TextField
-                          margin="dense"
-                          label="Authors"
-                          name="authors"
-                          fullWidth
-                          required
-                          value={content.authors}
-                          onChange={handleChange}
-                          helperText="Enter names separated by commas"
-                      />
-                      <TextField
-                          margin="dense"
-                          label="Conference Name"
-                          name="conference_name"
-                          fullWidth
-                          required
-                          value={content.conference_name}
-                          onChange={handleChange}
-                      />
-                      <TextField
-                          margin="dense"
-                          label="Location"
-                          name="location"
-                          fullWidth
-                          required
-                          value={content.location}
-                          onChange={handleChange}
-                      />
-                      <TextField
-                          margin="dense"
-                          label="Conference Year"
-                          name="conference_year"
-                          type="number"
-                          fullWidth
-                          required
-                          value={content.conference_year}
-                          onChange={handleChange}
-                      />
-                      <TextField
-                          margin="dense"
-                          label="Pages"
-                          name="pages"
-                          fullWidth
-                          value={content.pages}
-                          onChange={handleChange}
-                      />
-                      <FormControl fullWidth margin="dense">
-                          <InputLabel>Indexing</InputLabel>
-                          <Select
-                              name="indexing"
-                              value={content.indexing}
-                              onChange={handleChange}
-                              label="Indexing"
-                          >
-                              <MenuItem value="Scopus">Scopus</MenuItem>
-                              <MenuItem value="Web of Science">Web of Science</MenuItem>
-                              <MenuItem value="Other">Other</MenuItem>
+    export const EditForm = ({ handleClose, modal, values , papers }) => {
+        const { data: session } = useSession();
+        const { updateFacultySection } = useFacultyData();
+        const [content, setContent] = useState(values);
+        const [submitting, setSubmitting] = useState(false);
+        const {data:conference_papers_data} = useFacultySection("conference_papers")
 
-                          </Select>
-                      </FormControl>
-                      <TextField
-                          margin="dense"
-                          label="Foreign Author"
-                          name="foreign_author"
-                          fullWidth
-                          value={content.foreign_author}
-                          onChange={handleChange}
-                      />
-                      <TextField
-                          margin="dense"
-                          label="Student Involved"
-                          name="student_involved"
-                          fullWidth
-                          value={content.student_involved}
-                          onChange={handleChange}
-                      />
-                      <TextField
-                          margin="dense"
-                          label="DOI"
-                          name="doi"
-                          fullWidth
-                          value={content.doi}
-                          onChange={handleChange}
-                      />
-                  </DialogContent><DialogActions>
-                      <Button
-                          type="submit"
-                          color="primary"
-                          disabled={submitting}
-                      >
-                          {submitting ? 'Saving...' : 'Save'}
-                      </Button>
-                  </DialogActions>
-              </form>
-          </Dialog>
-      )
-  }
-  
+        const handleChange = (e) => {
+            setContent({ ...content, [e.target.name]: e.target.value });
+        };
+
+        const handleSubmit = async (e) => {
+            setSubmitting(true);
+            e.preventDefault();
+
+            try {
+            const result = await fetch("/api/update", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                type: "conference_papers",
+                ...content,
+                email: session?.user?.email,
+                }),
+            });
+
+            if (!result.ok) throw new Error("Failed to update");
+
+            const updatedData = conference_papers_data.map((data)=>{
+                return data.id === content.id ? content : data
+            });
+
+            updateFacultySection("conference_papers", updatedData);
+
+            console.log(papers)
+
+            handleClose();
+            } catch (error) {
+            console.error("Error:", error);
+            } finally {
+            setSubmitting(false);
+            }
+        };
+
+        return (
+            <Dialog open={modal} onClose={handleClose} maxWidth="md" fullWidth>
+            <form onSubmit={handleSubmit}>
+                <DialogTitle>Edit Conference Paper</DialogTitle>
+                <DialogContent>
+                <TextField
+                    margin="dense"
+                    label="Paper Title"
+                    name="title"
+                    fullWidth
+                    required
+                    value={content?.title}
+                    onChange={handleChange}
+                />
+                <TextField
+                    margin="dense"
+                    label="Authors"
+                    name="authors"
+                    fullWidth
+                    required
+                    value={content?.authors}
+                    onChange={handleChange}
+                    helperText="Enter names separated by commas"
+                />
+                <TextField
+                    margin="dense"
+                    label="Conference Name"
+                    name="conference_name"
+                    fullWidth
+                    required
+                    value={content?.conference_name}
+                    onChange={handleChange}
+                />
+                <TextField
+                    margin="dense"
+                    label="Location"
+                    name="location"
+                    fullWidth
+                    required
+                    value={content?.location}
+                    onChange={handleChange}
+                />
+                <TextField
+                    margin="dense"
+                    label="Conference Year"
+                    name="conference_year"
+                    type="number"
+                    fullWidth
+                    required
+                    value={content?.conference_year}
+                    onChange={handleChange}
+                />
+
+                <FormControl fullWidth margin="dense">
+                    <InputLabel>Conference Type</InputLabel>
+                    <Select
+                    name="conference_type"
+                    value={content?.conference_type}
+                    onChange={handleChange}
+                    label="Conference Type"
+                    >
+                    <MenuItem value="National">National</MenuItem>
+                    <MenuItem value="International">International</MenuItem>
+                    </Select>
+                </FormControl>
+
+                <TextField
+                    margin="dense"
+                    label="Pages"
+                    name="pages"
+                    fullWidth
+                    value={content?.pages}
+                    onChange={handleChange}
+                />
+
+                <FormControl fullWidth margin="dense">
+                    <InputLabel>Indexing</InputLabel>
+                    <Select
+                    name="indexing"
+                    value={content?.indexing}
+                    onChange={handleChange}
+                    label="Indexing"
+                    >
+                    <MenuItem value="Scopus">Scopus</MenuItem>
+                    <MenuItem value="Web of Science">Web of Science</MenuItem>
+                    <MenuItem value="Other">Other</MenuItem>
+                    </Select>
+                </FormControl>
+
+                {/* Student Info */}
+                <TextField
+                    margin="dense"
+                    label="Student Names"
+                    name="student_name"
+                    fullWidth
+                    value={content?.student_name}
+                    onChange={handleChange}
+                    helperText="Comma separated student names"
+                />
+                <TextField
+                    margin="dense"
+                    label="Student Roll Numbers"
+                    name="student_roll_no"
+                    fullWidth
+                    value={content?.student_roll_no}
+                    onChange={handleChange}
+                    helperText="Comma separated roll numbers"
+                />
+
+                {/* Foreign Author Info */}
+                <TextField
+                    margin="dense"
+                    label="Foreign Author Names"
+                    name="foreign_author_name"
+                    fullWidth
+                    value={content?.foreign_author_name}
+                    onChange={handleChange}
+                    helperText="Comma separated names"
+                />
+                <TextField
+                    margin="dense"
+                    label="Foreign Author Countries"
+                    name="foreign_author_country_name"
+                    fullWidth
+                    value={content?.foreign_author_country_name}
+                    onChange={handleChange}
+                    helperText="Comma separated countries"
+                />
+                <TextField
+                    margin="dense"
+                    label="Foreign Author Institutes"
+                    name="foreign_author_institute_name"
+                    fullWidth
+                    value={content?.foreign_author_institute_name}
+                    onChange={handleChange}
+                    helperText="Comma separated institutes"
+                />
+
+                <TextField
+                    margin="dense"
+                    label="DOI"
+                    name="doi"
+                    fullWidth
+                    value={content?.doi}
+                    onChange={handleChange}
+                />
+                </DialogContent>
+                <DialogActions>
+                <Button type="submit" color="primary" disabled={submitting}>
+                    {submitting ? "Saving..." : "Save"}
+                </Button>
+                </DialogActions>
+            </form>
+            </Dialog>
+        );
+        };
+
   // Main Component
   export default function ConferencePaperManagement() {
       const { data: session } = useSession()
@@ -621,8 +710,8 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                             </TableRow>
                             </TableHead>
                             <TableBody>
-                            {papers?.sort((a,b)=>b.conference_year - a.conference_year).map((paper) => (
-                            <TableRow key={paper.id}>
+                            {papers?.sort((a,b)=>b.conference_year - a.conference_year).map((paper,index) => (
+                            <TableRow key={index}>
                             <TableCell>{paper.title}</TableCell>
                             <TableCell>{paper.authors}</TableCell>
                                   {/* <TableCell>{paper.authors}</TableCell> */}
@@ -679,6 +768,7 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                           setSelectedPaper(null)
                       }}
                       values={selectedPaper}
+                      papers = {papers}
                   />
               )}
           </div>

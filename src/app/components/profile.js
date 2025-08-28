@@ -517,17 +517,13 @@ export default function Profilepage() {
                     <DepartmentActivityManagement/>
                         </div>
 
-                        {/* <div className="fac-card">
-                    <DepartmentActivityManagement/>
-                        </div>    */}
-
                         <div className="fac-card">
                     <HonoursAwardsPage />
                         </div>   
-
+{/* 
                         <div className="fac-card">
                     <SpecialLecturePage />
-                        </div>         
+                        </div>          */}
 
                         <div className="fac-card">
                     <VisitAbroadPage />

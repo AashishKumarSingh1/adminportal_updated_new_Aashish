@@ -183,13 +183,14 @@ export async function POST(request) {
         switch (type) {
           case 'phd_candidates':
             const phdResult = await query(
-              `INSERT INTO phd_candidates(id, email, student_name, roll_no, registration_year, registration_type, research_area, other_supervisors, current_status, completion_year,supervisor_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)`,
+              `INSERT INTO phd_candidates(id, email, student_name, roll_no, registration_year,registration_date, registration_type, research_area, other_supervisors, current_status, completion_year,supervisor_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)`,
               [
                 params.id,
                 params.email,
                 params.student_name,
                 params.roll_no,
-                params.registration_year,
+                new Date(params.registration_date).getFullYear(),
+                params.registration_date,
                 params.registration_type,
                 params.research_area,
                 params.other_supervisors,
@@ -202,7 +203,7 @@ export async function POST(request) {
 
           case 'journal_papers':
             const journalResult = await query(
-              `INSERT INTO journal_papers(id, email, authors, title, journal_name, volume, publication_year, pages, journal_quartile, publication_date, student_involved, student_details, doi_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              `INSERT INTO journal_papers(id, email, authors, title, journal_name, volume, publication_year, pages, journal_quartile, publication_date, student_involved, student_details, doi_url,indexing,foreign_author_details,nationality_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?)`,
               [
                 params.id,
                 params.email,
@@ -216,14 +217,36 @@ export async function POST(request) {
                 params.publication_date,
                 params.student_involved,
                 params.student_details,
-                params.doi_url
+                params.doi_url,
+                params.indexing,
+                params.foreign_author_details,
+                params.nationality_type
               ]
             )
             return NextResponse.json(journalResult)
 
           case 'conference_papers':
             const conferenceResult = await query(
-              `INSERT INTO conference_papers(id, email, authors, title, conference_name, location, conference_year, pages, indexing, foreign_author, student_involved, doi) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              `INSERT INTO conference_papers (
+                  id, 
+                  email, 
+                  authors, 
+                  title, 
+                  conference_name, 
+                  location, 
+                  conference_year, 
+                  conference_type,
+                  student_name,
+                  student_roll_no,
+                  foreign_author_name,
+                  foreign_author_country_name,
+                  foreign_author_institute_name,
+                  pages, 
+                  indexing, 
+                  foreign_author, 
+                  student_involved, 
+                  doi
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               [
                 params.id,
                 params.email,
@@ -232,14 +255,21 @@ export async function POST(request) {
                 params.conference_name,
                 params.location,
                 params.conference_year,
+                params.conference_type,
+                params.student_name,
+                params.student_roll_no,
+                params.foreign_author_name,
+                params.foreign_author_country_name,
+                params.foreign_author_institute_name,
                 params.pages,
                 params.indexing,
-                params.foreign_author,
-                params.student_involved,
+                params.foreign_author_name ? "yes" : "no",
+                params.student_name ? "yes" : "no",
                 params.doi
               ]
             )
             return NextResponse.json(conferenceResult)
+
 
           case 'textbooks':
             const textbookResult = await query(

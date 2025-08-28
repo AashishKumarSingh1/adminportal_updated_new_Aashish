@@ -138,8 +138,8 @@ export default function JournalReviewersPage() {
                   if (!a.is_continuing && b.is_continuing) return 1;
 
                   return new Date(b.to_date) - new Date(a.to_date);
-              }).map((r) => (
-                  <TableRow key={r.id}>
+              }).map((r,index) => (
+                  <TableRow key={index}>
                     <TableCell>{r.name}</TableCell>
                     <TableCell>{formatDate(r.from_date)}</TableCell>
                     <TableCell>

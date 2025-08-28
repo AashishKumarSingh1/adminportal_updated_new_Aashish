@@ -121,6 +121,7 @@ export default function VisitsAbroadPage() {
           <TableHead>
             <TableRow>
               <TableCell>Country</TableCell>
+              <TableCell>Institute</TableCell>
               <TableCell>Start Date</TableCell>
               <TableCell>End Date</TableCell>
               <TableCell>Purpose</TableCell>
@@ -132,6 +133,7 @@ export default function VisitsAbroadPage() {
             {visits.map((v) => (
               <TableRow key={v.id}>
                 <TableCell>{v.country}</TableCell>
+                <TableCell>{v.institute_name}</TableCell>
                 <TableCell>{formatDate(v.start_date)}</TableCell>
                 <TableCell>{v.end_date ? formatDate(v.end_date) : "Continue"}</TableCell>
                 <TableCell>{v.purpose}</TableCell>
@@ -170,6 +172,7 @@ export default function VisitsAbroadPage() {
 
 function EditVisitDialog({ open, onClose, onSave, visit, formatDateForInput }) {
   const [country, setCountry] = useState("");
+  const [instituteName, setInstituteName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [purpose, setPurpose] = useState("");
@@ -177,6 +180,7 @@ function EditVisitDialog({ open, onClose, onSave, visit, formatDateForInput }) {
 
   useEffect(() => {
     setCountry(visit?.country || "");
+    setInstituteName(visit?.institute_name || "");
     setStartDate(visit?.start_date ? formatDateForInput(visit.start_date) : "");
     setEndDate(visit?.end_date ? formatDateForInput(visit.end_date) : "");
     setPurpose(visit?.purpose || "");
@@ -187,6 +191,7 @@ function EditVisitDialog({ open, onClose, onSave, visit, formatDateForInput }) {
     e.preventDefault();
     onSave({
       country,
+      institute_name: instituteName,
       start_date: startDate,
       end_date: endDate,
       purpose,
@@ -207,6 +212,14 @@ function EditVisitDialog({ open, onClose, onSave, visit, formatDateForInput }) {
             label="Country"
             value={country}
             onChange={(e) => setCountry(e.target.value)}
+            required
+          />
+          <TextField
+            fullWidth
+            margin="normal"
+            label="Institute Name"
+            value={instituteName}
+            onChange={(e) => setInstituteName(e.target.value)}
             required
           />
           <TextField

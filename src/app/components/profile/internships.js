@@ -146,7 +146,7 @@ export const AddForm = ({ handleClose, modal }) => {
                     </TextField>
                     <TextField
                         margin="dense"
-                        label="Affiliation"
+                        label="Student Affiliation"
                         name="affiliation"
                         fullWidth
                         required
@@ -326,7 +326,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
                     </TextField>
                     <TextField
                         margin="dense"
-                        label="Affiliation"
+                        label="Student Affiliation"
                         name="affiliation"
                         fullWidth
                         required
@@ -496,7 +496,7 @@ export default function InternshipManagement() {
                             <TableCell>Student Name</TableCell>
                             <TableCell>Qualification</TableCell>
                             <TableCell>Project Title</TableCell>
-                            <TableCell>Affiliation</TableCell>
+                            <TableCell>Student Affiliation</TableCell>
                             <TableCell>Duration</TableCell>
                             <TableCell>Type</TableCell>
                             <TableCell align="right">Actions</TableCell>

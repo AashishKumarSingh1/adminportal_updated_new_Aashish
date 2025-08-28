@@ -60,13 +60,13 @@ export async function POST(request) {
           : [];
 
         if (id && exists.length > 0) {
-          sql = `UPDATE visits_abroad SET country=?, start_date=?, end_date=?, purpose=?, funded_by=? WHERE id=?`;
-          params = [body.country, start_date, validEndDate, body.purpose, body.funded_by, id];
+          sql = `UPDATE visits_abroad SET country=?, start_date=?, end_date=?, purpose=?, funded_by=? , institute_name = ? WHERE id=?`;
+          params = [body.country, start_date, validEndDate, body.purpose, body.funded_by,body.institute_name ,id];
           action = "Updated";
           returnedId = id;
         } else {
-          sql = `INSERT INTO visits_abroad (email, country, start_date, end_date, purpose, funded_by) VALUES (?, ?, ?, ?, ?, ?)`;
-          params = [email, body.country, start_date, validEndDate, body.purpose, body.funded_by];
+          sql = `INSERT INTO visits_abroad (email, country, start_date, end_date, purpose, funded_by,institute_name) VALUES (?, ?, ?, ?, ?, ? , ?)`;
+          params = [email, body.country, start_date, validEndDate, body.purpose, body.funded_by,body.institute_name];
           action = "Inserted";
         }
         break;

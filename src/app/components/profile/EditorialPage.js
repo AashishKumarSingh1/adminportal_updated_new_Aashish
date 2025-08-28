@@ -15,6 +15,8 @@ import {
   TableRow,
   IconButton,
   Box,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import { useSession } from "next-auth/react";
 import React, { useState, useEffect } from "react";
@@ -91,7 +93,9 @@ export default function EditorialBoardsPage() {
 
   const handleDelete = async (id) => {
     try {
-      await fetch(`/api/create/faculty?type=editorial_boards&id=${id}`, { method: "DELETE" });
+      await fetch(`/api/create/faculty?type=editorial_boards&id=${id}`, {
+        method: "DELETE",
+      });
       const updated = boards.filter((b) => b.id !== id);
       setBoards(updated);
       updateFacultySection("editorial_boards", updated);
@@ -133,7 +137,9 @@ export default function EditorialBoardsPage() {
                 <TableCell>{b.position}</TableCell>
                 <TableCell>{b.journal_name}</TableCell>
                 <TableCell>{formatDate(b.start_date)}</TableCell>
-                <TableCell>{b.end_date ? formatDate(b.end_date) : "Continue"}</TableCell>
+                <TableCell>
+                  {b.end_date ? formatDate(b.end_date) : "Continue"}
+                </TableCell>
                 <TableCell>
                   <IconButton
                     onClick={() => {
@@ -171,12 +177,14 @@ function EditBoardDialog({ open, onClose, onSave, board, formatDateForInput }) {
   const [journal, setJournal] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [isContinue, setIsContinue] = useState(false);
 
   useEffect(() => {
     setPosition(board?.position || "");
     setJournal(board?.journal_name || "");
     setStartDate(board?.start_date ? formatDateForInput(board.start_date) : "");
     setEndDate(board?.end_date ? formatDateForInput(board.end_date) : "");
+    setIsContinue(!board?.end_date); // if no end_date, assume "Continue"
   }, [board, formatDateForInput]);
 
   const handleSubmit = (e) => {
@@ -185,7 +193,7 @@ function EditBoardDialog({ open, onClose, onSave, board, formatDateForInput }) {
       position,
       journal_name: journal,
       start_date: startDate,
-      end_date: endDate,
+      end_date: isContinue ? null : endDate, // don't send end_date if continue
       id: board?.id,
     });
     onClose();
@@ -222,15 +230,29 @@ function EditBoardDialog({ open, onClose, onSave, board, formatDateForInput }) {
             onChange={(e) => setStartDate(e.target.value)}
             required
           />
-          <TextField
-            fullWidth
-            margin="normal"
-            type="date"
-            label="End Date"
-            InputLabelProps={{ shrink: true }}
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
+
+          <Box display="flex" alignItems="center" justifyContent="space-between">
+            <TextField
+              fullWidth
+              margin="normal"
+              type="date"
+              label="End Date"
+              InputLabelProps={{ shrink: true }}
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              disabled={isContinue}
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={isContinue}
+                  onChange={(e) => setIsContinue(e.target.checked)}
+                />
+              }
+              label="Continue"
+              sx={{ ml: 2 }}
+            />
+          </Box>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>

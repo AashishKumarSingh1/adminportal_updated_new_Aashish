@@ -307,7 +307,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
             onClose={handleClose} 
             maxWidth="md" 
             fullWidth
-            disableBackdropClick
+            disablebackdropclick
             disableEscapeKeyDown
         >
             <form onSubmit={handleSubmit}>
@@ -362,6 +362,41 @@ export const EditForm = ({ handleClose, modal, values }) => {
                         />
                        
                     </LocalizationProvider>
+<LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enGB}> 
+    {content.end_date !== "Continue" && (
+    <DatePicker
+        label="End Date"
+        value={content.end_date}
+        onChange={(newValue) => {
+            setContent((prev) => ({
+                ...prev,
+                end_date: newValue,
+            }));
+        }}
+        renderInput={(params) => (
+            <TextField {...params} fullWidth margin="dense" />
+        )}
+    />
+)}
+    <FormControlLabel
+    control={
+        <Checkbox
+            checked={content.end_date === "Continue"}
+            onChange={(e) =>
+                setContent({
+                    ...content,
+                    end_date: e.target.checked ? "Continue" : null, // or set to "" if you prefer empty string
+                })
+            }
+        />
+    }
+    label="Continue"
+/>
+
+
+
+                    </LocalizationProvider>
+                    
                     <TextField
                         margin="dense"
                         label="Duration (months)"
