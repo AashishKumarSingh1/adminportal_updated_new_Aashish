@@ -93,7 +93,7 @@ export const AddForm = ({ handleClose, modal }) => {
               
             if (!result.ok) throw new Error('Failed to create')
 
-            const updatedProjects = [...projectSupervisionData,content]
+            const updatedProjects = [...projectSupervisionData,newProject]
             updateFacultySection('project_supervision', updatedProjects);
             
             handleClose()
@@ -412,6 +412,7 @@ export default function ProjectSupervisionManagement() {
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedProject, setSelectedProject] = useState(null)
     const [loading, setLoading] = useState(false)
+    const {data:project_supervision_data} = useFacultySection("project_supervision")
 
     // Set up component reference for child components
     React.useEffect(() => {
@@ -448,9 +449,9 @@ export default function ProjectSupervisionManagement() {
                 if (!response.ok) throw new Error('Failed to delete')
                 
                 // Update local state and context
-                const updatedProjects = projects.filter(project => project.id !== id);
+                const updatedProjects = project_supervision_data.filter(project => project.id !== id);
                 setProjects(updatedProjects);
-                updateFacultySection('projectSupervision', updatedProjects);
+                updateFacultySection('project_supervision', updatedProjects);
             } catch (error) {
                 console.error('Error:', error)
             }
@@ -493,8 +494,8 @@ export default function ProjectSupervisionManagement() {
                             const bDate = b.end_date === "Continue" ? new Date() : new Date(b.end_date);
 
                             return bDate - aDate;
-                        })?.map((project) => (
-                            <TableRow key={project.id}>
+                        })?.map((project,index) => (
+                            <TableRow key={index}>
                                 <TableCell>{project.category}</TableCell>
                                 <TableCell>{project.project_title}</TableCell>
                                 <TableCell>{project.student_details}</TableCell>

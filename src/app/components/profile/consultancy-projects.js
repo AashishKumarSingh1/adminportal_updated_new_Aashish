@@ -270,8 +270,8 @@ export const EditForm = ({ handleClose, modal, values }) => {
                 start_date: content.start_date 
                     ? new Date(content.start_date).toISOString().split('T')[0]
                     : null,
-                end_date: content.end_date
-                    ? new Date(content.end_date).toISOString().split('T')[0]
+                end_date: content.end_date !=="Continue"
+                    ? new Date(content.end_date)?.toISOString()?.split('T')[0]
                     : null,
                 email: session?.user?.email
             };
@@ -307,7 +307,6 @@ export const EditForm = ({ handleClose, modal, values }) => {
             onClose={handleClose} 
             maxWidth="md" 
             fullWidth
-            disablebackdropclick
             disableEscapeKeyDown
         >
             <form onSubmit={handleSubmit}>

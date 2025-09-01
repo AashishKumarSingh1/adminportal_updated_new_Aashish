@@ -204,18 +204,20 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
             e.preventDefault();
 
             try {
+                const id = Date.now().toString();
             const result = await fetch("/api/create", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                 type: "conference_papers",
                 ...content,
-                id: Date.now().toString(),
+                id: id,
                 email: session?.user?.email,
                 }),
             });
 
             if (!result.ok) throw new Error("Failed to create");
+            content.id = id;
 
             const updatedData = [...conference_papers_data,content]
 
@@ -597,6 +599,7 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
       const [openEdit, setOpenEdit] = useState(false)
       const [selectedPaper, setSelectedPaper] = useState(null)
       const { facultyData, loading, updateFacultySection } = useFacultyData()
+      const {data:conference_data} = useFacultySection("conference_papers")
       
       // Add window reference to this component
       React.useEffect(() => {
@@ -641,13 +644,12 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                   
                   if (!response.ok) throw new Error('Failed to delete')
                   
-                  const updatedData = await response.json();
-                  
+                  const updatedData = conference_data.filter((paper) => paper.id !== id)                  
                   // Update the context data
-                  updateFacultySection(4, updatedData.data);
+                  updateFacultySection("conference_papers", updatedData);
                   
                   // Update the local state
-                  setPapers(updatedData.data);
+                  setPapers(updatedData);
               } catch (error) {
                   console.error('Error:', error)
               }
@@ -704,7 +706,7 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                             <TableCell>Pages</TableCell>
                             <TableCell>Indexing</TableCell>
                             <TableCell>Foreign Author</TableCell>
-                            <TableCell>Student Involved</TableCell>
+                            <TableCell>Student Details</TableCell>
                             <TableCell>DOI</TableCell>
                             <TableCell align="right">Actions</TableCell>
                             </TableRow>
@@ -721,8 +723,8 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                                   <TableCell>{paper.conference_year}</TableCell>
                                   <TableCell>{paper.pages}</TableCell>
                                   <TableCell>{paper.indexing}</TableCell>
-                                  <TableCell>{paper.foreign_author}</TableCell>
-                                  <TableCell>{paper.student_involved}</TableCell>
+                                  <TableCell>{paper.foreign_author_name ? "yes" : "no"}</TableCell>
+                                  <TableCell>{paper.student_name ? "yes" : "no"}</TableCell>
                                   <TableCell>{paper.doi}</TableCell>
                                   {/* <TableCell>{paper.conference_year}</TableCell> */}
                                   

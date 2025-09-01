@@ -65,6 +65,7 @@ export const AddForm = ({ handleClose, modal }) => {
         e.preventDefault()
 
         try {
+            const id = Date.now().toString();
             const result = await fetch('/api/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -76,14 +77,16 @@ export const AddForm = ({ handleClose, modal }) => {
                         ? new Date(content.start_date).toISOString().split('T')[0]  // Format as 'YYYY-MM-DD'
                         : null,
                     end_date: isContinuing ? null : (content.end_date ? new Date(content.end_date).toISOString().split('T')[0] : null),
-                    id: Date.now().toString(),
+                    id: id,
                     email: session?.user?.email
                 }),
             });
 
 
             if (!result.ok) throw new Error('Failed to create')
-            
+            content.id = id;
+            content.start_date = content.start_date ? new Date(content.start_date).toISOString().split('T')[0] : null;
+            content.end_date = isContinuing ? null : (content.end_date ? new Date(content.end_date).toISOString().split('T')[0] : null);
             const updatedData = [...sponsored_projects_data,content]
             
             // Update the context data
@@ -253,7 +256,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
     const [content, setContent] = useState(values)
     const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
-    const {data:project_supervision_data} = useFacultySection("project_supervision")
+    const {data:project_supervision_data} = useFacultySection("sponsored_projects")
 
     const handleChange = (e) => {
         setContent({ ...content, [e.target.name]: e.target.value })
@@ -286,7 +289,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
             })
             
             // Update the context data
-            updateFacultySection("project_supervision", updatedData);
+            updateFacultySection("sponsored_projects", updatedData);
 
             handleClose()
         } catch (error) {
@@ -310,7 +313,6 @@ export const EditForm = ({ handleClose, modal, values }) => {
             onClose={handleClose}
             maxWidth="md"
             fullWidth
-            disablebackdropclick
             disableEscapeKeyDown
         >
             <form onSubmit={handleSubmit}>
@@ -460,6 +462,7 @@ export default function SponsoredProjectManagement() {
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedProject, setSelectedProject] = useState(null)
     const [loading, setLoading] = useState(true)
+    const {data:sponsored_projects_data} = useFacultySection("sponsored_projects")
     
     // Add window reference to this component
     React.useEffect(() => {
@@ -524,13 +527,14 @@ export default function SponsoredProjectManagement() {
                     throw new Error(errorData.message || 'Failed to delete');
                 }
                 
-                const updatedData = await response.json();
+                // const updatedData = await response.json();
+                const updatedData = sponsored_projects_data.filter((project) => project.id !== id);
                 
                 // Update the context data
-                updateFacultySection(11, updatedData.data);
+                updateFacultySection("sponsored_projects", updatedData);
                 
                 // Update the component's state
-                setProjects(updatedData.data);
+                setProjects(updatedData);
             } catch (error) {
                 console.error('Error:', error);
                 alert('Failed to delete the project. Please try again.');

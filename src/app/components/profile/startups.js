@@ -61,6 +61,7 @@ export const AddForm = ({ handleClose, modal }) => {
         e.preventDefault()
 
         try {
+            const id = Date.now().toString();
             const result = await fetch('/api/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -68,13 +69,14 @@ export const AddForm = ({ handleClose, modal }) => {
                     type: 'startups',
                     ...content,
                     registration_date: formatDateToUTC(content.registration_date),
-                    id: Date.now().toString(),
+                    id: id,
                     email: session?.user?.email
                 }),
             });
 
             if (!result.ok) throw new Error('Failed to create')
-            
+            content.id = id;
+            content.registration_date = formatDateToUTC(content.registration_date);
             const updatedData = [...start_up_data,content]
             
             // Update the context data
@@ -383,13 +385,14 @@ export default function StartupManagement() {
                     throw new Error(errorData.message || 'Failed to delete');
                 }
                 
-                const updatedData = await response.json();
+                // const updatedData = await response.json();
+                const updatedData = startups.filter((startup) => startup.id !== id);
                 
                 // Update the context data
-                updateFacultySection(10, updatedData.data);
+                updateFacultySection("startups", updatedData);
                 
                 // Update the component's state
-                setStartups(updatedData.data);
+                setStartups(updatedData);
             } catch (error) {
                 console.error('Error:', error);
                 alert('Failed to delete the startup. Please try again.');

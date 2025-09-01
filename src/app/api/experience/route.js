@@ -39,7 +39,7 @@
           `INSERT INTO work_experience (id, email, work_experiences, institute, start_date, end_date) 
           VALUES (?, ?, ?, ?, ?, ?)`,
           [
-            Date.now().toString(),
+            id,
             email,
             designation,
             institute,

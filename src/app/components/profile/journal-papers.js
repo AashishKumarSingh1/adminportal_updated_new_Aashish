@@ -189,6 +189,10 @@ export const UplaodCSV = ({ handleClose, modal }) => {
     )
 }
 export const AddForm = ({ handleClose, modal }) => {
+    const toArray = (str) => {
+        if (!str) return [];
+        return str.split(',').map(s => s.trim()).filter(Boolean);
+    };
     const { data: session } = useSession()
     const { updateFacultySection } = useFacultyData();
     const initialState = {
@@ -237,6 +241,7 @@ export const AddForm = ({ handleClose, modal }) => {
         if (studentsName.length !== studentRoll.length) {
             alert("Number of names and roll numbers do not match!");
             setSubmitting(false);
+            return
         } else {
             content.student_details = studentsName
             .map((name, i) => `${name} - ${studentRoll[i]}`)
@@ -260,6 +265,7 @@ export const AddForm = ({ handleClose, modal }) => {
         ) {
             alert("Number of foreign author fields do not match!");
             setSubmitting(false);
+            return
         } else {
             content.foreign_author_details = foreignAuthorNames
             .map(
@@ -289,7 +295,7 @@ export const AddForm = ({ handleClose, modal }) => {
 
             if (!result.ok) throw new Error('Failed to create')
             
-            const updatedData = [...journal_papers_data,content]
+            const updatedData = [...journal_papers_data,newPaper]
             updateFacultySection("journal_papers",updatedData)
             
             handleClose()
@@ -537,7 +543,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
     const { data: session } = useSession();
     const { updateFacultySection } = useFacultyData();
     const [submitting, setSubmitting] = useState(false);
-    const {data:journal_papers_data} = useFacultyData("journal_papers");
+    const {data:journal_papers_data} = useFacultySection("journal_papers");
 
     const [content, setContent] = useState({
         ...values,
@@ -585,7 +591,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
                 return data.id === content.id ? content : data
             })
 
-            updateFacultySection('journalPapers', updatedPapers);
+            updateFacultySection('journal_papers', updatedPapers);
 
             handleClose();
         } catch (error) {
@@ -768,6 +774,7 @@ export default function JournalPaperManagement() {
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedPaper, setSelectedPaper] = useState(null)
     const refreshData = useRefreshData(false)
+    const {data:journal_paper_data} = useFacultySection("journal_papers")
 
     // Set up component reference for child components
     React.useEffect(() => {
@@ -805,9 +812,9 @@ export default function JournalPaperManagement() {
                     throw new Error(errorData.message || 'Failed to delete');
                 }
     
-                const updatedPapers = papers.filter((paper) => paper.id !== id)
+                const updatedPapers = journal_paper_data.filter((paper) => paper.id !== id)
                 setPapers(updatedPapers);
-                updateFacultySection('journalPapers', updatedPapers)
+                updateFacultySection('journal_papers', updatedPapers)
             } catch (error) {
                 console.error('Error:', error);
                 alert('Failed to delete the paper. Please try again.');

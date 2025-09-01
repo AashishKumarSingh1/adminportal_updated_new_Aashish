@@ -43,14 +43,14 @@ export function ExperiencePage() {
 
   const handleSave = async (newExperience) => {
     try {
+      const id =  newExperience.id || Date.now().toString();
       const adjustedExperience = {
         ...newExperience,
         start_date: newExperience.start_date,
         end_date: newExperience.end_date || "continue",
         email: session?.user?.email,
-        id: newExperience.id || Date.now().toString(),
+        id:id,
       };
-
       const res = await fetch("/api/experience", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -384,11 +384,11 @@ export async function PUT(request) {
               params.student_involved,
               params.student_details,
               params.doi_url,
-              params.id,
-              params.email,
               params.indexing,
               params.foreign_author_details,
-              params.nationality_type
+              params.nationality_type,
+              params.id,
+              params.email
             ]
           )
           return NextResponse.json(journalResult)

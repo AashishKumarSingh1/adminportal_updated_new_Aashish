@@ -308,7 +308,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
 // Main Component
 export default function TextbookManagement() {
     const { data: session } = useSession()
-    const { facultyData } = useFacultyData();
+    const { facultyData,updateFacultySection } = useFacultyData();
     const [books, setBooks] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
@@ -377,13 +377,13 @@ export default function TextbookManagement() {
                 
                 if (!response.ok) throw new Error('Failed to delete')
                 
-                const updatedData = await response.json();
+                const updatedData = books.filter(book => book.id !== id);
                 
                 // Update the context data
-                updateFacultySection(9, updatedData.data);
+                updateFacultySection("textbooks", updatedData);
                 
                 // Update the local state
-                setBooks(updatedData.data)
+                setBooks(updatedData)
             } catch (error) {
                 console.error('Error:', error)
             }

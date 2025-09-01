@@ -52,17 +52,20 @@ export const AddForm = ({ handleClose, modal }) => {
         e.preventDefault()
 
         try {
+
+            const newBook = {
+                ...content,
+                    publish_date: content.publish_date
+                        ? new Date(content.publish_date).toISOString().split('T')[0]  // Format as 'YYYY-MM-DD'
+                        : null,
+                    id: Date.now().toString(),
+            }
             const result = await fetch('/api/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     type: 'book_chapters',
-                    ...content,
-                    // Example: Handle date fields if they exist (assuming there's a publish_date field)
-                    publish_date: content.publish_date
-                        ? new Date(content.publish_date).toISOString().split('T')[0]  // Format as 'YYYY-MM-DD'
-                        : null,
-                    id: Date.now().toString(),
+                    ...newBook,
                     email: session?.user?.email
                 }),
             });
@@ -70,7 +73,7 @@ export const AddForm = ({ handleClose, modal }) => {
             if (!result.ok) throw new Error('Failed to create')
             
             handleClose()
-            const updatedData = [...book_chapters_data,content]
+            const updatedData = [...book_chapters_data,newBook]
             updateFacultySection("book_chapters",updatedData)
             setContent(initialState)
             handleClose()

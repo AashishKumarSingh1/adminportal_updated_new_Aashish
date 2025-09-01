@@ -171,6 +171,7 @@ export function AddEducation({ open, onClose, onSuccess }) {
             if (!res.ok) throw new Error('Failed to add education')
             
             // Call onSuccess to update parent component state
+            newEducation.id = (await res.json()).insertId;
             onSuccess(newEducation)
         } catch (error) {
             console.error('Error adding education:', error)
