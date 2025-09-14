@@ -45,12 +45,22 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                 complete: (result) => {
                     const parsedData = result.data
                         .filter(row => row.conference_year && row.conference_year.trim() !== '')
-                        .map(row => {
-                            row.conference_year = parseInt(row.conference_year);
-                            return row;
-                        });
-                    
-                    console.log("Parsed Data:", parsedData); // Debugging log
+                        .map(row => ({
+                            authors: row.authors || "",
+                            title: row.title || "",
+                            conference_name: row.conference_name || "",
+                            location: row.location || "",
+                            conference_year: row.conference_year ? parseInt(row.conference_year) : new Date().getFullYear(),
+                            conference_type: row.conference_type || "National",
+                            student_name: row.student_name || "",
+                            student_roll_no: row.student_roll_no || "",
+                            foreign_author_name: row.foreign_author_name || "",
+                            foreign_author_country_name: row.foreign_author_country_name || "",
+                            foreign_author_institute_name: row.foreign_author_institute_name || "",
+                            pages: row.pages || "",
+                            indexing: row.indexing || "",
+                            doi: row.doi || "",
+                        }));
                     setBulkConference(parsedData);
                 },
                 header: true,
@@ -59,45 +69,36 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
         }
     };
 
+    const {data:conference_papers_data} = useFacultySection("conference_papers");
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (bulkConference.length === 0) {
             console.error('No data to submit');
             return;
         }
-
         setSubmitting(true);
-
         try {
-            let lastResponse;
+            let newPapers = [...conference_papers_data];
             for (let i = 0; i < bulkConference.length; i++) {
+                const id = Date.now().toString() + i;
                 const result = await fetch('/api/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         type: 'conference_papers',
                         ...bulkConference[i],
-                        id: Date.now().toString(),
+                        id,
                         email: session?.user?.email
                     }),
                 });
-                
-                if (i === bulkConference.length - 1) {
-                    // Save the last response to update the context
-                    lastResponse = await result.json();
+                if (result.ok) {
+                    newPapers.push({ ...bulkConference[i], id });
                 }
             }
-
-            if (lastResponse) {
-                // Update the context data
-                updateFacultySection(4, lastResponse.data);
-                
-                // Update the component's state via the window reference
-                if (window.getConferencePapersComponent) {
-                    window.getConferencePapersComponent().updateData(lastResponse.data);
-                }
+            updateFacultySection("conference_papers", newPapers);
+            if (typeof window !== "undefined" && window.getConferencePapersComponent) {
+                window.getConferencePapersComponent().updateData(newPapers);
             }
-
             handleClose();
         } catch (error) {
             console.error('Error:', error);
@@ -107,10 +108,10 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
     };
 
     const downloadTemplate = () => {
-        const headers = ['title','authors' , 'conference_name', 'location', 'conference_year', 'pages', 'indexing', 'foreign_author', 'student_involved', 'doi'];
+        const headers = ['title','authors' , 'conference_name', 'location', 'conference_year', 'pages', 'indexing', 'foreign_author', 'student_involved', 'doi','conference_type','student_name','student_roll_no','foreign_author_name','foreign_author_country_name','foreign_author_institute_name'];
         const csvContent = headers.join(',') + '\n' +
-'AI in Robotics,John Doe,International Conference on AI,New York,2023,156,Scopus,Yes,5,10.1234/abcd\n' +
-'Jane Smith,Blockchain Innovations,Global FinTech Conference,London,2022,89,Web of Science,No,,10.5678/efgh';
+'AI in Robotics,John Doe,International Conference on AI,New York,2023,156,Scopus,Yes,5,10.1234/abcd,National\n' +
+'Jane Smith,Blockchain Innovations,Global FinTech Conference,London,2022,89,Web of Science,No,,10.5678/efgh,International';
 
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);

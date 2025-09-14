@@ -37,53 +37,101 @@ import { parse, isValid } from 'date-fns'
 
 export const UplaodCSV = ({ handleClose, modal }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData();
     const [bulkJournal, setBulkJournal] = useState([]);
     const [fileUploaded, setFileUploaded] = useState(false);
     const [fileName, setFileName] = useState('');
     const refreshData = useRefreshData()
     const [submitting, setSubmitting] = useState(false)
 
+    const toArray = (str) => {
+        if (!str) return [];
+        return str.split(',').map(s => s.trim()).filter(Boolean);
+    };
+
     const handleCSVUpload = (event) => {
         const file = event.target.files[0];
         if (file) {
-            console.log("Selected File:", file);
             setFileUploaded(true);
             setFileName(file.name);
             Papa.parse(file, {
                 complete: (result) => {
-                    const parsedData = result.data.filter(row=>row.title && row.title.trim()!=="").map(row => {
+                    const parsedData = result.data.filter(row => row.title && row.title.trim() !== "").map(row => {
+                        let publication_date = null;
                         if (row.publication_date) {
-                            console.log("Before Parsing:", row.publication_date);
-
                             const trimmedDate = row.publication_date.trim();
                             let parsedDate = null;
                             const formatsToTry = ['d/M/yyyy', 'dd/MM/yyyy'];
-
                             for (const dateFormat of formatsToTry) {
                                 const tempDate = parse(trimmedDate, dateFormat, new Date());
-                                if (!isNaN(tempDate.getTime())) { 
+                                if (!isNaN(tempDate.getTime())) {
                                     parsedDate = tempDate;
                                     break;
                                 }
                             }
-
                             if (!parsedDate) {
-                                console.error("Invalid Date Found:", trimmedDate);
                                 const jsDate = new Date(trimmedDate);
                                 if (!isNaN(jsDate.getTime())) {
-                                    row.publication_date = jsDate.toISOString().split("T")[0];
+                                    publication_date = jsDate.toISOString().split("T")[0];
                                 } else {
-                                    row.publication_date = null;
-                                    console.error("Failed to parse date:", trimmedDate);
+                                    publication_date = null;
                                 }
                             } else {
-                                row.publication_date = format(parsedDate, 'yyyy-MM-dd'); 
-                                console.log("After Parsing:", row.publication_date);
+                                publication_date = format(parsedDate, 'yyyy-MM-dd');
                             }
                         }
-                        return row;
+
+                        // Student details logic
+                        let student_details = "";
+                        const student_involved = row.student_involved === "1" || row.student_involved === "true" || row.student_involved === 1;
+                        if (student_involved) {
+                            const studentsName = toArray(row.student_name);
+                            const studentRoll = toArray(row.student_roll);
+                            if (studentsName.length !== studentRoll.length) {
+                                student_details = "ERROR: Names and roll numbers count mismatch";
+                            } else {
+                                student_details = studentsName.map((name, i) => `${name} - ${studentRoll[i]}`).join(", ");
+                            }
+                        }
+
+                        // Foreign author details logic
+                        let foreign_author_details = "";
+                        const foreign_author_involved = row.foreign_author_involved === "1" || row.foreign_author_involved === "true" || row.foreign_author_involved === 1;
+                        if (foreign_author_involved) {
+                            const foreignAuthorNames = toArray(row.foreign_author_name);
+                            const foreignAuthorCountries = toArray(row.foreign_author_country_name);
+                            const foreignAuthorInstitutes = toArray(row.foreign_author_institute_name);
+                            const len = foreignAuthorNames.length;
+                            if (foreignAuthorCountries.length !== len || foreignAuthorInstitutes.length !== len) {
+                                foreign_author_details = "ERROR: Foreign author fields count mismatch";
+                            } else {
+                                foreign_author_details = foreignAuthorNames.map((name, i) => `${name} - ${foreignAuthorCountries[i]} - ${foreignAuthorInstitutes[i]}`).join(", ");
+                            }
+                        }
+
+                        return {
+                            authors: row.authors || "",
+                            title: row.title || "",
+                            journal_name: row.journal_name || "",
+                            volume: row.volume || "",
+                            publication_year: row.publication_year ? parseInt(row.publication_year) : new Date().getFullYear(),
+                            pages: row.pages || "",
+                            journal_quartile: row.journal_quartile || "",
+                            publication_date,
+                            student_involved,
+                            student_details,
+                            doi_url: row.doi_url || "",
+                            student_name: row.student_name || "",
+                            student_roll: row.student_roll || "",
+                            nationality_type: row.nationality_type || "",
+                            foreign_author_name: row.foreign_author_name || "",
+                            foreign_author_involved,
+                            foreign_author_country_name: row.foreign_author_country_name || "",
+                            foreign_author_institute_name: row.foreign_author_institute_name || "",
+                            foreign_author_details,
+                            indexing: row.indexing || ""
+                        };
                     });
-                    console.log("Processed Data:", parsedData);
                     setBulkJournal(parsedData);
                 },
                 header: true,
@@ -92,59 +140,72 @@ export const UplaodCSV = ({ handleClose, modal }) => {
         }
     };
 
+    const {data:journal_papers_data} = useFacultySection("journal_papers");
     const handleSubmit = async (e) => {
-        setSubmitting(true)
-        e.preventDefault()
-
+        setSubmitting(true);
+        e.preventDefault();
         try {
+            let newPapers = [...journal_papers_data];
             for (let i = 0; i < bulkJournal.length; i++) {
-                await fetch('/api/create', {
+                const id = Date.now().toString() + i;
+                const result = await fetch('/api/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         type: 'journal_papers',
                         ...bulkJournal[i],
-                        id: Date.now().toString(),
+                        id,
                         publication_date: bulkJournal[i].publication_date ? new Date(bulkJournal[i].publication_date).toISOString().split("T")[0] : null,
                         email: session?.user?.email
                     }),
-                })
+                });
+                if (result.ok) {
+                    newPapers.push({ ...bulkJournal[i], id });
+                }
             }
-
-            handleClose()
-            refreshData()
-            // Refresh context data instead of page reload
-            // Component will update automatically through context
+            updateFacultySection("journal_papers", newPapers);
+            if (typeof window !== "undefined" && window.getJournalPapersComponent) {
+                window.getJournalPapersComponent().setPapers(newPapers);
+            }
+            handleClose();
         } catch (error) {
-            console.error('Error:', error)
+            console.error('Error:', error);
         } finally {
-            setSubmitting(false)
+            setSubmitting(false);
         }
-    }
-    const downloadTemplate = () => {
-        const headers = [
-            "authors", "title", "journal_name", "volume", "publication_year",
-            "pages", "journal_quartile", "publication_date", "student_involved",
-            "student_details", "doi_url"
-        ];
-        const rows = [
-            ['John Doe', 'AI in Healthcare', 'International Journal of AI', 'Spring 2023 Edition', '2023', '156', 'Q1', '15/06/2023', '1', 'Emily Johnson', 'https://doi.org/10.1'],
-            ['Jane Smith', 'Blockchain in Finance', 'Journal of FinTech Innovations', 'Vol A', '2022', '89', 'Q2', '10/09/2022', '0', '', 'https://doi.org/10.5678']
-        ];
-        const csvContent = [
-            headers.join(','), 
-            ...rows.map(row => row.map(value => `"${value}"`).join(','))
-        ].join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'Journal_Papers.csv';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
     };
+        const downloadTemplate = () => {
+            const headers = [
+                "authors", "title", "journal_name", "volume", "publication_year",
+                "pages", "journal_quartile", "publication_date", "student_involved",
+                "student_name", "student_roll", "nationality_type", "foreign_author_name",
+                "foreign_author_involved", "foreign_author_country_name", "foreign_author_institute_name",
+                "indexing", "doi_url"
+            ];
+            const rows = [
+                [
+                    'John Doe', 'AI in Healthcare', 'International Journal of AI', 'Spring 2023 Edition', '2023', '156', 'Q1', '15/06/2023', '1',
+                    'Emily Johnson', '12345', 'International', 'Jane Smith', '1', 'USA', 'MIT', 'SCOPUS', 'https://doi.org/10.1'
+                ],
+                [
+                    'Jane Smith', 'Blockchain in Finance', 'Journal of FinTech Innovations', 'Vol A', '2022', '89', 'Q2', '10/09/2022', '0',
+                    '', '', 'National', '', '0', '', '', 'SCI', 'https://doi.org/10.5678'
+                ]
+            ];
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(row => row.map(value => `"${value}"`).join(','))
+            ].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Journal_Papers.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        };
     return (
         <Dialog open={modal} onClose={handleClose} maxWidth="md" fullWidth>
             <form onSubmit={handleSubmit}>
