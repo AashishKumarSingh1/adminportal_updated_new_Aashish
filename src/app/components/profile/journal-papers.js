@@ -622,16 +622,17 @@ export const AddForm = ({ handleClose, modal }) => {
                     </div>
 
                     <Collaborater
-                        isOpen={showModal}
-                        returnValue={null}
-                        title="Journal Paper Collaborators"
-                        description="Add faculty members' emails who have contributed to this journal paper."
-                        questionToAsked="You can add multiple contributors."
-                        onSave={(members) =>
-                            setContent({ ...content, collaboraters: members })
-                        }
-                        onClose={setShowModal}
-                    />
+                                    isOpen={showModal}
+                                    initialMembers={content.collaboraters}
+                                    returnValue={null}
+                                    title="Journal Paper Collaborators"
+                                    description="Add faculty members' emails who have contributed to this journal paper."
+                                    questionToAsked="You can add multiple contributors."
+                                    onSave={(members) =>
+                                        setContent({ ...content, collaboraters: members })
+                                    }
+                                    onClose={setShowModal}
+                                />
                     
                 </DialogContent>
 
@@ -659,12 +660,20 @@ export const EditForm = ({ handleClose, modal, values }) => {
         ...values,
         publication_date: values.publication_date
             ? new Date(values.publication_date).toISOString().split('T')[0]
-            : '', 
+            : '',
+        collaboraters: Array.isArray(values?.collaboraters)
+            ? values.collaboraters
+            : (values?.collaboraters ? String(values.collaboraters).split(',').map(s => s.trim()).filter(Boolean) : []),
     });
+    const [showModal, setShowModal] = useState(false);
 
     const handleChange = (e) => {
         const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
         setContent({ ...content, [e.target.name]: value });
+    };
+
+    const handleCollaboratorsSave = (members) => {
+        setContent(prev => ({ ...prev, collaboraters: members || [] }));
     };
 
     const handleDateChange = (newValue) => {
@@ -697,11 +706,20 @@ export const EditForm = ({ handleClose, modal, values }) => {
                 throw new Error(errorData.message || 'Failed to update');
             }
 
-            const updatedPapers = journal_papers_data.map((data)=>{
-                return data.id === content.id ? content : data
-            })
+            const normalizedContent = {
+                ...content,
+                publication_date: content.publication_date ? new Date(content.publication_date).toISOString().split('T')[0] : null,
+                collaboraters: Array.isArray(content.collaboraters)
+                    ? content.collaboraters
+                    : (content.collaboraters ? String(content.collaboraters).split(',').map(s => s.trim()).filter(Boolean) : []),
+            };
+
+            const updatedPapers = journal_papers_data.map((data) => data.id === normalizedContent.id ? normalizedContent : data);
 
             updateFacultySection('journal_papers', updatedPapers);
+            if (typeof window !== 'undefined' && window.getJournalPapersComponent) {
+                window.getJournalPapersComponent().setPapers(updatedPapers);
+            }
 
             handleClose();
         } catch (error) {
@@ -864,6 +882,48 @@ export const EditForm = ({ handleClose, modal, values }) => {
                         value={content.doi_url}
                         onChange={handleChange}
                     />
+
+                    <div className="mt-4">
+                        <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                            Collaborating Faculty Members
+                        </Typography>
+
+                        <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md bg-gray-50">
+                            {content.collaboraters && content.collaboraters.length > 0 ? (
+                                content.collaboraters.map((collaborator, index) => (
+                                    <div
+                                        key={index}
+                                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                    >
+                                        {collaborator}
+                                    </div>
+                                ))
+                            ) : (
+                                <Typography variant="body2" color="textSecondary">
+                                    No collaborators added yet.
+                                </Typography>
+                            )}
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowModal(true)}
+                            className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                        >
+                            Edit Collaborating Faculty Members
+                        </button>
+                    </div>
+
+                    <Collaborater
+                                        isOpen={showModal}
+                                        initialMembers={content.collaboraters}
+                                        returnValue={null}
+                                        title="Journal Paper Collaborators"
+                                        description="Add faculty members' emails who have contributed to this journal paper."
+                                        questionToAsked="You can add multiple contributors."
+                                        onSave={(members) => handleCollaboratorsSave(members)}
+                                        onClose={setShowModal}
+                                    />
                 </DialogContent>
                 <DialogActions>
                     <Button type="submit" color="primary" disabled={submitting}>

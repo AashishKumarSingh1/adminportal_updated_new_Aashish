@@ -354,44 +354,98 @@ export async function PUT(request) {
           ); 
           return NextResponse.json(phdResult)
 
-        case 'journal_papers':
-          const journalResult = await query(
-            `UPDATE journal_papers SET 
-             authors = ?,
-             title = ?,
-             journal_name = ?,
-             volume = ?,
-             publication_year = ?,
-             pages = ?,
-             journal_quartile = ?,
-             publication_date = ?,
-             student_involved = ?,
-             student_details = ?,
-             doi_url = ?,
-             indexing = ? , 
-             foreign_author_details = ? , 
-             nationality_type = ?
-             WHERE id = ? AND email = ?`,
-            [
-              params.authors,
-              params.title,
-              params.journal_name,
-              params.volume,
-              params.publication_year,
-              params.pages,
-              params.journal_quartile,
-              params.publication_date,
-              params.student_involved,
-              params.student_details,
-              params.doi_url,
-              params.indexing,
-              params.foreign_author_details,
-              params.nationality_type,
-              params.id,
-              params.email
-            ]
-          )
-          return NextResponse.json(journalResult)
+        case 'journal_papers': {
+            try {
+              const journalResult = await query(
+                `UPDATE journal_papers SET 
+                    authors = ?,
+                    title = ?,
+                    journal_name = ?,
+                    volume = ?,
+                    publication_year = ?,
+                    pages = ?,
+                    journal_quartile = ?,
+                    publication_date = ?,
+                    student_involved = ?,
+                    student_details = ?,
+                    doi_url = ?,
+                    indexing = ?,
+                    foreign_author_details = ?,
+                    nationality_type = ?
+                WHERE id = ? AND email = ?`,
+                [
+                  params.authors,
+                  params.title,
+                  params.journal_name,
+                  params.volume,
+                  params.publication_year,
+                  params.pages,
+                  params.journal_quartile,
+                  params.publication_date,
+                  params.student_involved,
+                  params.student_details,
+                  params.doi_url,
+                  params.indexing,
+                  params.foreign_author_details,
+                  params.nationality_type,
+                  params.id,
+                  params.email
+                ]
+              );
+
+              if (params.collaboraters && Array.isArray(params.collaboraters)) {
+                const existingRows = await query(
+                  `SELECT email FROM journal_paper_collaborater WHERE journal_paper_id = ?`,
+                  [params.id]
+                );
+                const existingEmails = existingRows.map(row => row.email);
+
+                const newEmails = params.collaboraters.filter(e => !existingEmails.includes(e));
+                const removedEmails = existingEmails.filter(e => !params.collaboraters.includes(e));
+
+                for (const email of newEmails) {
+                  await query(
+                    `INSERT INTO journal_paper_collaborater (journal_paper_id, email)
+                    VALUES (?, ?)`,
+                    [params.id, email]
+                  );
+                }
+
+                for (const email of removedEmails) {
+                  await query(
+                    `DELETE FROM journal_paper_collaborater 
+                    WHERE journal_paper_id = ? AND email = ?`,
+                    [params.id, email]
+                  );
+                }
+              }
+
+              const papersWithCollaborators = await query(
+                `SELECT jp.*, 
+                        GROUP_CONCAT(jpc.email) AS collaboraters
+                FROM journal_papers jp
+                LEFT JOIN journal_paper_collaborater jpc
+                ON jp.id = jpc.journal_paper_id
+                WHERE jp.id = ?
+                GROUP BY jp.id
+                ORDER BY jp.publication_year DESC`,
+                [params.id]
+              );
+
+              return NextResponse.json({
+                success: true,
+                message: 'Journal paper and collaborators updated successfully',
+                data: papersWithCollaborators[0] || {}
+              });
+
+            } catch (error) {
+              console.error('[Journal Paper Update Error]:', error);
+              return NextResponse.json(
+                { success: false, error: error.message },
+                { status: 500 }
+              );
+            }
+          }
 
         case 'conference_papers':
           const conferenceResult = await query(

@@ -7,6 +7,7 @@ type ModalTypes = {
     questionToAsked?: string | null;
     onSave?: (values: string[]) => void;
     onClose?: (value: boolean) => void;
+    initialMembers?: string[];
 };
 
 function Collaborater({
@@ -16,8 +17,17 @@ function Collaborater({
     questionToAsked,
     onSave,
     onClose,
+    initialMembers,
 }: ModalTypes) {
-    const [facultyMembers, setFacultyMembers] = useState<string[]>([""]);
+    const [facultyMembers, setFacultyMembers] = useState<string[]>(
+        initialMembers && initialMembers.length > 0 ? initialMembers : [""]
+    );
+
+    React.useEffect(() => {
+        if (initialMembers && initialMembers.length > 0) {
+            setFacultyMembers(initialMembers);
+        }
+    }, [initialMembers]);
 
     const handleAddRow = () => {
         setFacultyMembers([...facultyMembers, ""]);
