@@ -161,7 +161,36 @@ export async function GET(request) {
           { table: 'about_me', query: 'SELECT * FROM about_me WHERE email = ?' },
           { table: 'education', query: 'SELECT * FROM education WHERE email = ?' },
           { table: 'work_experience', query: 'SELECT * FROM work_experience WHERE email = ?' },
-          { table: 'journal_papers', query: 'SELECT * FROM journal_papers WHERE email = ?' },
+          {
+            table: 'journal_papers',
+            query: `SELECT 
+                      ANY_VALUE(jp.id) AS id,
+                      ANY_VALUE(jp.email) AS email,
+                      ANY_VALUE(jp.authors) AS authors,
+                      ANY_VALUE(jp.title) AS title,
+                      ANY_VALUE(jp.journal_name) AS journal_name,
+                      ANY_VALUE(jp.volume) AS volume,
+                      ANY_VALUE(jp.publication_year) AS publication_year,
+                      ANY_VALUE(jp.pages) AS pages,
+                      ANY_VALUE(jp.journal_quartile) AS journal_quartile,
+                      ANY_VALUE(jp.publication_date) AS publication_date,
+                      ANY_VALUE(jp.student_involved) AS student_involved,
+                      ANY_VALUE(jp.student_details) AS student_details,
+                      ANY_VALUE(jp.doi_url) AS doi_url,
+                      ANY_VALUE(jp.indexing) AS indexing,
+                      ANY_VALUE(jp.foreign_author_details) AS foreign_author_details,
+                      ANY_VALUE(jp.nationality_type) AS nationality_type,
+                      GROUP_CONCAT(jpc_all.email) AS collaboraters
+                    FROM journal_papers jp
+                    LEFT JOIN journal_paper_collaborater jpc_all
+                          ON jp.id = jpc_all.journal_paper_id
+                    WHERE jp.email = ? 
+                      OR jp.id IN (
+                          SELECT journal_paper_id FROM journal_paper_collaborater WHERE email = ?
+                      )
+                    GROUP BY jp.id
+                    ORDER BY jp.publication_year DESC`
+          },
           { table: 'conference_papers', query: 'SELECT * FROM conference_papers WHERE email = ?' },
           { table: 'book_chapters', query: 'SELECT * FROM book_chapters WHERE email = ?' },
           { table: 'edited_books', query: 'SELECT * FROM edited_books WHERE email = ?' },
@@ -195,9 +224,23 @@ export async function GET(request) {
           console.log(`[Faculty API] Executing ${dataQueries.length} queries with single connection...`)
           
           // Use the new batchQuery function from db.js (single connection)
-          const batchQueries = dataQueries.map(({ query: q }) => ({ query: q, values: [type] }))
+          const batchQueries = dataQueries.map(({ table, query: q }) => ({
+            query: q,
+            values: table === 'journal_papers' ? [type, type] : [type], 
+          }));
           const results = await batchQuery(batchQueries)
-          
+
+          results.forEach((tableData, index) => {
+            const table = dataQueries[index].table;
+            if (table === 'journal_papers') {
+              tableData.forEach(item => {
+                item.collaboraters = item.collaboraters
+                  ? item.collaboraters.split(',').map(s => s.trim())
+                  : [];
+              });
+            }
+          });
+
           // Map results back to table names
           dataQueries.forEach(({ table }, index) => {
             const tableData = results[index]

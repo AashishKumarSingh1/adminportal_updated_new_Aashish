@@ -223,7 +223,28 @@ export async function POST(request) {
                 params.nationality_type
               ]
             )
-            return NextResponse.json(journalResult)
+            
+            if (params.collaboraters && Array.isArray(params.collaboraters)) {
+                for (const email of params.collaboraters) {
+                    await query(
+                        `INSERT INTO journal_paper_collaborater(journal_paper_id, email)
+                         VALUES (?, ?)`,
+                        [params.id, email]
+                    );
+                }
+            }
+
+            const papersWithCollaborators = await query(
+                `SELECT jp.*, 
+                        GROUP_CONCAT(jpc.email) AS collaboraters
+                 FROM journal_papers jp
+                 LEFT JOIN journal_paper_collaborater jpc
+                 ON jp.id = jpc.journal_paper_id
+                 GROUP BY jp.id
+                 ORDER BY jp.publication_year DESC`
+            );
+
+            return NextResponse.json({ journalResult, papersWithCollaborators });
 
           case 'conference_papers':
             const conferenceResult = await query(

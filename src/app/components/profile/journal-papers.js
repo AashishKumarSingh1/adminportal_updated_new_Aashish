@@ -30,10 +30,11 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, set } from 'date-fns'
 import AddIcon from '@mui/icons-material/Add'
 import Papa from 'papaparse'
 import { parse, isValid } from 'date-fns'
+import Collaborater from '../modal/collaborater';
 
 export const UplaodCSV = ({ handleClose, modal }) => {
     const { data: session } = useSession()
@@ -277,11 +278,14 @@ export const AddForm = ({ handleClose, modal }) => {
         foreign_author_country_name:"",
         foreign_author_institute_name:"",
         foreign_author_details:"",
-        indexing:""
+        indexing:"",
+        collaboraters : [],
 
     }
     const [content, setContent] = useState(initialState)
     const [submitting, setSubmitting] = useState(false)
+    const [showModal , setShowModal] = useState(false);
+
     const {data:journal_papers_data} = useFacultySection("journal_papers")
 
     const handleChange = (e) => {
@@ -585,7 +589,52 @@ export const AddForm = ({ handleClose, modal }) => {
                         value={content.doi_url}
                         onChange={handleChange}
                     />
+
+                    <div className="mt-4">
+                        <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                            Collaborating Faculty Members
+                        </Typography>
+
+                    <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md bg-gray-50">
+                        {content.collaboraters.length > 0 ? (
+                            content.collaboraters.map((collaborator, index) => (
+                                <div
+                                    key={index}
+                                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                >
+                                    {collaborator}
+                                </div>
+                            ))
+                        ) : (
+                            <Typography variant="body2" color="textSecondary">
+                                No collaborators added yet.
+                            </Typography>
+                        )}
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => setShowModal(true)}
+                        className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                    >
+                        Add Collaborating Faculty Members
+                    </button>
+                    </div>
+
+                    <Collaborater
+                        isOpen={showModal}
+                        returnValue={null}
+                        title="Journal Paper Collaborators"
+                        description="Add faculty members' emails who have contributed to this journal paper."
+                        questionToAsked="You can add multiple contributors."
+                        onSave={(members) =>
+                            setContent({ ...content, collaboraters: members })
+                        }
+                        onClose={setShowModal}
+                    />
+                    
                 </DialogContent>
+
                 <DialogActions>
                     <Button
                         type="submit"
