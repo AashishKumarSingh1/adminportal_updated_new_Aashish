@@ -90,6 +90,7 @@ export async function GET(request) {
             END as role_name,
             ${subqueries.join(',\n    ')}
               FROM user u 
+              WHERE u.is_deleted = 0
               ORDER BY u.name ASC`
         )
         // Transform the results to include role name
@@ -105,7 +106,7 @@ export async function GET(request) {
         // Fetch faculty from each department
         for (let i = 0; i < departments.length - 1; i++) {
           const data = await query(
-            `SELECT * FROM user WHERE department = ? ORDER BY name ASC`,
+            `SELECT * FROM user WHERE department = ? AND is_deleted = 0 ORDER BY name ASC`,
             [departments[i]]
           ).catch(e => console.error('Department query error:', e))
           
@@ -117,7 +118,7 @@ export async function GET(request) {
 
       case 'count':
         const countResult = await query(
-          `SELECT COUNT(*) as count FROM user`
+          `SELECT COUNT(*) as count FROM user WHERE is_deleted = 0`
         )
         return NextResponse.json({ 
           facultyCount: countResult[0].count 
@@ -131,7 +132,7 @@ export async function GET(request) {
             u.*, 
             ${subqueries.join(',\n    ')}
               FROM user u
-              where department = ?`,
+              where department = ? AND u.is_deleted = 0`,
             [depList.get(type)]
           )
           return NextResponse.json(results)
@@ -143,7 +144,7 @@ export async function GET(request) {
         
         // Get user profile data first
         const profileResult = await query(
-          `SELECT * FROM user WHERE email = ?`,
+            `SELECT * FROM user WHERE email = ? AND is_deleted = 0`,
           [type]
         )
 
