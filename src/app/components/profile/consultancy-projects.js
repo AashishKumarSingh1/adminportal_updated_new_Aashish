@@ -21,6 +21,7 @@ import {
 import { useSession } from 'next-auth/react'
 import React, { useState } from 'react'
 import { enGB } from 'date-fns/locale';
+import Collaborater from '../modal/collaborater';
 
 import useRefreshData from '@/custom-hooks/refresh'
 import EditIcon from '@mui/icons-material/Edit'
@@ -47,11 +48,13 @@ export const AddForm = ({ handleClose, modal }) => {
         period_months: '',
         investigators: '',
         status: 'Ongoing',
-        role:''
+        role:'',
+        collaboraters: []
     }
     const [content, setContent] = useState(initialState)
     const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
+    const [showModal , setShowModal] = useState(false)
 
     const handleChange = (e) => {
         setContent({ ...content, [e.target.name]: e.target.value })
@@ -65,6 +68,7 @@ export const AddForm = ({ handleClose, modal }) => {
             const newProject = {
                 type: 'consultancy_projects',
                 ...content,
+                collaboraters: content.collaboraters || [],
                 start_date: content.start_date 
                     ? new Date(content.start_date).toISOString().split('T')[0]
                     : null,
@@ -229,6 +233,47 @@ export const AddForm = ({ handleClose, modal }) => {
                         <MenuItem value="other">Other</MenuItem>
                         {/* <MenuItem value="Terminated">Terminated</MenuItem> */}
                     </Select>
+
+                    <div className="mt-4">
+                        <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                            Collaborating Faculty Members
+                        </Typography>
+
+                        <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md bg-gray-50">
+                            {content.collaboraters && content.collaboraters.length > 0 ? (
+                                content.collaboraters.map((collaborator, index) => (
+                                    <div
+                                        key={index}
+                                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                    >
+                                        {collaborator}
+                                    </div>
+                                ))
+                            ) : (
+                                <Typography variant="body2" color="textSecondary">
+                                    No collaborators added yet.
+                                </Typography>
+                            )}
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowModal(true)}
+                            className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                        >
+                            Add Collaborating Faculty Members
+                        </button>
+                    </div>
+
+                    <Collaborater
+                        isOpen={showModal}
+                        initialMembers={content.collaboraters}
+                        title="Consultancy Project Collaborators"
+                        description="Add faculty members' emails who have contributed to this consultancy project."
+                        questionToAsked="You can add multiple contributors."
+                        onSave={(members) => setContent({ ...content, collaboraters: members })}
+                        onClose={setShowModal}
+                    />
                 </DialogContent>
                 <DialogActions>
                     <Button
@@ -250,8 +295,12 @@ export const EditForm = ({ handleClose, modal, values }) => {
     const [content, setContent] = useState({
         ...values,
         start_date: values.start_date ? new Date(values.start_date) : null,
-        end_date: values.end_date ? new Date(values.end_date) : null
+        end_date: values.end_date ? new Date(values.end_date) : null,
+        collaboraters: Array.isArray(values?.collaboraters)
+            ? values.collaboraters
+            : (values?.collaboraters ? String(values.collaboraters).split(',').map(s => s.trim()).filter(Boolean) : []),
     })
+    const [showModalEdit, setShowModalEdit] = useState(false)
     const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
 
@@ -267,6 +316,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
             const updatedProject = {
                 type: 'consultancy_projects',
                 ...content,
+                collaboraters: content.collaboraters || [],
                 start_date: content.start_date 
                     ? new Date(content.start_date).toISOString().split('T')[0]
                     : null,
@@ -289,7 +339,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
             
             // Update local state in parent component
             const updatedProjects = facultyData.consultancy_projects.map(project => 
-                project.id === content.id ? updatedProject : project
+                project.id === content.id ? { ...updatedProject, id: content.id } : project
             );
             updateFacultyData(updatedProjects);
             
@@ -446,6 +496,47 @@ export const EditForm = ({ handleClose, modal, values }) => {
                         <MenuItem value="other">Other</MenuItem>
                         {/* <MenuItem value="Terminated">Terminated</MenuItem> */}
                     </Select>
+
+                    <div className="mt-4">
+                        <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                            Collaborating Faculty Members
+                        </Typography>
+
+                        <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md bg-gray-50">
+                            {content.collaboraters && content.collaboraters.length > 0 ? (
+                                content.collaboraters.map((collaborator, index) => (
+                                    <div
+                                        key={index}
+                                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                    >
+                                        {collaborator}
+                                    </div>
+                                ))
+                            ) : (
+                                <Typography variant="body2" color="textSecondary">
+                                    No collaborators added yet.
+                                </Typography>
+                            )}
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowModalEdit(true)}
+                            className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                        >
+                            Edit Collaborating Faculty Members
+                        </button>
+                    </div>
+
+                    <Collaborater
+                        isOpen={showModalEdit}
+                        initialMembers={content.collaboraters}
+                        title="Consultancy Project Collaborators"
+                        description="Add faculty members' emails who have contributed to this consultancy project."
+                        questionToAsked="You can add multiple contributors."
+                        onSave={(members) => setContent({ ...content, collaboraters: members })}
+                        onClose={setShowModalEdit}
+                    />
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleClose} color="primary">
@@ -557,6 +648,7 @@ export default function ConsultancyProjectManagement() {
                             <TableCell>Duration</TableCell>
                             <TableCell>Investigators</TableCell>
                             <TableCell>Status</TableCell>
+                            <TableCell>Collaborators</TableCell>
                             {/* <TableCell>Investigator</TableCell> */}
                             <TableCell align="right">Actions</TableCell>
                         </TableRow>
@@ -578,6 +670,15 @@ export default function ConsultancyProjectManagement() {
                                 </TableCell>
                                 <TableCell>{project.investigators}</TableCell>
                                 <TableCell>{project.status}</TableCell>
+                                <TableCell>
+                                    {project.collaboraters && project.collaboraters.length > 0 ? (
+                                        project.collaboraters.map((c, idx) => (
+                                            <div key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm inline-block mr-1">{c}</div>
+                                        ))
+                                    ) : (
+                                        '-'
+                                    )}
+                                </TableCell>
                                 <TableCell align="right">
                                     <IconButton 
                                         onClick={() => handleEdit(project)}

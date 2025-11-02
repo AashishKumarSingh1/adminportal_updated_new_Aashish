@@ -289,7 +289,26 @@ export async function POST(request) {
                 params.doi
               ]
             )
-            return NextResponse.json(conferenceResult)
+            if (params.collaboraters && Array.isArray(params.collaboraters)) {
+              for (const email of params.collaboraters) {
+                await query(
+                  `INSERT INTO conference_papers_collaborater(conference_papers_id, email) VALUES (?, ?)`,
+                  [params.id, email]
+                )
+              }
+            }
+
+            const conferencesWithCollaborators = await query(
+              `SELECT cp.*, GROUP_CONCAT(cpc.email) AS collaboraters
+               FROM conference_papers cp
+               LEFT JOIN conference_papers_collaborater cpc
+                 ON cp.id = cpc.conference_papers_id
+               WHERE cp.id = ?
+               GROUP BY cp.id`,
+              [params.id]
+            )
+
+            return NextResponse.json({ conference: conferencesWithCollaborators[0] || null })
 
 
           case 'textbooks':
@@ -307,6 +326,14 @@ export async function POST(request) {
                 params.doi
               ]
             )
+            if (params.collaboraters && Array.isArray(params.collaboraters)) {
+              for (const email of params.collaboraters) {
+                await query(
+                  `INSERT INTO textbooks_collaborater(textbooks_id, email) VALUES (?, ?)`,
+                  [params.id, email]
+                )
+              }
+            }
             return NextResponse.json(textbookResult)
 
           case 'edited_books':
@@ -324,7 +351,25 @@ export async function POST(request) {
                 params.doi
               ]
             )
-            return NextResponse.json(editedBookResult)
+            if (params.collaboraters && Array.isArray(params.collaboraters)) {
+              for (const email of params.collaboraters) {
+                await query(
+                  `INSERT INTO edited_books_collaborater(edited_books_id, email) VALUES (?, ?)`,
+                  [params.id, email]
+                )
+              }
+            }
+            const editedBooksWithCollaborators = await query(
+              `SELECT eb.*, GROUP_CONCAT(ebc.email) AS collaboraters
+               FROM edited_books eb
+               LEFT JOIN edited_books_collaborater ebc
+                 ON eb.id = ebc.edited_books_id
+               WHERE eb.id = ?
+               GROUP BY eb.id`,
+              [params.id]
+            )
+
+            return NextResponse.json({ editedBook: editedBooksWithCollaborators[0] || null })
 
           case 'book_chapters':
             const chapterResult = await query(
@@ -343,6 +388,14 @@ export async function POST(request) {
                 params.doi
               ]
             )
+            if (params.collaboraters && Array.isArray(params.collaboraters)) {
+              for (const email of params.collaboraters) {
+                await query(
+                  `INSERT INTO book_chapters_collaborater(book_chapters_id, email) VALUES (?, ?)`,
+                  [params.id, email]
+                )
+              }
+            }
             return NextResponse.json(chapterResult)
 
           case 'sponsored_projects':
@@ -363,6 +416,14 @@ export async function POST(request) {
                 params.funds_received
               ]
             )
+            if (params.collaboraters && Array.isArray(params.collaboraters)) {
+              for (const email of params.collaboraters) {
+                await query(
+                  `INSERT INTO sponsored_projects_collaborater(sponsored_project_id, email) VALUES (?, ?)`,
+                  [params.id, email]
+                )
+              }
+            }
             return NextResponse.json(sponsoredResult)
 
           case 'consultancy_projects':
@@ -381,6 +442,14 @@ export async function POST(request) {
                 params.status
               ]
             )
+            if (params.collaboraters && Array.isArray(params.collaboraters)) {
+              for (const email of params.collaboraters) {
+                await query(
+                  `INSERT INTO consultancy_projects_collaborater(consultancy_projects_id, email) VALUES (?, ?)`,
+                  [params.id, email]
+                )
+              }
+            }
             return NextResponse.json(consultancyResult)
 
           case 'teaching_engagement':
@@ -460,6 +529,14 @@ export async function POST(request) {
                       params.participants_count 
                   ]
               );
+              if (params.collaboraters && Array.isArray(params.collaboraters)) {
+                for (const email of params.collaboraters) {
+                  await query(
+                    `INSERT INTO workshops_conferences_collaborater(workshops_conferences_id, email) VALUES (?, ?)`,
+                    [params.id, email]
+                  )
+                }
+              }
               
               return NextResponse.json(workshopResult);
           
@@ -522,6 +599,11 @@ export async function POST(request) {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [id, email, title, iprtype, registration_date, publication_date, grant_date, grant_no, applicant_name, inventors]
         );
+        if (params.collaboraters && Array.isArray(params.collaboraters)) {
+          for (const email of params.collaboraters) {
+            await query(`INSERT INTO ipr_collaborater(ipr_id, email) VALUES (?, ?)`, [id, email])
+          }
+        }
 
         return NextResponse.json({ message: 'Record created successfully', data: iprResult });
     } catch (error) {
@@ -544,6 +626,11 @@ export async function POST(request) {
                 params.pan_number
               ]
             )
+            if (params.collaboraters && Array.isArray(params.collaboraters)) {
+              for (const email of params.collaboraters) {
+                await query(`INSERT INTO startups_collaborater(startups_id, email) VALUES (?, ?)`, [params.id, email])
+              }
+            }
             return NextResponse.json(startupResult)
 
             case 'patents':

@@ -17,8 +17,11 @@ import {
     Select,
     MenuItem,
     InputLabel,
-    Typography
+    Typography,
+    Chip,
+    Stack
   } from '@mui/material'
+import Collaborater from '../modal/collaborater'
   import { useSession } from 'next-auth/react'
   import React, { useState } from 'react'
   import useRefreshData from '@/custom-hooks/refresh'
@@ -175,6 +178,7 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
         const { data: session } = useSession();
         const { updateFacultySection } = useFacultyData();
         const {data:conference_papers_data} = useFacultySection("conference_papers")
+        const [showCollaborators, setShowCollaborators] = useState(false);
 
         const initialState = {
             authors: "",
@@ -191,6 +195,7 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
             pages: "",
             indexing: "",
             doi: "",
+            collaboraters: [],
         };
 
         const [content, setContent] = useState(initialState);
@@ -218,9 +223,9 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
             });
 
             if (!result.ok) throw new Error("Failed to create");
-            content.id = id;
-
-            const updatedData = [...conference_papers_data,content]
+            
+            const { conference } = await result.json();
+            const updatedData = [...conference_papers_data, conference];
 
             updateFacultySection("conference_papers", updatedData);
 
@@ -379,6 +384,51 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                     value={content.doi}
                     onChange={handleChange}
                 />
+
+                {/* Collaborators */}
+                <div className="mt-4">
+                    <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                        Collaborating Faculty Members
+                    </Typography>
+
+                    <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md bg-gray-50">
+                        {content.collaboraters && content.collaboraters.length > 0 ? (
+                            content.collaboraters.map((collaborator, index) => (
+                                <div
+                                    key={index}
+                                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                >
+                                    {collaborator}
+                                </div>
+                            ))
+                        ) : (
+                            <Typography variant="body2" color="textSecondary">
+                                No collaborators added yet.
+                            </Typography>
+                        )}
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => setShowCollaborators(true)}
+                        className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                    >
+                        Add Collaborating Faculty Members
+                    </button>
+                </div>
+                <Collaborater
+                    isOpen={showCollaborators}
+                    handleClose={() => setShowCollaborators(false)}
+                    initialMembers={content.collaboraters || []}
+                    title="Conference Paper Collaborators"
+                    description="Add faculty members who collaborated on this conference paper."
+                    questionToAsked="Add collaborating faculty members' emails"
+                    onSave={(members) => {
+                        setContent({ ...content, collaboraters: members });
+                        setShowCollaborators(false);
+                    }}
+                    onClose={() => setShowCollaborators(false)}
+                />
                 </DialogContent>
                 <DialogActions>
                 <Button type="submit" color="primary" disabled={submitting}>
@@ -394,8 +444,17 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
     export const EditForm = ({ handleClose, modal, values , papers }) => {
         const { data: session } = useSession();
         const { updateFacultySection } = useFacultyData();
-        const [content, setContent] = useState(values);
+        const [content, setContent] = useState(() => {
+            if (values?.collaboraters && typeof values.collaboraters === 'string') {
+                return {
+                    ...values,
+                    collaboraters: values.collaboraters.split(',').map(email => email.trim())
+                };
+            }
+            return values;
+        });
         const [submitting, setSubmitting] = useState(false);
+        const [showCollaborators, setShowCollaborators] = useState(false);
         const {data:conference_papers_data} = useFacultySection("conference_papers")
 
         const handleChange = (e) => {
@@ -419,8 +478,9 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
 
             if (!result.ok) throw new Error("Failed to update");
 
-            const updatedData = conference_papers_data.map((data)=>{
-                return data.id === content.id ? content : data
+            const { conference } = await result.json();
+            const updatedData = conference_papers_data.map((data) => {
+                return data.id === content.id ? conference : data
             });
 
             updateFacultySection("conference_papers", updatedData);
@@ -581,6 +641,51 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                     value={content?.doi}
                     onChange={handleChange}
                 />
+
+                {/* Collaborators */}
+                <div className="mt-4">
+                    <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                        Collaborating Faculty Members
+                    </Typography>
+
+                    <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md bg-gray-50">
+                        {content.collaboraters && content.collaboraters.length > 0 ? (
+                            content.collaboraters.map((collaborator, index) => (
+                                <div
+                                    key={index}
+                                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                >
+                                    {collaborator}
+                                </div>
+                            ))
+                        ) : (
+                            <Typography variant="body2" color="textSecondary">
+                                No collaborators added yet.
+                            </Typography>
+                        )}
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => setShowCollaborators(true)}
+                        className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                    >
+                        Add Collaborating Faculty Members
+                    </button>
+                </div>
+                <Collaborater
+                    isOpen={showCollaborators}
+                    handleClose={() => setShowCollaborators(false)}
+                    initialMembers={content.collaboraters || []}
+                    title="Conference Paper Collaborators"
+                    description="Add faculty members who collaborated on this conference paper."
+                    questionToAsked="Add collaborating faculty members' emails"
+                    onSave={(members) => {
+                        setContent({ ...content, collaboraters: members });
+                        setShowCollaborators(false);
+                    }}
+                    onClose={() => setShowCollaborators(false)}
+                />
                 </DialogContent>
                 <DialogActions>
                 <Button type="submit" color="primary" disabled={submitting}>
@@ -709,6 +814,7 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                             <TableCell>Foreign Author</TableCell>
                             <TableCell>Student Details</TableCell>
                             <TableCell>DOI</TableCell>
+                            {/* <TableCell>Collaborators</TableCell> */}
                             <TableCell align="right">Actions</TableCell>
                             </TableRow>
                             </TableHead>
@@ -727,8 +833,17 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                                   <TableCell>{paper.foreign_author_name ? "yes" : "no"}</TableCell>
                                   <TableCell>{paper.student_name ? "yes" : "no"}</TableCell>
                                   <TableCell>{paper.doi}</TableCell>
-                                  {/* <TableCell>{paper.conference_year}</TableCell> */}
-                                  
+                                  {/* <TableCell>
+                                    {paper.collaboraters ? (
+                                      Array.isArray(paper.collaboraters) && paper.collaboraters.length > 0 ? (
+                                        <Stack direction="row" spacing={1} style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+                                          {paper.collaboraters.map((email) => (
+                                            <Chip key={email} label={email} size="small" />
+                                          ))}
+                                        </Stack>
+                                      ) : "None"
+                                    ) : "None"}
+                                  </TableCell> */}
                                   <TableCell align="right">
                                       <IconButton 
                                           onClick={() => handleEdit(paper)}

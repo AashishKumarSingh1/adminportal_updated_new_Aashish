@@ -19,6 +19,7 @@ import {
 } from '@mui/material'
 import { useSession } from 'next-auth/react'
 import React, { useState } from 'react'
+import Collaborater from '../modal/collaborater';
 import { enGB } from 'date-fns/locale';
 
 import useRefreshData from '@/custom-hooks/refresh'
@@ -45,9 +46,11 @@ export const AddForm = ({ handleClose, modal }) => {
         start_date: null,
         end_date: null,
         participants_count: ''
+        ,collaboraters: []
     }
     const [content, setContent] = useState(initialState)
     const [submitting, setSubmitting] = useState(false)
+    const [showModal, setShowModal] = useState(false)
     const {data:workshops_conferences_data} = useFacultySection("workshops_conferences")
     const handleChange = (e) => {
         setContent({ ...content, [e.target.name]: e.target.value })
@@ -58,8 +61,9 @@ export const AddForm = ({ handleClose, modal }) => {
         e.preventDefault();
 
         try {
-            console.log('Sending data:', {
-                type: 'workshops_conferences',
+            // create a canonical event object with an id so local context stores it correctly
+            const id = Date.now().toString();
+            const newEvent = {
                 ...content,
                 start_date: content.start_date
                     ? new Date(content.start_date).toLocaleDateString('en-CA') // YYYY-MM-DD
@@ -67,34 +71,26 @@ export const AddForm = ({ handleClose, modal }) => {
                 end_date: content.end_date
                     ? new Date(content.end_date).toLocaleDateString('en-CA')
                     : null,
-                id: Date.now().toString(),
+                id,
                 email: session?.user?.email,
-            });
-    
+                collaboraters: content.collaboraters || []
+            };
+
+            console.log('Sending data:', { type: 'workshops_conferences', ...newEvent });
+
             const result = await fetch('/api/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    type: 'workshops_conferences',
-                    ...content,
-                    start_date: content.start_date
-                        ? new Date(content.start_date).toLocaleDateString('en-CA')
-                        : null,
-                    end_date: content.end_date
-                        ? new Date(content.end_date).toLocaleDateString('en-CA')
-                        : null,
-                    id: Date.now().toString(),
-                    email: session?.user?.email,
-                }),
+                body: JSON.stringify({ type: 'workshops_conferences', ...newEvent }),
             });
     
             if (!result.ok) throw new Error('Failed to create');
             
-            const updatedData = [...workshops_conferences_data,content];
-                
+            const updatedData = [...workshops_conferences_data, newEvent];
+
             // Update the context data
             updateFacultySection("workshops_conferences", updatedData);
-                
+
             handleClose();
             setContent(initialState);
             alert('Workshop/Conference added successfully');
@@ -195,6 +191,46 @@ export const AddForm = ({ handleClose, modal }) => {
                         value={content.participants_count}
                         onChange={handleChange}
                     />
+                    <div className="mt-4">
+                        <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                            Collaborating Faculty Members
+                        </Typography>
+
+                        <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md bg-gray-50">
+                            {content.collaboraters && content.collaboraters.length > 0 ? (
+                                content.collaboraters.map((collaborator, index) => (
+                                    <div
+                                        key={index}
+                                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                    >
+                                        {collaborator}
+                                    </div>
+                                ))
+                            ) : (
+                                <Typography variant="body2" color="textSecondary">
+                                    No collaborators added yet.
+                                </Typography>
+                            )}
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowModal(true)}
+                            className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                        >
+                            Add Collaborating Faculty Members
+                        </button>
+                    </div>
+
+                    <Collaborater
+                        isOpen={showModal}
+                        initialMembers={content.collaboraters}
+                        title="Event Collaborators"
+                        description="Add faculty members' emails who have contributed to this event."
+                        questionToAsked="You can add multiple contributors."
+                        onSave={(members) => setContent({ ...content, collaboraters: members })}
+                        onClose={setShowModal}
+                    />
                 </DialogContent>
                 <DialogActions>
                     <Button
@@ -219,9 +255,13 @@ export const EditForm = ({ handleClose, modal, values , allEvents,onSuccess }) =
     const [content, setContent] = useState({
         ...values,
         start_date: values.start_date ? new Date(values.start_date) : null,
-        end_date: values.end_date ? new Date(values.end_date) : null
+        end_date: values.end_date ? new Date(values.end_date) : null,
+        collaboraters: Array.isArray(values?.collaboraters)
+            ? values.collaboraters
+            : (values?.collaboraters ? String(values.collaboraters).split(',').map(s => s.trim()).filter(Boolean) : []),
     })
     const [submitting, setSubmitting] = useState(false)
+    const [showModalEdit, setShowModalEdit] = useState(false)
 
 
     const handleChange = (e) => {
@@ -239,6 +279,7 @@ export const EditForm = ({ handleClose, modal, values , allEvents,onSuccess }) =
                 body: JSON.stringify({
                     type: 'workshops_conferences',
                     ...content,
+                    collaboraters: content.collaboraters || [],
                     // Format dates before sending to API
                     start_date: content.start_date 
                         ? new Date(content.start_date).toISOString().split('T')[0]
@@ -368,6 +409,46 @@ export const EditForm = ({ handleClose, modal, values , allEvents,onSuccess }) =
                         fullWidth
                         value={content.participants_count}
                         onChange={handleChange}
+                    />
+                    <div className="mt-4">
+                        <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                            Collaborating Faculty Members
+                        </Typography>
+
+                        <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md bg-gray-50">
+                            {content.collaboraters && content.collaboraters.length > 0 ? (
+                                content.collaboraters.map((collaborator, index) => (
+                                    <div
+                                        key={index}
+                                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                    >
+                                        {collaborator}
+                                    </div>
+                                ))
+                            ) : (
+                                <Typography variant="body2" color="textSecondary">
+                                    No collaborators added yet.
+                                </Typography>
+                            )}
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowModalEdit(true)}
+                            className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                        >
+                            Edit Collaborating Faculty Members
+                        </button>
+                    </div>
+
+                    <Collaborater
+                        isOpen={showModalEdit}
+                        initialMembers={content.collaboraters}
+                        title="Event Collaborators"
+                        description="Add faculty members' emails who have contributed to this event."
+                        questionToAsked="You can add multiple contributors."
+                        onSave={(members) => setContent({ ...content, collaboraters: members })}
+                        onClose={setShowModalEdit}
                     />
                 </DialogContent>
                 <DialogActions>
@@ -507,6 +588,7 @@ export default function WorkshopConferenceManagement() {
                             <TableCell>Duration</TableCell>
                             <TableCell>Sponsored By</TableCell>
                             <TableCell>Participants</TableCell>
+                            <TableCell>Collaborators</TableCell>
                             <TableCell align="right">Actions</TableCell>
                         </TableRow>
                     </TableHead>
@@ -529,6 +611,13 @@ export default function WorkshopConferenceManagement() {
                                 </TableCell>
                                 <TableCell>{event.sponsored_by}</TableCell>
                                 <TableCell>{event.participants_count}</TableCell>
+                                <TableCell>
+                                    {event.collaboraters && event.collaboraters.length > 0 ? (
+                                        event.collaboraters.map((c, idx) => (
+                                            <div key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm inline-block mr-1">{c}</div>
+                                        ))
+                                    ) : ('-')}
+                                </TableCell>
                                 <TableCell align="right">
                                     <IconButton
                                         onClick={() => handleEdit(event)}
@@ -549,7 +638,7 @@ export default function WorkshopConferenceManagement() {
                         ))}
                         {events?.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={6} align="center">
+                                <TableCell colSpan={8} align="center">
                                     No workshops/conferences found
                                 </TableCell>
                             </TableRow>

@@ -21,6 +21,7 @@ import {
 } from '@mui/material'
 import { useSession } from 'next-auth/react'
 import { enGB } from 'date-fns/locale';
+import Collaborater from '../modal/collaborater';
 
 import React, { useEffect, useState } from 'react'
 import useRefreshData from '@/custom-hooks/refresh'
@@ -49,11 +50,13 @@ export const AddForm = ({ handleClose, modal }) => {
         pi_institute: '',
         status: 'Ongoing',
         funds_received: '',
-        role:""
+        role:"",
+        collaboraters: []
     }
     const [content, setContent] = useState(initialState)
     const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
+    const [showModal, setShowModal] = useState(false)
     const {data:sponsored_projects_data} = useFacultySection("sponsored_projects")
 
     const handleChange = (e) => {
@@ -72,6 +75,7 @@ export const AddForm = ({ handleClose, modal }) => {
                 body: JSON.stringify({
                     type: 'sponsored_projects',
                     ...content,
+                    collaboraters: content.collaboraters || [],
                     // Example: Handle any date fields if they exist, assuming a `start_date` and `end_date`
                     start_date: content.start_date
                         ? new Date(content.start_date).toISOString().split('T')[0]  // Format as 'YYYY-MM-DD'
@@ -234,6 +238,47 @@ export const AddForm = ({ handleClose, modal }) => {
                         <MenuItem value="other">Other</MenuItem>
                         {/* <MenuItem value="Terminated">Terminated</MenuItem> */}
                     </Select>
+
+                    <div className="mt-4">
+                        <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                            Collaborating Faculty Members
+                        </Typography>
+
+                        <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md bg-gray-50">
+                            {content.collaboraters && content.collaboraters.length > 0 ? (
+                                content.collaboraters.map((collaborator, index) => (
+                                    <div
+                                        key={index}
+                                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                    >
+                                        {collaborator}
+                                    </div>
+                                ))
+                            ) : (
+                                <Typography variant="body2" color="textSecondary">
+                                    No collaborators added yet.
+                                </Typography>
+                            )}
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowModal(true)}
+                            className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                        >
+                            Add Collaborating Faculty Members
+                        </button>
+                    </div>
+
+                    <Collaborater
+                        isOpen={showModal}
+                        initialMembers={content.collaboraters}
+                        title="Sponsored Project Collaborators"
+                        description="Add faculty members' emails who have contributed to this project."
+                        questionToAsked="You can add multiple contributors."
+                        onSave={(members) => setContent({ ...content, collaboraters: members })}
+                        onClose={setShowModal}
+                    />
                 </DialogContent>
                 <DialogActions>
                     <Button
@@ -253,9 +298,15 @@ export const AddForm = ({ handleClose, modal }) => {
 export const EditForm = ({ handleClose, modal, values }) => {
     const { data: session } = useSession()
     const { updateFacultySection } = useFacultyData()
-    const [content, setContent] = useState(values)
+    const [content, setContent] = useState({
+        ...values,
+        collaboraters: Array.isArray(values?.collaboraters)
+            ? values.collaboraters
+            : (values?.collaboraters ? String(values.collaboraters).split(',').map(s => s.trim()).filter(Boolean) : []),
+    })
     const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
+    const [showModalEdit, setShowModalEdit] = useState(false)
     const {data:project_supervision_data} = useFacultySection("sponsored_projects")
 
     const handleChange = (e) => {
@@ -276,6 +327,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
                 body: JSON.stringify({
                     type: 'sponsored_projects',
                     ...content,
+                    collaboraters: content.collaboraters || [],
                     start_date:new Date(content.start_date).toISOString().split('T')[0],
                     email: session?.user?.email,
                     end_date: isContinuing ? null : new Date(content.end_date).toISOString().split('T')[0]
@@ -435,6 +487,47 @@ export const EditForm = ({ handleClose, modal, values }) => {
                         <MenuItem value="other">Other</MenuItem>
                         {/* <MenuItem value="Terminated">Terminated</MenuItem> */}
                     </Select>
+
+                    <div className="mt-4">
+                        <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                            Collaborating Faculty Members
+                        </Typography>
+
+                        <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md bg-gray-50">
+                            {content.collaboraters && content.collaboraters.length > 0 ? (
+                                content.collaboraters.map((collaborator, index) => (
+                                    <div
+                                        key={index}
+                                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                    >
+                                        {collaborator}
+                                    </div>
+                                ))
+                            ) : (
+                                <Typography variant="body2" color="textSecondary">
+                                    No collaborators added yet.
+                                </Typography>
+                            )}
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowModalEdit(true)}
+                            className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                        >
+                            Edit Collaborating Faculty Members
+                        </button>
+                    </div>
+
+                    <Collaborater
+                        isOpen={showModalEdit}
+                        initialMembers={content.collaboraters}
+                        title="Sponsored Project Collaborators"
+                        description="Add faculty members' emails who have contributed to this project."
+                        questionToAsked="You can add multiple contributors."
+                        onSave={(members) => setContent({ ...content, collaboraters: members })}
+                        onClose={setShowModalEdit}
+                    />
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleClose} color="primary">
@@ -559,19 +652,20 @@ export default function SponsoredProjectManagement() {
             </div>
             <TableContainer component={Paper}>
                 <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>Title</TableCell>
-                            <TableCell>Agency</TableCell>
-                            <TableCell>Role</TableCell>
-                            <TableCell>Outlay (₹)</TableCell>
-                            <TableCell>Duration</TableCell>
-                            <TableCell>PI Institute</TableCell>
-                            <TableCell>Status</TableCell>
-                            <TableCell>Funds Received</TableCell>
-                            <TableCell align="right">Actions</TableCell>
-                        </TableRow>
-                    </TableHead>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell>Title</TableCell>
+                                <TableCell>Agency</TableCell>
+                                <TableCell>Role</TableCell>
+                                <TableCell>Outlay (₹)</TableCell>
+                                <TableCell>Duration</TableCell>
+                                <TableCell>PI Institute</TableCell>
+                                <TableCell>Status</TableCell>
+                                <TableCell>Funds Received</TableCell>
+                                <TableCell>Collaborators</TableCell>
+                                <TableCell align="right">Actions</TableCell>
+                            </TableRow>
+                        </TableHead>
                     <TableBody>
                         {projects
                             ?.sort((a, b) => {
@@ -599,6 +693,13 @@ export default function SponsoredProjectManagement() {
                                 <TableCell>{project.pi_institute}</TableCell>
                                 <TableCell>{project.status}</TableCell>
                                 <TableCell>{project.funds_received}</TableCell>
+                                <TableCell>
+                                    {project.collaboraters && project.collaboraters.length > 0 ? (
+                                        project.collaboraters.map((c, idx) => (
+                                            <div key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm inline-block mr-1">{c}</div>
+                                        ))
+                                    ) : ('-')}
+                                </TableCell>
                                 <TableCell align="right">
                                     <IconButton
                                         onClick={() => handleEdit(project)}
@@ -619,7 +720,7 @@ export default function SponsoredProjectManagement() {
                         ))}
                         {projects?.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={6} align="center">
+                                <TableCell colSpan={10} align="center">
                                     No projects found
                                 </TableCell>
                             </TableRow>
