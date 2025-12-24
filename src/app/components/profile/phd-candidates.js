@@ -106,7 +106,7 @@ export const AddForm = ({ handleClose, modal }) => {
             const updatedCandidate = [...phd_candidates,newCandidate]
             console.log('updated candidate is : ',updatedCandidate)
             updateFacultySection("phd_candidates",updatedCandidate)
-            window.location.reload()
+            // window.location.reload()
             handleClose()
             setContent(initialState)
         } catch (error) {
@@ -299,6 +299,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
         id: values.id
     })
     const [submitting, setSubmitting] = useState(false)
+    const {data:phd_candidates_data} = useFacultySection("phd_candidates");
 
     const handleChange = (e) => {
         setContent({ ...content, [e.target.name]: e.target.value })
@@ -331,17 +332,12 @@ export const EditForm = ({ handleClose, modal, values }) => {
                 throw new Error('Failed to update PhD candidate')
             }
 
-            // Update state through window component reference
-            if (window.getPhdCandidatesComponent) {
-                const currentCandidates = window.getPhdCandidatesComponent().getCandidates();
-                const updatedCandidates = currentCandidates.map(candidate => 
-                    candidate.id === content.id ? content : candidate
-                );
-                
-                // Update both local state and context
-                window.getPhdCandidatesComponent().setCandidates(updatedCandidates);
-                updateFacultySection('phdCandidates', updatedCandidates);
-            }
+            const updatedCandidates = phd_candidates_data.map((candidate) =>
+                candidate.id === values.id ? updatedCandidate : candidate
+            );
+            updateFacultySection('phd_candidates', updatedCandidates);
+            window.location.reload()
+            
             
             handleClose()
         } catch (error) {

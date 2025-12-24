@@ -71,7 +71,7 @@ export default function JournalReviewersPage() {
         updateFacultySection('international_journal_reviewers', updatedReviewers);
       } else {
         // Add new reviewer
-        const newReviewer = { ...reviewer, id: result.id };
+        const newReviewer = { ...reviewer, id: result.result.insertId };
         const updatedReviewers = [...reviewers, newReviewer];
         setReviewers(updatedReviewers);
         // Update context

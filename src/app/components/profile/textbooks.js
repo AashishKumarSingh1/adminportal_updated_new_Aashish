@@ -17,6 +17,7 @@ import {
 } from '@mui/material'
 import { useSession } from 'next-auth/react'
 import React, { useState } from 'react'
+import Collaborater from '../modal/collaborater';
 import useRefreshData from '@/custom-hooks/refresh'
 import { useFacultyData } from '@/context/FacultyDataContext'
 import EditIcon from '@mui/icons-material/Edit'
@@ -35,9 +36,11 @@ export const AddForm = ({ handleClose, modal }) => {
         year: new Date().getFullYear(),
         scopus: '',
         doi: ''
+        ,collaboraters: []
     }
     const [content, setContent] = useState(initialState)
     const [submitting, setSubmitting] = useState(false)
+    const [showModal, setShowModal] = useState(false)
 
     const handleChange = (e) => {
         setContent({ ...content, [e.target.name]: e.target.value })
@@ -54,6 +57,7 @@ export const AddForm = ({ handleClose, modal }) => {
                 body: JSON.stringify({
                     type: 'textbooks',
                     ...content,
+                    collaboraters: content.collaboraters || [],
                     publish_date: content.publish_date 
                         ? new Date(content.publish_date).toISOString().split('T')[0]  // Format as 'YYYY-MM-DD'
                         : null,
@@ -154,6 +158,46 @@ export const AddForm = ({ handleClose, modal }) => {
                         value={content.doi}
                         onChange={handleChange}
                     />
+                        <div className="mt-4">
+                            <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                                Collaborating Faculty Members
+                            </Typography>
+
+                            <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md bg-gray-50">
+                                {content.collaboraters && content.collaboraters.length > 0 ? (
+                                    content.collaboraters.map((collaborator, index) => (
+                                        <div
+                                            key={index}
+                                            className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                        >
+                                            {collaborator}
+                                        </div>
+                                    ))
+                                ) : (
+                                    <Typography variant="body2" color="textSecondary">
+                                        No collaborators added yet.
+                                    </Typography>
+                                )}
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={() => setShowModal(true)}
+                                className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                            >
+                                Add Collaborating Faculty Members
+                            </button>
+                        </div>
+
+                        <Collaborater
+                            isOpen={showModal}
+                            initialMembers={content.collaboraters}
+                            title="Textbook Collaborators"
+                            description="Add faculty members' emails who have contributed to this textbook."
+                            questionToAsked="You can add multiple contributors."
+                            onSave={(members) => setContent({ ...content, collaboraters: members })}
+                            onClose={setShowModal}
+                        />
                 </DialogContent>
                 <DialogActions>
                     <Button
@@ -173,8 +217,14 @@ export const AddForm = ({ handleClose, modal }) => {
 export const EditForm = ({ handleClose, modal, values }) => {
     const { data: session } = useSession()
     const { updateFacultySection } = useFacultyData()
-    const [content, setContent] = useState(values)
+    const [content, setContent] = useState({
+        ...values,
+        collaboraters: Array.isArray(values?.collaboraters)
+            ? values.collaboraters
+            : (values?.collaboraters ? String(values.collaboraters).split(',').map(s => s.trim()).filter(Boolean) : []),
+    })
     const [submitting, setSubmitting] = useState(false)
+    const [showModalEdit, setShowModalEdit] = useState(false)
 
     const handleChange = (e) => {
         setContent({ ...content, [e.target.name]: e.target.value })
@@ -191,6 +241,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
                 body: JSON.stringify({
                     type: 'textbooks',
                     ...content,
+                    collaboraters: content.collaboraters || [],
                     email: session?.user?.email
                 }),
             })
@@ -290,6 +341,46 @@ export const EditForm = ({ handleClose, modal, values }) => {
                         onChange={handleChange}
                         helperText="Digital Object Identifier (if available)"
                     />
+                    <div className="mt-4">
+                        <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                            Collaborating Faculty Members
+                        </Typography>
+
+                        <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md bg-gray-50">
+                            {content.collaboraters && content.collaboraters.length > 0 ? (
+                                content.collaboraters.map((collaborator, index) => (
+                                    <div
+                                        key={index}
+                                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                    >
+                                        {collaborator}
+                                    </div>
+                                ))
+                            ) : (
+                                <Typography variant="body2" color="textSecondary">
+                                    No collaborators added yet.
+                                </Typography>
+                            )}
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowModalEdit(true)}
+                            className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                        >
+                            Edit Collaborating Faculty Members
+                        </button>
+                    </div>
+
+                    <Collaborater
+                        isOpen={showModalEdit}
+                        initialMembers={content.collaboraters}
+                        title="Textbook Collaborators"
+                        description="Add faculty members' emails who have contributed to this textbook."
+                        questionToAsked="You can add multiple contributors."
+                        onSave={(members) => setContent({ ...content, collaboraters: members })}
+                        onClose={setShowModalEdit}
+                    />
                 </DialogContent>
                 <DialogActions>
                     <Button
@@ -308,7 +399,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
 // Main Component
 export default function TextbookManagement() {
     const { data: session } = useSession()
-    const { facultyData } = useFacultyData();
+    const { facultyData,updateFacultySection } = useFacultyData();
     const [books, setBooks] = useState([])
     const [openAdd, setOpenAdd] = useState(false)
     const [openEdit, setOpenEdit] = useState(false)
@@ -377,13 +468,13 @@ export default function TextbookManagement() {
                 
                 if (!response.ok) throw new Error('Failed to delete')
                 
-                const updatedData = await response.json();
+                const updatedData = books.filter(book => book.id !== id);
                 
                 // Update the context data
-                updateFacultySection(9, updatedData.data);
+                updateFacultySection("textbooks", updatedData);
                 
                 // Update the local state
-                setBooks(updatedData.data)
+                setBooks(updatedData)
             } catch (error) {
                 console.error('Error:', error)
             }
@@ -417,6 +508,7 @@ export default function TextbookManagement() {
                             <TableCell>DOI</TableCell>
                             <TableCell>ISBN</TableCell>
                             <TableCell>Year</TableCell>
+                            <TableCell>Collaborators</TableCell>
                             <TableCell align="right">Actions</TableCell>
                         </TableRow>
                     </TableHead>
@@ -430,6 +522,13 @@ export default function TextbookManagement() {
                                 <TableCell>{book.doi}</TableCell>
                                 <TableCell>{book.isbn}</TableCell>
                                 <TableCell>{book.year}</TableCell>
+                                <TableCell>
+                                    {book.collaboraters && book.collaboraters.length > 0 ? (
+                                        book.collaboraters.map((c, idx) => (
+                                            <div key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm inline-block mr-1">{c}</div>
+                                        ))
+                                    ) : ('-')}
+                                </TableCell>
                                 <TableCell align="right">
                                     <IconButton 
                                         onClick={() => handleEdit(book)}
@@ -450,7 +549,7 @@ export default function TextbookManagement() {
                         ))}
                         {books?.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={6} align="center">
+                                <TableCell colSpan={9} align="center">
                                     No textbooks found
                                 </TableCell>
                             </TableRow>

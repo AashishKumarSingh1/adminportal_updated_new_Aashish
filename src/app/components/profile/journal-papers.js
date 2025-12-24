@@ -30,60 +30,109 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, set } from 'date-fns'
 import AddIcon from '@mui/icons-material/Add'
 import Papa from 'papaparse'
 import { parse, isValid } from 'date-fns'
+import Collaborater from '../modal/collaborater';
 
 export const UplaodCSV = ({ handleClose, modal }) => {
     const { data: session } = useSession()
+    const { updateFacultySection } = useFacultyData();
     const [bulkJournal, setBulkJournal] = useState([]);
     const [fileUploaded, setFileUploaded] = useState(false);
     const [fileName, setFileName] = useState('');
     const refreshData = useRefreshData()
     const [submitting, setSubmitting] = useState(false)
 
+    const toArray = (str) => {
+        if (!str) return [];
+        return str.split(',').map(s => s.trim()).filter(Boolean);
+    };
+
     const handleCSVUpload = (event) => {
         const file = event.target.files[0];
         if (file) {
-            console.log("Selected File:", file);
             setFileUploaded(true);
             setFileName(file.name);
             Papa.parse(file, {
                 complete: (result) => {
-                    const parsedData = result.data.filter(row=>row.title && row.title.trim()!=="").map(row => {
+                    const parsedData = result.data.filter(row => row.title && row.title.trim() !== "").map(row => {
+                        let publication_date = null;
                         if (row.publication_date) {
-                            console.log("Before Parsing:", row.publication_date);
-
                             const trimmedDate = row.publication_date.trim();
                             let parsedDate = null;
                             const formatsToTry = ['d/M/yyyy', 'dd/MM/yyyy'];
-
                             for (const dateFormat of formatsToTry) {
                                 const tempDate = parse(trimmedDate, dateFormat, new Date());
-                                if (!isNaN(tempDate.getTime())) { 
+                                if (!isNaN(tempDate.getTime())) {
                                     parsedDate = tempDate;
                                     break;
                                 }
                             }
-
                             if (!parsedDate) {
-                                console.error("Invalid Date Found:", trimmedDate);
                                 const jsDate = new Date(trimmedDate);
                                 if (!isNaN(jsDate.getTime())) {
-                                    row.publication_date = jsDate.toISOString().split("T")[0];
+                                    publication_date = jsDate.toISOString().split("T")[0];
                                 } else {
-                                    row.publication_date = null;
-                                    console.error("Failed to parse date:", trimmedDate);
+                                    publication_date = null;
                                 }
                             } else {
-                                row.publication_date = format(parsedDate, 'yyyy-MM-dd'); 
-                                console.log("After Parsing:", row.publication_date);
+                                publication_date = format(parsedDate, 'yyyy-MM-dd');
                             }
                         }
-                        return row;
+
+                        // Student details logic
+                        let student_details = "";
+                        const student_involved = row.student_involved === "1" || row.student_involved === "true" || row.student_involved === 1;
+                        if (student_involved) {
+                            const studentsName = toArray(row.student_name);
+                            const studentRoll = toArray(row.student_roll);
+                            if (studentsName.length !== studentRoll.length) {
+                                student_details = "ERROR: Names and roll numbers count mismatch";
+                            } else {
+                                student_details = studentsName.map((name, i) => `${name} - ${studentRoll[i]}`).join(", ");
+                            }
+                        }
+
+                        // Foreign author details logic
+                        let foreign_author_details = "";
+                        const foreign_author_involved = row.foreign_author_involved === "1" || row.foreign_author_involved === "true" || row.foreign_author_involved === 1;
+                        if (foreign_author_involved) {
+                            const foreignAuthorNames = toArray(row.foreign_author_name);
+                            const foreignAuthorCountries = toArray(row.foreign_author_country_name);
+                            const foreignAuthorInstitutes = toArray(row.foreign_author_institute_name);
+                            const len = foreignAuthorNames.length;
+                            if (foreignAuthorCountries.length !== len || foreignAuthorInstitutes.length !== len) {
+                                foreign_author_details = "ERROR: Foreign author fields count mismatch";
+                            } else {
+                                foreign_author_details = foreignAuthorNames.map((name, i) => `${name} - ${foreignAuthorCountries[i]} - ${foreignAuthorInstitutes[i]}`).join(", ");
+                            }
+                        }
+
+                        return {
+                            authors: row.authors || "",
+                            title: row.title || "",
+                            journal_name: row.journal_name || "",
+                            volume: row.volume || "",
+                            publication_year: row.publication_year ? parseInt(row.publication_year) : new Date().getFullYear(),
+                            pages: row.pages || "",
+                            journal_quartile: row.journal_quartile || "",
+                            publication_date,
+                            student_involved,
+                            student_details,
+                            doi_url: row.doi_url || "",
+                            student_name: row.student_name || "",
+                            student_roll: row.student_roll || "",
+                            nationality_type: row.nationality_type || "",
+                            foreign_author_name: row.foreign_author_name || "",
+                            foreign_author_involved,
+                            foreign_author_country_name: row.foreign_author_country_name || "",
+                            foreign_author_institute_name: row.foreign_author_institute_name || "",
+                            foreign_author_details,
+                            indexing: row.indexing || ""
+                        };
                     });
-                    console.log("Processed Data:", parsedData);
                     setBulkJournal(parsedData);
                 },
                 header: true,
@@ -92,59 +141,72 @@ export const UplaodCSV = ({ handleClose, modal }) => {
         }
     };
 
+    const {data:journal_papers_data} = useFacultySection("journal_papers");
     const handleSubmit = async (e) => {
-        setSubmitting(true)
-        e.preventDefault()
-
+        setSubmitting(true);
+        e.preventDefault();
         try {
+            let newPapers = [...journal_papers_data];
             for (let i = 0; i < bulkJournal.length; i++) {
-                await fetch('/api/create', {
+                const id = Date.now().toString() + i;
+                const result = await fetch('/api/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         type: 'journal_papers',
                         ...bulkJournal[i],
-                        id: Date.now().toString(),
+                        id,
                         publication_date: bulkJournal[i].publication_date ? new Date(bulkJournal[i].publication_date).toISOString().split("T")[0] : null,
                         email: session?.user?.email
                     }),
-                })
+                });
+                if (result.ok) {
+                    newPapers.push({ ...bulkJournal[i], id });
+                }
             }
-
-            handleClose()
-            refreshData()
-            // Refresh context data instead of page reload
-            // Component will update automatically through context
+            updateFacultySection("journal_papers", newPapers);
+            if (typeof window !== "undefined" && window.getJournalPapersComponent) {
+                window.getJournalPapersComponent().setPapers(newPapers);
+            }
+            handleClose();
         } catch (error) {
-            console.error('Error:', error)
+            console.error('Error:', error);
         } finally {
-            setSubmitting(false)
+            setSubmitting(false);
         }
-    }
-    const downloadTemplate = () => {
-        const headers = [
-            "authors", "title", "journal_name", "volume", "publication_year",
-            "pages", "journal_quartile", "publication_date", "student_involved",
-            "student_details", "doi_url"
-        ];
-        const rows = [
-            ['John Doe', 'AI in Healthcare', 'International Journal of AI', 'Spring 2023 Edition', '2023', '156', 'Q1', '15/06/2023', '1', 'Emily Johnson', 'https://doi.org/10.1'],
-            ['Jane Smith', 'Blockchain in Finance', 'Journal of FinTech Innovations', 'Vol A', '2022', '89', 'Q2', '10/09/2022', '0', '', 'https://doi.org/10.5678']
-        ];
-        const csvContent = [
-            headers.join(','), 
-            ...rows.map(row => row.map(value => `"${value}"`).join(','))
-        ].join('\n');
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'Journal_Papers.csv';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
     };
+        const downloadTemplate = () => {
+            const headers = [
+                "authors", "title", "journal_name", "volume", "publication_year",
+                "pages", "journal_quartile", "publication_date", "student_involved",
+                "student_name", "student_roll", "nationality_type", "foreign_author_name",
+                "foreign_author_involved", "foreign_author_country_name", "foreign_author_institute_name",
+                "indexing", "doi_url"
+            ];
+            const rows = [
+                [
+                    'John Doe', 'AI in Healthcare', 'International Journal of AI', 'Spring 2023 Edition', '2023', '156', 'Q1', '15/06/2023', '1',
+                    'Emily Johnson', '12345', 'International', 'Jane Smith', '1', 'USA', 'MIT', 'SCOPUS', 'https://doi.org/10.1'
+                ],
+                [
+                    'Jane Smith', 'Blockchain in Finance', 'Journal of FinTech Innovations', 'Vol A', '2022', '89', 'Q2', '10/09/2022', '0',
+                    '', '', 'National', '', '0', '', '', 'SCI', 'https://doi.org/10.5678'
+                ]
+            ];
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(row => row.map(value => `"${value}"`).join(','))
+            ].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Journal_Papers.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        };
     return (
         <Dialog open={modal} onClose={handleClose} maxWidth="md" fullWidth>
             <form onSubmit={handleSubmit}>
@@ -189,6 +251,10 @@ export const UplaodCSV = ({ handleClose, modal }) => {
     )
 }
 export const AddForm = ({ handleClose, modal }) => {
+    const toArray = (str) => {
+        if (!str) return [];
+        return str.split(',').map(s => s.trim()).filter(Boolean);
+    };
     const { data: session } = useSession()
     const { updateFacultySection } = useFacultyData();
     const initialState = {
@@ -212,11 +278,14 @@ export const AddForm = ({ handleClose, modal }) => {
         foreign_author_country_name:"",
         foreign_author_institute_name:"",
         foreign_author_details:"",
-        indexing:""
+        indexing:"",
+        collaboraters : [],
 
     }
     const [content, setContent] = useState(initialState)
     const [submitting, setSubmitting] = useState(false)
+    const [showModal , setShowModal] = useState(false);
+
     const {data:journal_papers_data} = useFacultySection("journal_papers")
 
     const handleChange = (e) => {
@@ -237,6 +306,7 @@ export const AddForm = ({ handleClose, modal }) => {
         if (studentsName.length !== studentRoll.length) {
             alert("Number of names and roll numbers do not match!");
             setSubmitting(false);
+            return
         } else {
             content.student_details = studentsName
             .map((name, i) => `${name} - ${studentRoll[i]}`)
@@ -260,6 +330,7 @@ export const AddForm = ({ handleClose, modal }) => {
         ) {
             alert("Number of foreign author fields do not match!");
             setSubmitting(false);
+            return
         } else {
             content.foreign_author_details = foreignAuthorNames
             .map(
@@ -289,7 +360,7 @@ export const AddForm = ({ handleClose, modal }) => {
 
             if (!result.ok) throw new Error('Failed to create')
             
-            const updatedData = [...journal_papers_data,content]
+            const updatedData = [...journal_papers_data,newPaper]
             updateFacultySection("journal_papers",updatedData)
             
             handleClose()
@@ -518,7 +589,53 @@ export const AddForm = ({ handleClose, modal }) => {
                         value={content.doi_url}
                         onChange={handleChange}
                     />
+
+                    <div className="mt-4">
+                        <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                            Collaborating Faculty Members
+                        </Typography>
+
+                    <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md bg-gray-50">
+                        {content.collaboraters.length > 0 ? (
+                            content.collaboraters.map((collaborator, index) => (
+                                <div
+                                    key={index}
+                                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                >
+                                    {collaborator}
+                                </div>
+                            ))
+                        ) : (
+                            <Typography variant="body2" color="textSecondary">
+                                No collaborators added yet.
+                            </Typography>
+                        )}
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => setShowModal(true)}
+                        className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                    >
+                        Add Collaborating Faculty Members
+                    </button>
+                    </div>
+
+                    <Collaborater
+                                    isOpen={showModal}
+                                    initialMembers={content.collaboraters}
+                                    returnValue={null}
+                                    title="Journal Paper Collaborators"
+                                    description="Add faculty members' emails who have contributed to this journal paper."
+                                    questionToAsked="You can add multiple contributors."
+                                    onSave={(members) =>
+                                        setContent({ ...content, collaboraters: members })
+                                    }
+                                    onClose={setShowModal}
+                                />
+                    
                 </DialogContent>
+
                 <DialogActions>
                     <Button
                         type="submit"
@@ -537,18 +654,26 @@ export const EditForm = ({ handleClose, modal, values }) => {
     const { data: session } = useSession();
     const { updateFacultySection } = useFacultyData();
     const [submitting, setSubmitting] = useState(false);
-    const {data:journal_papers_data} = useFacultyData("journal_papers");
+    const {data:journal_papers_data} = useFacultySection("journal_papers");
 
     const [content, setContent] = useState({
         ...values,
         publication_date: values.publication_date
             ? new Date(values.publication_date).toISOString().split('T')[0]
-            : '', 
+            : '',
+        collaboraters: Array.isArray(values?.collaboraters)
+            ? values.collaboraters
+            : (values?.collaboraters ? String(values.collaboraters).split(',').map(s => s.trim()).filter(Boolean) : []),
     });
+    const [showModal, setShowModal] = useState(false);
 
     const handleChange = (e) => {
         const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
         setContent({ ...content, [e.target.name]: value });
+    };
+
+    const handleCollaboratorsSave = (members) => {
+        setContent(prev => ({ ...prev, collaboraters: members || [] }));
     };
 
     const handleDateChange = (newValue) => {
@@ -581,11 +706,20 @@ export const EditForm = ({ handleClose, modal, values }) => {
                 throw new Error(errorData.message || 'Failed to update');
             }
 
-            const updatedPapers = journal_papers_data.map((data)=>{
-                return data.id === content.id ? content : data
-            })
+            const normalizedContent = {
+                ...content,
+                publication_date: content.publication_date ? new Date(content.publication_date).toISOString().split('T')[0] : null,
+                collaboraters: Array.isArray(content.collaboraters)
+                    ? content.collaboraters
+                    : (content.collaboraters ? String(content.collaboraters).split(',').map(s => s.trim()).filter(Boolean) : []),
+            };
 
-            updateFacultySection('journalPapers', updatedPapers);
+            const updatedPapers = journal_papers_data.map((data) => data.id === normalizedContent.id ? normalizedContent : data);
+
+            updateFacultySection('journal_papers', updatedPapers);
+            if (typeof window !== 'undefined' && window.getJournalPapersComponent) {
+                window.getJournalPapersComponent().setPapers(updatedPapers);
+            }
 
             handleClose();
         } catch (error) {
@@ -748,6 +882,48 @@ export const EditForm = ({ handleClose, modal, values }) => {
                         value={content.doi_url}
                         onChange={handleChange}
                     />
+
+                    <div className="mt-4">
+                        <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                            Collaborating Faculty Members
+                        </Typography>
+
+                        <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md bg-gray-50">
+                            {content.collaboraters && content.collaboraters.length > 0 ? (
+                                content.collaboraters.map((collaborator, index) => (
+                                    <div
+                                        key={index}
+                                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                    >
+                                        {collaborator}
+                                    </div>
+                                ))
+                            ) : (
+                                <Typography variant="body2" color="textSecondary">
+                                    No collaborators added yet.
+                                </Typography>
+                            )}
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowModal(true)}
+                            className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                        >
+                            Edit Collaborating Faculty Members
+                        </button>
+                    </div>
+
+                    <Collaborater
+                                        isOpen={showModal}
+                                        initialMembers={content.collaboraters}
+                                        returnValue={null}
+                                        title="Journal Paper Collaborators"
+                                        description="Add faculty members' emails who have contributed to this journal paper."
+                                        questionToAsked="You can add multiple contributors."
+                                        onSave={(members) => handleCollaboratorsSave(members)}
+                                        onClose={setShowModal}
+                                    />
                 </DialogContent>
                 <DialogActions>
                     <Button type="submit" color="primary" disabled={submitting}>
@@ -768,6 +944,7 @@ export default function JournalPaperManagement() {
     const [openEdit, setOpenEdit] = useState(false)
     const [selectedPaper, setSelectedPaper] = useState(null)
     const refreshData = useRefreshData(false)
+    const {data:journal_paper_data} = useFacultySection("journal_papers")
 
     // Set up component reference for child components
     React.useEffect(() => {
@@ -805,9 +982,9 @@ export default function JournalPaperManagement() {
                     throw new Error(errorData.message || 'Failed to delete');
                 }
     
-                const updatedPapers = papers.filter((paper) => paper.id !== id)
+                const updatedPapers = journal_paper_data.filter((paper) => paper.id !== id)
                 setPapers(updatedPapers);
-                updateFacultySection('journalPapers', updatedPapers)
+                updateFacultySection('journal_papers', updatedPapers)
             } catch (error) {
                 console.error('Error:', error);
                 alert('Failed to delete the paper. Please try again.');

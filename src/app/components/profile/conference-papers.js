@@ -17,8 +17,11 @@ import {
     Select,
     MenuItem,
     InputLabel,
-    Typography
+    Typography,
+    Chip,
+    Stack
   } from '@mui/material'
+import Collaborater from '../modal/collaborater'
   import { useSession } from 'next-auth/react'
   import React, { useState } from 'react'
   import useRefreshData from '@/custom-hooks/refresh'
@@ -45,12 +48,22 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                 complete: (result) => {
                     const parsedData = result.data
                         .filter(row => row.conference_year && row.conference_year.trim() !== '')
-                        .map(row => {
-                            row.conference_year = parseInt(row.conference_year);
-                            return row;
-                        });
-                    
-                    console.log("Parsed Data:", parsedData); // Debugging log
+                        .map(row => ({
+                            authors: row.authors || "",
+                            title: row.title || "",
+                            conference_name: row.conference_name || "",
+                            location: row.location || "",
+                            conference_year: row.conference_year ? parseInt(row.conference_year) : new Date().getFullYear(),
+                            conference_type: row.conference_type || "National",
+                            student_name: row.student_name || "",
+                            student_roll_no: row.student_roll_no || "",
+                            foreign_author_name: row.foreign_author_name || "",
+                            foreign_author_country_name: row.foreign_author_country_name || "",
+                            foreign_author_institute_name: row.foreign_author_institute_name || "",
+                            pages: row.pages || "",
+                            indexing: row.indexing || "",
+                            doi: row.doi || "",
+                        }));
                     setBulkConference(parsedData);
                 },
                 header: true,
@@ -59,45 +72,36 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
         }
     };
 
+    const {data:conference_papers_data} = useFacultySection("conference_papers");
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (bulkConference.length === 0) {
             console.error('No data to submit');
             return;
         }
-
         setSubmitting(true);
-
         try {
-            let lastResponse;
+            let newPapers = [...conference_papers_data];
             for (let i = 0; i < bulkConference.length; i++) {
+                const id = Date.now().toString() + i;
                 const result = await fetch('/api/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         type: 'conference_papers',
                         ...bulkConference[i],
-                        id: Date.now().toString(),
+                        id,
                         email: session?.user?.email
                     }),
                 });
-                
-                if (i === bulkConference.length - 1) {
-                    // Save the last response to update the context
-                    lastResponse = await result.json();
+                if (result.ok) {
+                    newPapers.push({ ...bulkConference[i], id });
                 }
             }
-
-            if (lastResponse) {
-                // Update the context data
-                updateFacultySection(4, lastResponse.data);
-                
-                // Update the component's state via the window reference
-                if (window.getConferencePapersComponent) {
-                    window.getConferencePapersComponent().updateData(lastResponse.data);
-                }
+            updateFacultySection("conference_papers", newPapers);
+            if (typeof window !== "undefined" && window.getConferencePapersComponent) {
+                window.getConferencePapersComponent().updateData(newPapers);
             }
-
             handleClose();
         } catch (error) {
             console.error('Error:', error);
@@ -107,10 +111,10 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
     };
 
     const downloadTemplate = () => {
-        const headers = ['title','authors' , 'conference_name', 'location', 'conference_year', 'pages', 'indexing', 'foreign_author', 'student_involved', 'doi'];
+        const headers = ['title','authors' , 'conference_name', 'location', 'conference_year', 'pages', 'indexing', 'foreign_author', 'student_involved', 'doi','conference_type','student_name','student_roll_no','foreign_author_name','foreign_author_country_name','foreign_author_institute_name'];
         const csvContent = headers.join(',') + '\n' +
-'AI in Robotics,John Doe,International Conference on AI,New York,2023,156,Scopus,Yes,5,10.1234/abcd\n' +
-'Jane Smith,Blockchain Innovations,Global FinTech Conference,London,2022,89,Web of Science,No,,10.5678/efgh';
+'AI in Robotics,John Doe,International Conference on AI,New York,2023,156,Scopus,Yes,5,10.1234/abcd,National\n' +
+'Jane Smith,Blockchain Innovations,Global FinTech Conference,London,2022,89,Web of Science,No,,10.5678/efgh,International';
 
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
@@ -174,6 +178,7 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
         const { data: session } = useSession();
         const { updateFacultySection } = useFacultyData();
         const {data:conference_papers_data} = useFacultySection("conference_papers")
+        const [showCollaborators, setShowCollaborators] = useState(false);
 
         const initialState = {
             authors: "",
@@ -190,6 +195,7 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
             pages: "",
             indexing: "",
             doi: "",
+            collaboraters: [],
         };
 
         const [content, setContent] = useState(initialState);
@@ -204,20 +210,22 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
             e.preventDefault();
 
             try {
+                const id = Date.now().toString();
             const result = await fetch("/api/create", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                 type: "conference_papers",
                 ...content,
-                id: Date.now().toString(),
+                id: id,
                 email: session?.user?.email,
                 }),
             });
 
             if (!result.ok) throw new Error("Failed to create");
-
-            const updatedData = [...conference_papers_data,content]
+            
+            const { conference } = await result.json();
+            const updatedData = [...conference_papers_data, conference];
 
             updateFacultySection("conference_papers", updatedData);
 
@@ -376,6 +384,51 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                     value={content.doi}
                     onChange={handleChange}
                 />
+
+                {/* Collaborators */}
+                <div className="mt-4">
+                    <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                        Collaborating Faculty Members
+                    </Typography>
+
+                    <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md bg-gray-50">
+                        {content.collaboraters && content.collaboraters.length > 0 ? (
+                            content.collaboraters.map((collaborator, index) => (
+                                <div
+                                    key={index}
+                                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                >
+                                    {collaborator}
+                                </div>
+                            ))
+                        ) : (
+                            <Typography variant="body2" color="textSecondary">
+                                No collaborators added yet.
+                            </Typography>
+                        )}
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => setShowCollaborators(true)}
+                        className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                    >
+                        Add Collaborating Faculty Members
+                    </button>
+                </div>
+                <Collaborater
+                    isOpen={showCollaborators}
+                    handleClose={() => setShowCollaborators(false)}
+                    initialMembers={content.collaboraters || []}
+                    title="Conference Paper Collaborators"
+                    description="Add faculty members who collaborated on this conference paper."
+                    questionToAsked="Add collaborating faculty members' emails"
+                    onSave={(members) => {
+                        setContent({ ...content, collaboraters: members });
+                        setShowCollaborators(false);
+                    }}
+                    onClose={() => setShowCollaborators(false)}
+                />
                 </DialogContent>
                 <DialogActions>
                 <Button type="submit" color="primary" disabled={submitting}>
@@ -391,8 +444,17 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
     export const EditForm = ({ handleClose, modal, values , papers }) => {
         const { data: session } = useSession();
         const { updateFacultySection } = useFacultyData();
-        const [content, setContent] = useState(values);
+        const [content, setContent] = useState(() => {
+            if (values?.collaboraters && typeof values.collaboraters === 'string') {
+                return {
+                    ...values,
+                    collaboraters: values.collaboraters.split(',').map(email => email.trim())
+                };
+            }
+            return values;
+        });
         const [submitting, setSubmitting] = useState(false);
+        const [showCollaborators, setShowCollaborators] = useState(false);
         const {data:conference_papers_data} = useFacultySection("conference_papers")
 
         const handleChange = (e) => {
@@ -416,8 +478,9 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
 
             if (!result.ok) throw new Error("Failed to update");
 
-            const updatedData = conference_papers_data.map((data)=>{
-                return data.id === content.id ? content : data
+            const { conference } = await result.json();
+            const updatedData = conference_papers_data.map((data) => {
+                return data.id === content.id ? conference : data
             });
 
             updateFacultySection("conference_papers", updatedData);
@@ -578,6 +641,51 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                     value={content?.doi}
                     onChange={handleChange}
                 />
+
+                {/* Collaborators */}
+                <div className="mt-4">
+                    <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                        Collaborating Faculty Members
+                    </Typography>
+
+                    <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md bg-gray-50">
+                        {content.collaboraters && content.collaboraters.length > 0 ? (
+                            content.collaboraters.map((collaborator, index) => (
+                                <div
+                                    key={index}
+                                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                >
+                                    {collaborator}
+                                </div>
+                            ))
+                        ) : (
+                            <Typography variant="body2" color="textSecondary">
+                                No collaborators added yet.
+                            </Typography>
+                        )}
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={() => setShowCollaborators(true)}
+                        className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                    >
+                        Add Collaborating Faculty Members
+                    </button>
+                </div>
+                <Collaborater
+                    isOpen={showCollaborators}
+                    handleClose={() => setShowCollaborators(false)}
+                    initialMembers={content.collaboraters || []}
+                    title="Conference Paper Collaborators"
+                    description="Add faculty members who collaborated on this conference paper."
+                    questionToAsked="Add collaborating faculty members' emails"
+                    onSave={(members) => {
+                        setContent({ ...content, collaboraters: members });
+                        setShowCollaborators(false);
+                    }}
+                    onClose={() => setShowCollaborators(false)}
+                />
                 </DialogContent>
                 <DialogActions>
                 <Button type="submit" color="primary" disabled={submitting}>
@@ -597,6 +705,7 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
       const [openEdit, setOpenEdit] = useState(false)
       const [selectedPaper, setSelectedPaper] = useState(null)
       const { facultyData, loading, updateFacultySection } = useFacultyData()
+      const {data:conference_data} = useFacultySection("conference_papers")
       
       // Add window reference to this component
       React.useEffect(() => {
@@ -641,13 +750,12 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                   
                   if (!response.ok) throw new Error('Failed to delete')
                   
-                  const updatedData = await response.json();
-                  
+                  const updatedData = conference_data.filter((paper) => paper.id !== id)                  
                   // Update the context data
-                  updateFacultySection(4, updatedData.data);
+                  updateFacultySection("conference_papers", updatedData);
                   
                   // Update the local state
-                  setPapers(updatedData.data);
+                  setPapers(updatedData);
               } catch (error) {
                   console.error('Error:', error)
               }
@@ -704,8 +812,9 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                             <TableCell>Pages</TableCell>
                             <TableCell>Indexing</TableCell>
                             <TableCell>Foreign Author</TableCell>
-                            <TableCell>Student Involved</TableCell>
+                            <TableCell>Student Details</TableCell>
                             <TableCell>DOI</TableCell>
+                            {/* <TableCell>Collaborators</TableCell> */}
                             <TableCell align="right">Actions</TableCell>
                             </TableRow>
                             </TableHead>
@@ -721,11 +830,20 @@ export const UploadCSVConference = ({ handleClose, modal }) => {
                                   <TableCell>{paper.conference_year}</TableCell>
                                   <TableCell>{paper.pages}</TableCell>
                                   <TableCell>{paper.indexing}</TableCell>
-                                  <TableCell>{paper.foreign_author}</TableCell>
-                                  <TableCell>{paper.student_involved}</TableCell>
+                                  <TableCell>{paper.foreign_author_name ? "yes" : "no"}</TableCell>
+                                  <TableCell>{paper.student_name ? "yes" : "no"}</TableCell>
                                   <TableCell>{paper.doi}</TableCell>
-                                  {/* <TableCell>{paper.conference_year}</TableCell> */}
-                                  
+                                  {/* <TableCell>
+                                    {paper.collaboraters ? (
+                                      Array.isArray(paper.collaboraters) && paper.collaboraters.length > 0 ? (
+                                        <Stack direction="row" spacing={1} style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
+                                          {paper.collaboraters.map((email) => (
+                                            <Chip key={email} label={email} size="small" />
+                                          ))}
+                                        </Stack>
+                                      ) : "None"
+                                    ) : "None"}
+                                  </TableCell> */}
                                   <TableCell align="right">
                                       <IconButton 
                                           onClick={() => handleEdit(paper)}

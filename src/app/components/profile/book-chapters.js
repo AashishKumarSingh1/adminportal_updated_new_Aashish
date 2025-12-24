@@ -17,6 +17,7 @@ import {
 } from '@mui/material'
 import { useSession } from 'next-auth/react'
 import React, { useState } from 'react'
+import Collaborater from '../modal/collaborater';
 import useRefreshData from '@/custom-hooks/refresh'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -36,10 +37,12 @@ export const AddForm = ({ handleClose, modal }) => {
         year: new Date().getFullYear(),
         scopus: '',
         doi: ''
+        ,collaboraters: []
     }
     const [content, setContent] = useState(initialState)
     const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
+    const [showModal, setShowModal] = useState(false)
     const { updateFacultySection } = useFacultyData()
     const {data:book_chapters_data} = useFacultySection("book_chapters")
 
@@ -52,17 +55,21 @@ export const AddForm = ({ handleClose, modal }) => {
         e.preventDefault()
 
         try {
+
+            const newBook = {
+                ...content,
+                    collaboraters: content.collaboraters || [],
+                    publish_date: content.publish_date
+                        ? new Date(content.publish_date).toISOString().split('T')[0]  // Format as 'YYYY-MM-DD'
+                        : null,
+                    id: Date.now().toString(),
+            }
             const result = await fetch('/api/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     type: 'book_chapters',
-                    ...content,
-                    // Example: Handle date fields if they exist (assuming there's a publish_date field)
-                    publish_date: content.publish_date
-                        ? new Date(content.publish_date).toISOString().split('T')[0]  // Format as 'YYYY-MM-DD'
-                        : null,
-                    id: Date.now().toString(),
+                    ...newBook,
                     email: session?.user?.email
                 }),
             });
@@ -70,7 +77,7 @@ export const AddForm = ({ handleClose, modal }) => {
             if (!result.ok) throw new Error('Failed to create')
             
             handleClose()
-            const updatedData = [...book_chapters_data,content]
+            const updatedData = [...book_chapters_data,newBook]
             updateFacultySection("book_chapters",updatedData)
             setContent(initialState)
             handleClose()
@@ -167,6 +174,46 @@ export const AddForm = ({ handleClose, modal }) => {
                         value={content.doi}
                         onChange={handleChange}
                     />
+                    <div className="mt-4">
+                        <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                            Collaborating Faculty Members
+                        </Typography>
+
+                        <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md bg-gray-50">
+                            {content.collaboraters && content.collaboraters.length > 0 ? (
+                                content.collaboraters.map((collaborator, index) => (
+                                    <div
+                                        key={index}
+                                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                    >
+                                        {collaborator}
+                                    </div>
+                                ))
+                            ) : (
+                                <Typography variant="body2" color="textSecondary">
+                                    No collaborators added yet.
+                                </Typography>
+                            )}
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowModal(true)}
+                            className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                        >
+                            Add Collaborating Faculty Members
+                        </button>
+                    </div>
+
+                    <Collaborater
+                        isOpen={showModal}
+                        initialMembers={content.collaboraters}
+                        title="Book Chapter Collaborators"
+                        description="Add faculty members' emails who have contributed to this chapter."
+                        questionToAsked="You can add multiple contributors."
+                        onSave={(members) => setContent({ ...content, collaboraters: members })}
+                        onClose={setShowModal}
+                    />
                 </DialogContent>
                 <DialogActions>
                     <Button
@@ -185,9 +232,15 @@ export const AddForm = ({ handleClose, modal }) => {
 // Edit Form Component
 export const EditForm = ({ handleClose, modal, values }) => {
     const { data: session } = useSession()
-    const [content, setContent] = useState(values)
+    const [content, setContent] = useState({
+        ...values,
+        collaboraters: Array.isArray(values?.collaboraters)
+            ? values.collaboraters
+            : (values?.collaboraters ? String(values.collaboraters).split(',').map(s => s.trim()).filter(Boolean) : []),
+    })
     const refreshData = useRefreshData(false)
     const [submitting, setSubmitting] = useState(false)
+    const [showModalEdit, setShowModalEdit] = useState(false)
     const {updateFacultySection} = useFacultyData();
     const {data:book_chapter_data} = useFacultySection("book_chapters")
     const handleChange = (e) => {
@@ -205,6 +258,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
                 body: JSON.stringify({
                     type: 'book_chapters',
                     ...content,
+                    collaboraters: content.collaboraters || [],
                     email: session?.user?.email
                 }),
             })
@@ -320,6 +374,46 @@ export const EditForm = ({ handleClose, modal, values }) => {
                         onChange={handleChange}
                         helperText="Digital Object Identifier (if available)"
                     />
+                    <div className="mt-4">
+                        <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                            Collaborating Faculty Members
+                        </Typography>
+
+                        <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-md bg-gray-50">
+                            {content.collaboraters && content.collaboraters.length > 0 ? (
+                                content.collaboraters.map((collaborator, index) => (
+                                    <div
+                                        key={index}
+                                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                                    >
+                                        {collaborator}
+                                    </div>
+                                ))
+                            ) : (
+                                <Typography variant="body2" color="textSecondary">
+                                    No collaborators added yet.
+                                </Typography>
+                            )}
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => setShowModalEdit(true)}
+                            className="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                        >
+                            Edit Collaborating Faculty Members
+                        </button>
+                    </div>
+
+                    <Collaborater
+                        isOpen={showModalEdit}
+                        initialMembers={content.collaboraters}
+                        title="Book Chapter Collaborators"
+                        description="Add faculty members' emails who have contributed to this chapter."
+                        questionToAsked="You can add multiple contributors."
+                        onSave={(members) => setContent({ ...content, collaboraters: members })}
+                        onClose={setShowModalEdit}
+                    />
                 </DialogContent>
                 <DialogActions>
                     <Button
@@ -425,6 +519,7 @@ export default function BookChapterManagement() {
                             <TableCell>DOI</TableCell>
                             <TableCell>Publisher</TableCell>
                             <TableCell>Year</TableCell>
+                            <TableCell>Collaborators</TableCell>
                             <TableCell align="right">Actions</TableCell>
                         </TableRow>
                     </TableHead>
@@ -438,6 +533,13 @@ export default function BookChapterManagement() {
                                 <TableCell>{chapter.doi}</TableCell>
                                 <TableCell>{chapter.publisher}</TableCell>
                                 <TableCell>{chapter.year}</TableCell>
+                                <TableCell>
+                                    {chapter.collaboraters && chapter.collaboraters.length > 0 ? (
+                                        chapter.collaboraters.map((c, idx) => (
+                                            <div key={idx} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm inline-block mr-1">{c}</div>
+                                        ))
+                                    ) : ('-')}
+                                </TableCell>
                                 <TableCell align="right">
                                     <IconButton 
                                         onClick={() => handleEdit(chapter)}
@@ -458,7 +560,7 @@ export default function BookChapterManagement() {
                         ))}
                         {chapters?.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={6} align="center">
+                                <TableCell colSpan={9} align="center">
                                     No book chapters found
                                 </TableCell>
                             </TableRow>
