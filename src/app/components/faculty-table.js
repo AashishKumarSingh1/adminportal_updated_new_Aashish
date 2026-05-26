@@ -49,12 +49,15 @@ export function FacultyTable() {
   const [facultyToDelete, setFacultyToDelete] = useState(null)
   const [nameSearch, setNameSearch] = useState('')
   const [emailSearch, setEmailSearch] = useState('')
+  const [nameInput, setNameInput] = useState('')
+  const [emailInput, setEmailInput] = useState('')
+  const [searchTimeout, setSearchTimeout] = useState(null)
 
   // Fetch faculty data function
   const fetchFaculty = async (targetPage = page, targetRowsPerPage = rowsPerPage) => {
     try {
       setLoading(true)
-      const res = await fetch(`/api/faculty?type=all&page=${targetPage + 1}&limit=${targetRowsPerPage}`)
+      const res = await fetch(`/api/faculty?type=all&page=${targetPage + 1}&limit=${targetRowsPerPage}&name=${nameSearch}&email=${emailSearch}`)
       if (!res.ok) throw new Error('Failed to fetch')
       const data = await res.json()
       setRows(Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []))
@@ -69,7 +72,7 @@ export function FacultyTable() {
   // Fetch faculty data when pagination changes
   useEffect(() => {
     fetchFaculty()
-  }, [page, rowsPerPage])
+  }, [page, rowsPerPage,nameSearch,emailSearch])
 
     const handleChangePage = (event, newPage) => {
         setPage(newPage)
@@ -131,28 +134,10 @@ export function FacultyTable() {
     setOpenEdit(false)
     setOpenDelete(true)
   }
-
-  // Local filter on current page rows
-  const filteredRows = rows.filter(row => {
-    const nameMatch = row.name?.toLowerCase().includes(nameSearch.toLowerCase())
-    const emailMatch = row.email?.toLowerCase().includes(emailSearch.toLowerCase())
-    return nameMatch && emailMatch
-  })
-
-  const hasSearch = Boolean(nameSearch || emailSearch)
-  const displayRows = hasSearch ? filteredRows : rows
-
   useEffect(() => {
     setPage(0)
   }, [nameSearch, emailSearch])
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
-        <Loading />
-      </div>
-    )
-  }
 
   return (
     <Paper sx={{ width: '100%', overflow: 'hidden', p: 3 }}>
@@ -161,12 +146,26 @@ export function FacultyTable() {
           Faculty Management
                     </Typography>
         <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+          {loading && <Loading/>}
           <TextField
             label="Search by Name"
             variant="outlined"
             size="small"
-            value={nameSearch}
-            onChange={(e) => setNameSearch(e.target.value)}
+            value={nameInput}
+            onChange={(e) => {
+              const value = e.target.value
+
+              setNameInput(value)
+              if (searchTimeout) {
+                clearTimeout(searchTimeout)
+              }
+
+              const timeout = setTimeout(() => {
+                setNameSearch(value)
+              }, 1000)
+              setSearchTimeout(timeout)
+            }}
+
             sx={{ flexGrow: 1 }}
             InputProps={{
               startAdornment: <SearchIcon sx={{ color: 'action.active', mr: 1 }} />,
@@ -176,8 +175,21 @@ export function FacultyTable() {
             label="Search by Email"
                             variant="outlined"
                             size="small"
-            value={emailSearch}
-            onChange={(e) => setEmailSearch(e.target.value)}
+            value={emailInput}
+            onChange={(e) => {
+              const value = e.target.value
+
+              setEmailInput(value)
+              if (searchTimeout) {
+                clearTimeout(searchTimeout)
+              }
+
+              const timeout = setTimeout(() => {
+                setEmailSearch(value)
+              }, 1000)
+
+              setSearchTimeout(timeout)
+            }}
             sx={{ flexGrow: 1 }}
             InputProps={{
               startAdornment: <SearchIcon sx={{ color: 'action.active', mr: 1 }} />,
@@ -208,8 +220,8 @@ export function FacultyTable() {
               ))}
                         </TableRow>
                     </TableHead>
-                    <TableBody>
-            {displayRows.map((row) => (
+            <TableBody>
+              {rows.map((row) => (
                 <TableRow hover tabIndex={-1} key={row.email}>
                   <TableCell>{row.name}</TableCell>
                   <TableCell>{row.email}</TableCell>
@@ -233,7 +245,7 @@ export function FacultyTable() {
                       <DeleteIcon />
                     </IconButton>
                   </TableCell>
-                            </TableRow>
+                    </TableRow>
               ))}
                     </TableBody>
         </Table>
@@ -241,7 +253,7 @@ export function FacultyTable() {
                             <TablePagination
         rowsPerPageOptions={[10, 25, 50]}
         component="div"
-                              count={hasSearch ? filteredRows.length : total}
+                              count={total}
                                 rowsPerPage={rowsPerPage}
                                 page={page}
         onPageChange={handleChangePage}
