@@ -1,5 +1,5 @@
 import GoogleProvider from 'next-auth/providers/google'
-import { ROLES, ROLE_NAMES } from '@/lib/roles'
+import { ROLES } from '@/lib/roles'
 import { query } from '@/lib/db'
 export const authOptions = {
     providers: [
@@ -31,12 +31,33 @@ export const authOptions = {
   
           const userData = results[0]
           const numericRole = parseInt(userData.role)
-          user.numericRole = numericRole 
-          user.role = Object.keys(ROLES).find(key => ROLES[key] === numericRole)
+          user.numericRole = numericRole
+          user.role = Object.keys(ROLES).find((key) => ROLES[key] === numericRole)
           user.department = userData.department
           user.administration = userData.administration
           user.designation = userData.designation
-  
+          user.clubId = userData.club_id ? parseInt(userData.club_id, 10) : null
+
+          if (numericRole === ROLES.CLUB_ADMIN) {
+            if (!user.clubId) {
+              console.log('Club admin missing club_id on user record')
+              return false
+            }
+            const clubRows = await query(
+              'SELECT id, club_login_id, status FROM clubs WHERE id = ? LIMIT 1',
+              [user.clubId]
+            )
+            if (!clubRows.length) {
+              console.log('Club not found for club admin login')
+              return false
+            }
+            if (clubRows[0].status !== 'Active') {
+              console.log('Club is inactive — login denied')
+              return false
+            }
+            user.clubLoginId = clubRows[0].club_login_id
+          }
+
           return true
         } catch (error) {
           console.error("Database error:", error)
@@ -52,6 +73,8 @@ export const authOptions = {
           token.department = user.department
           token.administration = user.administration
           token.designation = user.designation
+          token.clubId = user.clubId ?? null
+          token.clubLoginId = user.clubLoginId ?? null
         }
         return token
       },
@@ -64,6 +87,8 @@ export const authOptions = {
           session.user.department = token.department
           session.user.administration = token.administration
           session.user.designation = token.designation
+          session.user.clubId = token.clubId ?? null
+          session.user.clubLoginId = token.clubLoginId ?? null
         }
         return session
       }
