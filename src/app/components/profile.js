@@ -398,6 +398,8 @@ export default function Profilepage() {
                                 <h4 style={{marginTop: '10px',fontWeight:'bold'}}>Contact:</h4>
                                 <p>Email: {detail?.profile?.email}</p>
                                 <p>Phone: {detail?.profile?.ext_no}</p>
+                                <h4 style={{marginTop: '10px',fontWeight:'bold'}}>Category: {detail?.profile?.category}</h4>
+                                <h4 style={{marginTop: '10px',fontWeight:'bold'}}>Gender: {detail?.profile?.gender}</h4>
 
                                 <h4 style={{marginTop: '10px',fontWeight:'bold'}}>Social Media & Academic Links:</h4>
                                 {detail?.profile?.linkedin && (
