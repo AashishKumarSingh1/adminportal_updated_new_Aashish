@@ -96,12 +96,13 @@ export async function POST(request) {
       switch (type) {
         case 'user':
           const userResult = await query(
-            `INSERT INTO user(name, email, role, category, department, designation, ext_no, research_interest, academic_responsibility, is_retired, retirement_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO user(name, email, role, category, gender, department, designation, ext_no, research_interest, academic_responsibility, is_retired, retirement_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
               params.name,
               params.email,
               params.role,
               params.category || null,
+              params.gender || null,
               params.department,
               params.designation,
               params.ext_no,

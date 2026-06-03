@@ -36,6 +36,7 @@ export function EditFaculty({ open, faculty, onClose, onSuccess, onDelete }) {
     designation: "",
     role: "",
     category: "",
+    gender: "",
     ext_no: "",
     research_interest: "",
     academic_responsibility: "",
@@ -76,6 +77,7 @@ export function EditFaculty({ open, faculty, onClose, onSuccess, onDelete }) {
         designation: faculty.profile.designation || "",
         role: faculty.profile.role || "",
         category: faculty.profile.category || "",
+        gender: faculty.profile.gender || "",
         ext_no: faculty.profile.ext_no || "",
         research_interest: faculty.profile.research_interest || "",
         academic_responsibility: faculty.profile.academic_responsibility || "",
@@ -339,6 +341,24 @@ export function EditFaculty({ open, faculty, onClose, onSuccess, onDelete }) {
                     <MenuItem value="OBC">OBC</MenuItem>
                     <MenuItem value="SC">SC</MenuItem>
                     <MenuItem value="ST">ST</MenuItem>
+                  </TextField>
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    select
+                    label="Gender"
+                    required
+                    value={formData.gender}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, gender: e.target.value }))
+                    }
+                    variant="outlined"
+                  >
+                    <MenuItem value="MALE">Male</MenuItem>
+                    <MenuItem value="FEMALE">Female</MenuItem>
+                    <MenuItem value="OTHER">Other</MenuItem>
                   </TextField>
                 </Grid>
 

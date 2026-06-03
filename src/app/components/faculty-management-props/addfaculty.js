@@ -27,6 +27,7 @@ export function AddFaculty({ open, onClose, onSuccess }) {
     designation: '',
     role: '',
     category: '',
+    gender: '',
     ext_no: '',
     research_interest: '',
     academic_responsibility: '',
@@ -86,6 +87,7 @@ export function AddFaculty({ open, onClose, onSuccess }) {
         designation: '',
         role: '',
         category: '',
+        gender: '',
         ext_no: '',
         research_interest: '',
         is_retired: false,
@@ -250,6 +252,22 @@ export function AddFaculty({ open, onClose, onSuccess }) {
                   <MenuItem value="OBC">OBC</MenuItem>
                   <MenuItem value="SC">SC</MenuItem>
                   <MenuItem value="ST">ST</MenuItem>
+                </TextField>
+              </Grid>
+
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  select
+                  label="Gender"
+                  required
+                  value={formData.gender}
+                  onChange={(e) => setFormData(prev => ({ ...prev, gender: e.target.value }))}
+                  variant="outlined"
+                >
+                  <MenuItem value="MALE">Male</MenuItem>
+                  <MenuItem value="FEMALE">Female</MenuItem>
+                  <MenuItem value="OTHER">Other</MenuItem>
                 </TextField>
               </Grid>
               

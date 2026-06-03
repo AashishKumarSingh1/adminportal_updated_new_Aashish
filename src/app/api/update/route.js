@@ -46,6 +46,8 @@ export async function PUT(request) {
         "research_interest",
         "academic_responsibility",
         "ext_no",
+        "category",
+        "gender",
         "linkedin",
         "google_scholar",
         "personal_webpage",
@@ -56,8 +58,11 @@ export async function PUT(request) {
 
       fields.forEach((field) => {
         if (params[field] !== undefined) {
+          const value = typeof params[field] === "string" && params[field].trim() === ""
+            ? null
+            : params[field];
           queryParts.push(`${field} = ?`);
-          updateValues.push(params[field]);
+          updateValues.push(value);
         }
       });
 
@@ -314,6 +319,7 @@ export async function PUT(request) {
                 designation,
                 role,
                 category,
+                gender,
                 ext_no,
                 research_interest,
                 academic_responsibility,
@@ -333,6 +339,7 @@ export async function PUT(request) {
                   designation = ?,
                   role = ?,
                   category = ?,
+                    gender = ?,
                 ext_no = ?,
                 research_interest = ?,
                 academic_responsibility = ?,
@@ -345,6 +352,7 @@ export async function PUT(request) {
                 designation,
                   role,
                   category || null,
+                  gender || null,
                   ext_no,
                 research_interest,
                 academic_responsibility || null,
