@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/lib/authOptions'
-import { query } from '@/lib/db'
-import { formatClubRow, stringifyJsonField } from '@/lib/clubUtils'
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/authOptions';
+import { query } from '@/lib/db';
+import { formatClubRow, stringifyJsonField } from '@/lib/clubUtils';
 
 function unauthorized() {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
@@ -25,25 +25,44 @@ async function requireClubAdmin() {
   return { session, error: null }
 }
 
-async function getClubById(clubId) {
-  const rows = await query('SELECT * FROM clubs WHERE id = ? LIMIT 1', [clubId])
-  return rows[0] ? formatClubRow(rows[0]) : null
-}
-
-export async function GET() {
+export async function GET(request) {
   try {
-    const { session, error } = await requireClubAdmin()
-    if (error) return error
+    const { searchParams } = new URL(request.url);
+    const type = searchParams.get('type'); // e.g., 'all' or 'coding-club'
 
-    const club = await getClubById(session.user.clubId)
-    if (!club) {
-      return NextResponse.json({ error: 'Club not found' }, { status: 404 })
+    // 1. PUBLIC: Fetch ALL clubs
+    if (type === 'all') {
+      const rows = await query('SELECT * FROM clubs');
+
+      console.log("All data : ", rows);
+
+      return NextResponse.json(rows.map(formatClubRow));
     }
 
-    return NextResponse.json(club)
+    // 2. PUBLIC: Fetch ONE club by slug or ID
+    if (type) {
+      const rows = await query(
+        'SELECT * FROM clubs WHERE club_login_id = ? OR id = ? LIMIT 1',
+        [type, type]
+      );
+      if (rows.length === 0) {
+        return NextResponse.json({ error: 'Club not found' }, { status: 404 });
+      }
+
+      console.log("One club data : ",formatClubRow(rows[0]) );
+      return NextResponse.json(formatClubRow(rows[0]));
+    }
+
+    // 3. ADMIN ONLY: Fetch current admin's club
+    const { session, error } = await requireClubAdmin();
+    if (error) return error;
+
+    const rows = await query('SELECT * FROM clubs WHERE id = ? LIMIT 1', [session.user.clubId]);
+    return NextResponse.json(rows[0] ? formatClubRow(rows[0]) : { error: 'Club not found' });
+
   } catch (err) {
-    console.error('GET /api/club:', err)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('GET /api/clubs:', err);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
