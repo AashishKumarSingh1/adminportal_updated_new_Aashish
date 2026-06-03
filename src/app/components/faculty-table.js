@@ -244,8 +244,9 @@ export function FacultyTable() {
                   <TableCell>{row.role}</TableCell>
                   <TableCell>
                     {row.is_retired ? (
-                      <span className="text-red-600  font-semibold">
-                        Retired<br />
+                      <span>
+                        <span className="text-red-600 font-semibold">Retired</span>
+                        <br />
                         <span>{formatDate(row.retirement_date)}</span>
                       </span>
                     ) : (

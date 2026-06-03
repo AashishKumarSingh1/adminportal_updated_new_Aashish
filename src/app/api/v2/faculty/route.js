@@ -60,7 +60,8 @@ const cardCountSubqueries = `
 
 const cardUserFields = `
   u.id, u.name, u.image, u.designation, u.department,
-  u.email, u.ext_no, u.research_interest, u.academic_responsibility
+  u.email, u.ext_no, u.research_interest, u.academic_responsibility,
+  u.gender, u.is_retired
 `
 
 export async function GET(request) {
@@ -143,7 +144,7 @@ export async function GET(request) {
       }
 
       results = await query(
-        `SELECT u.id, u.name, u.image, u.designation, u.email
+        `SELECT u.id, u.name, u.image, u.designation, u.email, u.gender, u.is_retired
         FROM user u
         WHERE u.is_deleted = 0
           AND u.department = 'Other Employees'
@@ -164,7 +165,7 @@ export async function GET(request) {
 
       results = await query(
         `SELECT
-          u.id, u.name, u.image, u.designation, u.email
+          u.id, u.name, u.image, u.designation, u.email, u.gender, u.is_retired
         FROM user u
         LEFT JOIN designation_priorities dp
           ON REPLACE(REPLACE(LOWER(u.designation), '&', ' & '), '.', '')
