@@ -57,6 +57,33 @@ export const officerDesignations = [
   'Maintenance Engineer (Civil)'
 ]
 
+
+export const StaffdepList = new Map([
+  ['arch', 'Architecture'],
+  ['che', 'Chemical Science and Technology'],
+  ['ce', 'Civil Engineering'],
+  ['cse', 'Computer Science and Engineering'],
+  ['ee', 'Electrical Engineering'],
+  ['ece', 'Electronics and Communication Engineering'],
+  ['hss', 'Humanities & Social Sciences'],
+  ['maths', 'Mathematics and Computing Technology'],
+  ['me', 'Mechanical Engineering'],
+  ['phy', 'Applied Physics and Material Engineering'],
+  ['mae', 'Mechatronics and Automation Engineering'],
+  ['mse', 'Materials Science and Engineering'],
+  ['cc', 'Computer Centre'],
+  ['lib', 'Library']
+])
+
+export function getDeptFullName(code) {
+  if (!code) return "";
+  return StaffdepList.get(code.toLowerCase()) || code;
+}
+
+// validates an incoming department code before it's saved
+export function isValidDeptCode(code) {
+  return StaffdepList.has((code || "").toLowerCase());
+}
 // book_chapters
 // conference_papers
 // consultancy_projects

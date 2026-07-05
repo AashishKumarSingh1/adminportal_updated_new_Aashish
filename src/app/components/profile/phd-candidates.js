@@ -520,7 +520,7 @@ export default function PhdCandidateManagement() {
             if (session?.user?.email) {
                 fetchCourses()
             }
-        }, [session,loading])
+        }, [phd_candidates,session,loading])
     
 
     const handleEdit = (candidate) => {
@@ -544,9 +544,9 @@ export default function PhdCandidateManagement() {
                 if (!response.ok) throw new Error('Failed to delete')
                 
                 // Update local state and context
-                const updatedCandidates = candidates.filter(candidate => candidate.id !== id);
+                const updatedCandidates = phd_candidates.filter(c => c.id !== id)
                 setCandidates(updatedCandidates);
-                updateFacultySection('phdCandidates', updatedCandidates);
+                updateFacultySection('phd_candidates', updatedCandidates);
             } catch (error) {
                 console.error('Error:', error)
             }

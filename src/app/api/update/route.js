@@ -55,17 +55,22 @@ export async function PUT(request) {
         "vidwan",
         "orcid",
       ];
+  fields.forEach((field) => {
+    if (params[field] !== undefined) {
+      let value = params[field];
 
-      fields.forEach((field) => {
-        if (params[field] !== undefined) {
-          const value = typeof params[field] === "string" && params[field].trim() === ""
-            ? null
-            : params[field];
-          queryParts.push(`${field} = ?`);
-          updateValues.push(value);
-        }
-      });
+      if (typeof value === "string" && value.trim() === "") {
+        value = null;
+      }
 
+      if (value === undefined) {
+        value = null;
+      }
+
+      queryParts.push(`${field} = ?`);
+      updateValues.push(value);
+    }
+  });
       // Add email as the last parameter
       updateValues.push(params.email);
 
