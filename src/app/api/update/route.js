@@ -46,6 +46,8 @@ export async function PUT(request) {
         "research_interest",
         "academic_responsibility",
         "ext_no",
+        "category",
+        "gender",
         "linkedin",
         "google_scholar",
         "personal_webpage",
@@ -53,14 +55,22 @@ export async function PUT(request) {
         "vidwan",
         "orcid",
       ];
+  fields.forEach((field) => {
+    if (params[field] !== undefined) {
+      let value = params[field];
 
-      fields.forEach((field) => {
-        if (params[field] !== undefined) {
-          queryParts.push(`${field} = ?`);
-          updateValues.push(params[field]);
-        }
-      });
+      if (typeof value === "string" && value.trim() === "") {
+        value = null;
+      }
 
+      if (value === undefined) {
+        value = null;
+      }
+
+      queryParts.push(`${field} = ?`);
+      updateValues.push(value);
+    }
+  });
       // Add email as the last parameter
       updateValues.push(params.email);
 
@@ -307,30 +317,34 @@ export async function PUT(request) {
             
             return NextResponse.json(socialResult)
           } else {
-            const {
-              email,
-              name,
-              department,
-              designation,
-              role,
-              ext_no,
-              research_interest,
-              academic_responsibility,
-              is_retired,
-              retirement_date,
-            } = params;
+              const {
+                email,
+                name,
+                department,
+                designation,
+                role,
+                category,
+                gender,
+                ext_no,
+                research_interest,
+                academic_responsibility,
+                is_retired,
+                retirement_date,
+              } = params;
 
             // Format retirement_date for MySQL or set to NULL
             const formattedRetirementDate = retirement_date
               ? new Date(retirement_date).toISOString().slice(0, 10)
               : null;
 
-            const facultyResult = await query(
+            await query(
               `UPDATE user SET 
                 name = ?,
                 department = ?,
-                designation = ?,
-                role = ?,
+                  designation = ?,
+                  role = ?,
+                  category = ?,
+                    gender = ?,
                 ext_no = ?,
                 research_interest = ?,
                 academic_responsibility = ?,
@@ -341,8 +355,10 @@ export async function PUT(request) {
                 name,
                 department,
                 designation,
-                role,
-                ext_no,
+                  role,
+                  category || null,
+                  gender || null,
+                  ext_no,
                 research_interest,
                 academic_responsibility || null,
                 is_retired,
@@ -350,9 +366,11 @@ export async function PUT(request) {
                 email
               ]
             )
+            // return updated user row
+            const updatedRows = await query(`SELECT * FROM user WHERE email = ?`, [email]);
             await invalidateProfileIfNeeded(type, params);
             await invalidatePublicationsCache(null);
-            return NextResponse.json(facultyResult)
+            return NextResponse.json(updatedRows[0] || null)
           }
       }
     }
