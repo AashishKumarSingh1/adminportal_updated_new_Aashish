@@ -268,7 +268,7 @@ export function EditStaff({ open, faculty, onClose, onSuccess, onDelete }) {
                     variant="outlined"
                   >
                     {[...StaffdepList].map(([key, value]) => (
-                      <MenuItem key={value} value={value}>
+                      <MenuItem key={key} value={value}>
                         {value}
                       </MenuItem>
                     ))}
@@ -308,6 +308,7 @@ export function EditStaff({ open, faculty, onClose, onSuccess, onDelete }) {
                         <MenuItem value="Technical Assistant">Technical Assistant</MenuItem>
                         <MenuItem value="Technical Assistant (SG-I)">Technical Assistant (SG-I)</MenuItem>
                         <MenuItem value="Technical Assistant (SG-II)">Technical Assistant (SG-II)</MenuItem>
+                        <MenuItem value="Sr Technical Assistant (SG-II)">Sr Technical Assistant</MenuItem>
                         <MenuItem value="Technician">Technician</MenuItem>
                         <MenuItem value="Technician (SG-I)">Technician (SG-I)</MenuItem>
                         <MenuItem value="Technician (SG-II)">Technician (SG-II)</MenuItem>

@@ -319,7 +319,7 @@ export function FacultyTable() {
       {openDelete && facultyToDelete && (
         <ConfirmDelete
           open={openDelete}
-          onClose={() => {
+          handleClose={() => {
             setOpenDelete(false)
             setFacultyToDelete(null)
           }}
