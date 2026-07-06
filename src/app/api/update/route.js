@@ -396,14 +396,14 @@ export async function PUT(request) {
             [
               params.student_name,
               params.roll_no,
-              new Date(params.registration_date).getFullYear(),
+              params.registration_year,
               params.registration_type,
               params.research_area,
               params.other_supervisors,
               params.current_status,
               params.completion_year,
               params.supervisor_type,
-              params.registration_date,
+              params.registration_date || null,
               params.id,
               params.email
             ]
