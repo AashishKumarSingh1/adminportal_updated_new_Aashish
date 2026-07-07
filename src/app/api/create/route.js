@@ -221,8 +221,10 @@ export async function POST(request) {
                 params.email,
                 params.student_name,
                 params.roll_no,
-                new Date(params.registration_date).getFullYear(),
-                params.registration_date,
+                params.registration_date
+                  ? new Date(params.registration_date).getFullYear()
+                  : null,
+                params.registration_date || null,
                 params.registration_type,
                 params.research_area,
                 params.other_supervisors,
