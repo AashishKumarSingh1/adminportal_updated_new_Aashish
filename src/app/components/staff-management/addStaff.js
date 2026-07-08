@@ -283,7 +283,7 @@ export function AddStaff({ open, onClose, onSuccess }) {
                     <MenuItem value="Technical Assistant">Technical Assistant</MenuItem>
                     <MenuItem value="Technical Assistant (SG-I)">Technical Assistant (SG-I)</MenuItem>
                     <MenuItem value="Technical Assistant (SG-II)">Technical Assistant (SG-II)</MenuItem>
-                    <MenuItem value="Sr Technical Assistant (SG-II)">Sr Technical Assistant</MenuItem>
+                    <MenuItem value="Sr Technical Assistant">Sr Technical Assistant</MenuItem>
                     <MenuItem value="Technician">Technician</MenuItem>
                     <MenuItem value="Technician (SG-I)">Technician (SG-I)</MenuItem>
                     <MenuItem value="Technician (SG-II)">Technician (SG-II)</MenuItem>
