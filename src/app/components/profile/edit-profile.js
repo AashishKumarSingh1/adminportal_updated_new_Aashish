@@ -7,10 +7,11 @@ import {
     Alert,
     Box,
     TextField,
+    MenuItem,
     Grid
 } from '@mui/material'
 import { useSession } from 'next-auth/react'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useFacultyData } from '../../../context/FacultyDataContext'
 
 export const EditProfile = ({ handleClose, modal, currentProfile, onUpdate }) => {
@@ -21,6 +22,8 @@ export const EditProfile = ({ handleClose, modal, currentProfile, onUpdate }) =>
     const [formData, setFormData] = useState({
         research_interest: currentProfile?.research_interest || '',
         ext_no: currentProfile?.ext_no || '',
+        category: currentProfile?.category || '',
+        gender: currentProfile?.gender || '',
         linkedin: currentProfile?.linkedin || '',
         google_scholar: currentProfile?.google_scholar || '',
         personal_webpage: currentProfile?.personal_webpage || '',
@@ -28,6 +31,24 @@ export const EditProfile = ({ handleClose, modal, currentProfile, onUpdate }) =>
         vidwan: currentProfile?.vidwan || '',
         orcid: currentProfile?.orcid || ''
     })
+
+    useEffect(() => {
+        if (!modal) return
+
+        setFormData({
+            research_interest: currentProfile?.research_interest || '',
+            ext_no: currentProfile?.ext_no || '',
+            category: currentProfile?.category || '',
+            gender: currentProfile?.gender || '',
+            linkedin: currentProfile?.linkedin || '',
+            google_scholar: currentProfile?.google_scholar || '',
+            personal_webpage: currentProfile?.personal_webpage || '',
+            scopus: currentProfile?.scopus || '',
+            vidwan: currentProfile?.vidwan || '',
+            orcid: currentProfile?.orcid || ''
+        })
+        setError('')
+    }, [modal, currentProfile])
 
     const handleChange = (e) => {
         const { name, value } = e.target
@@ -104,6 +125,41 @@ export const EditProfile = ({ handleClose, modal, currentProfile, onUpdate }) =>
                                 value={formData.ext_no}
                                 onChange={handleChange}
                             />
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TextField
+                                fullWidth
+                                select
+                                label="Category"
+                                name="category"
+                                value={formData.category}
+                                onChange={handleChange}
+                            >
+                                <MenuItem value="">
+                                    <em>Not set</em>
+                                </MenuItem>
+                                <MenuItem value="GEN">General</MenuItem>
+                                <MenuItem value="OBC">OBC</MenuItem>
+                                <MenuItem value="SC">SC</MenuItem>
+                                <MenuItem value="ST">ST</MenuItem>
+                            </TextField>
+                        </Grid>
+                        <Grid item xs={12}>
+                            <TextField
+                                fullWidth
+                                select
+                                label="Gender"
+                                name="gender"
+                                value={formData.gender}
+                                onChange={handleChange}
+                            >
+                                <MenuItem value="">
+                                    <em>Not set</em>
+                                </MenuItem>
+                                <MenuItem value="MALE">Male</MenuItem>
+                                <MenuItem value="FEMALE">Female</MenuItem>
+                                <MenuItem value="OTHER">Other</MenuItem>
+                            </TextField>
                         </Grid>
                         <Grid item xs={12}>
                             <TextField

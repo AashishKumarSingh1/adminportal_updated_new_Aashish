@@ -10,18 +10,37 @@ import {
   MenuItem,
   Grid,
   Typography,
-  Divider,
   Box,
   IconButton,
 } from "@mui/material";
 import { Delete } from "@mui/icons-material";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { depList, officerDesignations } from "@/lib/const";
-import { ROLES } from "@/lib/roles";
+import { StaffdepList, officerDesignations } from "@/lib/const";
 import Toast from "../common/Toast";
 
-export function EditFaculty({ open, faculty, onClose, onSuccess, onDelete }) {
+const emptyForm = {
+  // user table
+  name: "",
+  email: "",
+  gender: "",
+  category: "",
+  image: "",
+  cv: "",
+
+  // staff table
+  employee_code: "",
+  date_of_joining: "",
+  cadre: "",
+  department: "",
+  designation: "",
+  pay_level : "",
+};
+
+const PAY_LEVEL_OPTIONS = Array.from({ length: 14 }, (_, i) => `Level-${i + 1}`)
+
+//faculty = staff
+export function EditStaff({ open, faculty, onClose, onSuccess, onDelete }) {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({
@@ -29,22 +48,8 @@ export function EditFaculty({ open, faculty, onClose, onSuccess, onDelete }) {
     severity: "success",
     message: "",
   });
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    department: "",
-    designation: "",
-    role: "",
-    category: "",
-    gender: "",
-    ext_no: "",
-    research_interest: "",
-    academic_responsibility: "",
-    is_retired: "0",
-    retirement_date: null,
-  });
-  const [dynamicDesignations, setDynamicDesignations] =
-    useState(officerDesignations);
+  const [formData, setFormData] = useState(emptyForm);
+  const [dynamicDesignations, setDynamicDesignations] = useState(officerDesignations);
 
   useEffect(() => {
     const fetchDesignations = async () => {
@@ -61,35 +66,36 @@ export function EditFaculty({ open, faculty, onClose, onSuccess, onDelete }) {
         }
       } catch (error) {
         console.error("Error fetching designation priorities:", error);
-       
       }
     };
 
     fetchDesignations();
   }, []);
 
+  // staff2's ?user_id=... returns a FLAT record: { id, user_id,
+  // employee_code, date_of_joining, cadre, department, designation,
+  // current_address, permanent_address, name, email, image, cv, gender,
+  // category, research_interest, mobile_number, education,
+  // work_experience, labs }. Address/labs/education/work_experience are
+  // managed by the staff member elsewhere, so this form doesn't touch them.
   useEffect(() => {
-    if (faculty?.profile) {
-      setFormData({
-        name: faculty.profile.name || "",
-        email: faculty.profile.email || "",
-        department: faculty.profile.department || "",
-        designation: faculty.profile.designation || "",
-        role: faculty.profile.role || "",
-        category: faculty.profile.category || "",
-        gender: faculty.profile.gender || "",
-        ext_no: faculty.profile.ext_no || "",
-        research_interest: faculty.profile.research_interest || "",
-        academic_responsibility: faculty.profile.academic_responsibility || "",
-        is_retired: faculty.profile.is_retired ? "1" : "0",
-        retirement_date: (function(rd) {
-          if (!rd) return null;
-          if (typeof rd === 'number') return new Date(rd).toISOString().slice(0,10);
-          if (typeof rd === 'string' && rd.includes('T')) return rd.split('T')[0];
-          return rd;
-        })(faculty.profile.retirement_date),
-      });
-    }
+    if (!faculty) return;
+
+    setFormData({
+      name: faculty.name || "",
+      email: faculty.email || "",
+      gender: faculty.gender || "",
+      category: faculty.category || "",
+      image: faculty.image || "",
+      cv: faculty.cv || "",
+
+      employee_code: faculty.employee_code || "",
+      date_of_joining: (faculty.date_of_joining || "").toString().split("T")[0] || "",
+      cadre: faculty.cadre || "",
+      department: faculty.department || "",
+      designation: faculty.designation || "",
+      pay_level : faculty.pay_level || "",
+    });
   }, [faculty]);
 
   const handleSubmit = async (e) => {
@@ -97,26 +103,28 @@ export function EditFaculty({ open, faculty, onClose, onSuccess, onDelete }) {
     setLoading(true);
 
     try {
-      const formattedData = {
-        ...formData,
-        retirement_date:
-          formData.is_retired === "0" ? null : formData.retirement_date,
-      };
-
-      const response = await fetch("/api/update", {
+      const response = await fetch("/api/staff2", {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "user",
-          ...formattedData,
+          user_id: faculty.user_id,
+          name: formData.name,
+          employee_code: formData.employee_code,
+          date_of_joining: formData.date_of_joining,
+          cadre: formData.cadre,
+          department: formData.department,
+          designation: formData.designation,
+          pay_level : formData.pay_level,
+          gender: formData.gender || null,
+          category: formData.category || null,
+          image: formData.image,
+          cv: formData.cv,
         }),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || "Failed to update staff");
       }
 
       const result = await response.json();
@@ -124,7 +132,7 @@ export function EditFaculty({ open, faculty, onClose, onSuccess, onDelete }) {
       setToast({
         open: true,
         severity: "success",
-        message: "Faculty updated successfully",
+        message: "Staff updated successfully",
       });
 
       if (onSuccess) {
@@ -165,15 +173,13 @@ export function EditFaculty({ open, faculty, onClose, onSuccess, onDelete }) {
               zIndex: 1300,
             }}
           >
-            Edit Faculty
+            Edit Staff
             {onDelete && (
               <IconButton
                 onClick={() => onDelete(faculty)}
                 sx={{
                   color: "white",
-                  "&:hover": {
-                    backgroundColor: "rgba(255, 255, 255, 0.1)",
-                  },
+                  "&:hover": { backgroundColor: "rgba(255, 255, 255, 0.1)" },
                 }}
               >
                 <Delete />
@@ -185,26 +191,21 @@ export function EditFaculty({ open, faculty, onClose, onSuccess, onDelete }) {
               mt: 2,
               maxHeight: "70vh",
               overflowY: "auto",
-              "&::-webkit-scrollbar": {
-                display: "none",
-              },
-              scrollbarWidth: "none", // Firefox
-              msOverflowStyle: "none", // IE and Edge
+              "&::-webkit-scrollbar": { display: "none" },
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
             }}
           >
             <Box sx={{ mb: 3 }}>
-              <Typography
-                variant="h6"
-                sx={{ mb: 2, color: "#333", fontWeight: 500 }}
-              >
-                Faculty Information
+              <Typography variant="h6" sx={{ mb: 2, color: "#333", fontWeight: 500 }}>
+                Staff Information
               </Typography>
 
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label="Name"
+                    label="Full Name"
                     required
                     value={formData.name}
                     onChange={(e) =>
@@ -218,9 +219,7 @@ export function EditFaculty({ open, faculty, onClose, onSuccess, onDelete }) {
                     fullWidth
                     label="Email"
                     type="email"
-                    required
                     value={formData.email}
-                    disabled
                     variant="outlined"
                     sx={{
                       "& .MuiInputBase-input.Mui-disabled": {
@@ -233,28 +232,51 @@ export function EditFaculty({ open, faculty, onClose, onSuccess, onDelete }) {
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
+                    label="Employee Code"
+                    required
+                    value={formData.employee_code}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, employee_code: e.target.value }))
+                    }
+                    variant="outlined"
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    type="date"
+                    label="Date of Joining"
+                    value={formData.date_of_joining}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, date_of_joining: e.target.value }))
+                    }
+                    InputLabelProps={{ shrink: true }}
+                    variant="outlined"
+                  />
+                </Grid>
+
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
                     select
                     label="Department"
                     required
                     value={formData.department}
                     onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        department: e.target.value,
-                      }))
+                      setFormData((prev) => ({ ...prev, department: e.target.value }))
                     }
                     variant="outlined"
                   >
-                    {[...depList].map(([key, value]) => (
-                      <MenuItem key={value} value={value}>
+                    {[...StaffdepList].map(([key, value]) => (
+                      <MenuItem key={key} value={value}>
                         {value}
                       </MenuItem>
                     ))}
-                    <MenuItem value="developer">Developer</MenuItem>
+                    {/* <MenuItem value="developer">Developer</MenuItem> */}
                   </TextField>
                 </Grid>
                 <Grid item xs={12} sm={6}>
-                  {formData.department === 'Officers' ? (
+                  {formData.department === "Officers" ? (
                     <TextField
                       fullWidth
                       select
@@ -262,10 +284,7 @@ export function EditFaculty({ open, faculty, onClose, onSuccess, onDelete }) {
                       required
                       value={formData.designation}
                       onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          designation: e.target.value,
-                        }))
+                        setFormData((prev) => ({ ...prev, designation: e.target.value }))
                       }
                       variant="outlined"
                     >
@@ -278,65 +297,84 @@ export function EditFaculty({ open, faculty, onClose, onSuccess, onDelete }) {
                   ) : (
                     <TextField
                       fullWidth
+                      select
                       label="Designation"
                       value={formData.designation || ""}
                       onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          designation: e.target.value,
-                        }))
+                        setFormData((prev) => ({ ...prev, designation: e.target.value }))
                       }
                       variant="outlined"
-                    />
+                    >
+                        <MenuItem value="Technical Assistant">Technical Assistant</MenuItem>
+                        <MenuItem value="Technical Assistant (SG-I)">Technical Assistant (SG-I)</MenuItem>
+                        <MenuItem value="Technical Assistant (SG-II)">Technical Assistant (SG-II)</MenuItem>
+                        <MenuItem value="Sr Technical Assistant">Sr Technical Assistant</MenuItem>
+                        <MenuItem value="Technician">Technician</MenuItem>
+                        <MenuItem value="Technician (SG-I)">Technician (SG-I)</MenuItem>
+                        <MenuItem value="Technician (SG-II)">Technician (SG-II)</MenuItem>
+                        <MenuItem value="Sr Technician">Sr Technician</MenuItem>
+                        <MenuItem value="Assistant Technician">Assistant Technician</MenuItem>
+                        <MenuItem value="Jr Engineer">Jr Engineer</MenuItem>
+                        <MenuItem value="Assistant Engineer">Assistant Engineer</MenuItem>
+                        <MenuItem value="Assistant Engineer (SG-I)">Assistant Engineer (SG-I)</MenuItem>
+                        <MenuItem value="Assistant Engineer (SG-II)">Assistant Engineer (SG-II)</MenuItem>
+                        <MenuItem value="Office Attendant">Office Attendant</MenuItem>
+                        <MenuItem value="Sr Office Attendant">Sr Office Attendant</MenuItem>
+                        <MenuItem value="Jr Office Attendant">Jr Office Attendant</MenuItem>
+                        <MenuItem value="Superintendent">Superintendent</MenuItem>
+                        <MenuItem value="Superintendent (SG-I)">Superintendent (SG-I)</MenuItem>
+                        <MenuItem value="Superintendent (SG-II)">Superintendent (SG-II)</MenuItem>
+                        <MenuItem value="Jr Assistant Superintendent">Jr Assistant Superintendent</MenuItem>
+                        <MenuItem value="Senior Assistant">Senior Assistant</MenuItem>
+                    </TextField>
                   )}
                 </Grid>
 
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    label="Extension Number"
-                    value={formData.ext_no || ""}
+                    select
+                    label="Cadre"
+                    value={formData.cadre || ""}
                     onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        ext_no: e.target.value,
-                      }))
+                      setFormData((prev) => ({ ...prev, cadre: e.target.value }))
                     }
                     variant="outlined"
-                  />
+                  >
+                    <MenuItem value="Technical Higher" >Technical Higher</MenuItem>
+                    <MenuItem value="Technical Lower">Technical Lower</MenuItem>
+                    <MenuItem value="Supporting Staff">Supporting Staff</MenuItem>
+                    <MenuItem value="Ministerial Higher">Ministerial Higher</MenuItem>
+                    <MenuItem value="Ministerial Lower">Ministerial Lower</MenuItem>
+                  </TextField>
                 </Grid>
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
                     select
-                    label="Role"
-                    required
-                    value={formData.role}
-                    onChange={(e) =>
-                      setFormData((prev) => ({ ...prev, role: e.target.value }))
-                    }
+                    label="Pay Level"
+                    value={formData.pay_level || ""}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, pay_level: e.target.value }))}
                     variant="outlined"
                   >
-                    {Object.entries(ROLES).map(([key, value]) => (
-                      <MenuItem key={key} value={value}>
-                        {key}
-                      </MenuItem>
+                    <MenuItem value="">Not specified</MenuItem>
+                    {PAY_LEVEL_OPTIONS.map((level) => (
+                      <MenuItem key={level} value={level}>{level}</MenuItem>
                     ))}
                   </TextField>
                 </Grid>
-
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
                     select
                     label="Category"
-                    required
                     value={formData.category}
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, category: e.target.value }))
                     }
                     variant="outlined"
                   >
+                    <MenuItem value="">Not specified</MenuItem>
                     <MenuItem value="GEN">General</MenuItem>
                     <MenuItem value="OBC">OBC</MenuItem>
                     <MenuItem value="SC">SC</MenuItem>
@@ -349,107 +387,18 @@ export function EditFaculty({ open, faculty, onClose, onSuccess, onDelete }) {
                     fullWidth
                     select
                     label="Gender"
-                    required
                     value={formData.gender}
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, gender: e.target.value }))
                     }
                     variant="outlined"
                   >
+                    <MenuItem value="">Not specified</MenuItem>
                     <MenuItem value="MALE">Male</MenuItem>
                     <MenuItem value="FEMALE">Female</MenuItem>
                     <MenuItem value="OTHER">Other</MenuItem>
                   </TextField>
                 </Grid>
-
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Research Interest"
-                    multiline
-                    rows={3}
-                    value={formData.research_interest || ""}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        research_interest: e.target.value,
-                      }))
-                    }
-                    variant="outlined"
-                  />
-                </Grid>
-
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="Academic Responsibility"
-                    value={formData.academic_responsibility || ""}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        academic_responsibility: e.target.value,
-                      }))
-                    }
-                    variant="outlined"
-                    placeholder="Enter academic responsibility (e.g., Dean - Academic, Student Welfare Dean, Head of Department - CSE, etc.)"
-                  />
-                </Grid>
-              </Grid>
-            </Box>
-
-            <Divider sx={{ my: 3 }} />
-
-            <Box>
-              <Typography
-                variant="h6"
-                sx={{ mb: 2, color: "#333", fontWeight: 500 }}
-              >
-                Employment Status
-              </Typography>
-
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    select
-                    required
-                    label="Is Retired"
-                    value={formData.is_retired}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setFormData((prev) => ({
-                        ...prev,
-                        is_retired: val,
-                        retirement_date:
-                          val === "1" && !prev.retirement_date
-                            ? new Date().toISOString().slice(0, 10)
-                            : prev.retirement_date,
-                      }));
-                    }}
-                    variant="outlined"
-                  >
-                    <MenuItem value="0">Active</MenuItem>
-                    <MenuItem value="1">Retired</MenuItem>
-                  </TextField>
-                </Grid>
-                {formData.is_retired === "1" && (
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      type="date"
-                      label="Retirement Date"
-                      value={formData.retirement_date || ""}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          retirement_date: e.target.value,
-                        }))
-                      }
-                      InputLabelProps={{ shrink: true }}
-                      variant="outlined"
-                    />
-                  </Grid>
-                )}
               </Grid>
             </Box>
           </DialogContent>
@@ -468,10 +417,7 @@ export function EditFaculty({ open, faculty, onClose, onSuccess, onDelete }) {
               sx={{
                 color: "#830001",
                 borderColor: "#830001",
-                "&:hover": {
-                  backgroundColor: "#830001",
-                  color: "white",
-                },
+                "&:hover": { backgroundColor: "#830001", color: "white" },
               }}
             >
               Cancel
@@ -484,9 +430,7 @@ export function EditFaculty({ open, faculty, onClose, onSuccess, onDelete }) {
                 backgroundColor: "#830001",
                 color: "white",
                 minWidth: 120,
-                "&:hover": {
-                  backgroundColor: "#6a0001",
-                },
+                "&:hover": { backgroundColor: "#6a0001" },
               }}
             >
               {loading ? "Saving..." : "Save Changes"}

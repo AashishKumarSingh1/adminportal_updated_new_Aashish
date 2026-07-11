@@ -3,19 +3,22 @@ import { authOptions } from '@/lib/authOptions'
 import Sign from './components/signin'
 import ClientLayout from './components/layout'
 import Profilepage from './components/profile'
+import StaffProfile from './components/staff-profile'
 
 export default async function Page() {
     const session = await getServerSession(authOptions)
     
+    // 2. If no session exists, render the sign-in page
     if (!session) {
         return <Sign />
     }
 
-    // Let the FacultyDataContext handle all data fetching
-    // Remove server-side data fetching to prevent duplicate calls
+    // 3. Check if the user role matches your "staff" identifier
+    const isStaff = session.user?.role === 'STAFF'
+
     return (
         <ClientLayout>
-            <Profilepage />
+            {isStaff ? <StaffProfile /> : <Profilepage />}
         </ClientLayout>
     )
 }
