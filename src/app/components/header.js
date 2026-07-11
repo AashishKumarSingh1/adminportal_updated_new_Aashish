@@ -127,6 +127,7 @@ const menuItems = {
     { text: 'Notice', href: '/notice', icon: <NotificationsIcon /> },
     { text: 'News', href: '/news', icon: <NewspaperIcon /> },
     { text: 'Innovation', href: '/innovation', icon: <LightbulbIcon /> },
+    {text: 'Staff Management', href: '/staff-management', icon: <GroupIcon />},
     { text: 'Faculty Management', href: '/faculty-management', icon: <GroupIcon /> },
     { text: 'Role Management', href: '/role-management', icon: <AdminPanelSettingsIcon /> },
     { text: 'Club Management', href: '/club-management', icon: <GroupsIcon /> }

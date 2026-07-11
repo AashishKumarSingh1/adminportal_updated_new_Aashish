@@ -83,8 +83,15 @@ export async function GET(request) {
 
     switch (type) {
       case 'all': {
+        const name = searchParams.get('name') || '';
+        const email = searchParams.get('email') || '';
         const countRes = await query(
-          `SELECT COUNT(*) as count FROM user WHERE is_deleted = 0 AND role <> 8`
+          `SELECT COUNT(*) as count 
+           FROM user 
+           WHERE is_deleted = 0 AND role <> 8
+           AND name LIKE ?
+           AND email LIKE ?`,
+          [`%${name}%`,`%${email}%`]
         )
         total = Number(countRes[0].count)
 
@@ -103,8 +110,11 @@ export async function GET(request) {
             ${subqueries.join(',\n    ')}
               FROM user u 
               WHERE u.is_deleted = 0 AND u.role <> 8
+               AND u.name LIKE ?
+               AND u.email LIKE ?
                 ORDER BY u.name ASC, u.email ASC
-              LIMIT ${limit} OFFSET ${offset}`
+              LIMIT ${limit} OFFSET ${offset}`,
+              [`%${name}%`,`%${email}%`]
         )
         // Transform the results to include role name
         return NextResponse.json({

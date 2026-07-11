@@ -40,7 +40,7 @@ export const AddForm = ({ handleClose, modal }) => {
         student_name: '',
         roll_no: '',
         registration_year: new Date().getFullYear(),
-        registration_date : new Date(),
+        registration_date : null,
         registration_type: '',
         research_area: '',
         other_supervisors: '',
@@ -73,7 +73,7 @@ export const AddForm = ({ handleClose, modal }) => {
         try {
             const adjustedContent = {
                 ...content,
-                completion_year: content.completion_year ? new Date(content.completion_year).toISOString().split('T')[0] : '',
+                completion_year: content.completion_year ? new Date(content.completion_year).toISOString().split('T')[0] : null,
             };
 
             const newCandidate = {
@@ -145,7 +145,7 @@ export const AddForm = ({ handleClose, modal }) => {
                         name="registration_year"
                         type="number"
                         fullWidth
-                        required
+                        // required
                         value={content.registration_year}
                         onChange={handleChange}
                     />
@@ -156,7 +156,7 @@ export const AddForm = ({ handleClose, modal }) => {
                             onChange={(date) => handleChange({ 
                                 target: { 
                                     name: "registration_date", 
-                                    value: date.toLocaleDateString('en-CA')
+                                    value: date ? date.toLocaleDateString('en-CA') : null
                                 } 
                             })}
                             format="dd/MM/yyyy"
@@ -165,7 +165,7 @@ export const AddForm = ({ handleClose, modal }) => {
                                     {...params}
                                     margin="dense"
                                     fullWidth
-                                    required
+                                    // required
                                     name="registration_date"
                                     onChange={handleChange}
                                 />
@@ -289,7 +289,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
         student_name: values.student_name || '',
         roll_no: values.roll_no || '',
         registration_year: values.registration_year || new Date().getFullYear(),
-        registration_date: values.registration_date || new Date().getFullYear(),        
+        registration_date: values.registration_date || null,        
         registration_type: values.registration_type || '',
         research_area: values.research_area || '',
         other_supervisors: values.other_supervisors || '',
@@ -387,7 +387,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
                             onChange={(date) => handleChange({ 
                                 target: { 
                                     name: "registration_date", 
-                                    value: date.toLocaleDateString('en-CA')
+                                    value: date ? date.toLocaleDateString('en-CA') : null
                                 } 
                             })}
                             format="dd/MM/yyyy"
@@ -520,7 +520,7 @@ export default function PhdCandidateManagement() {
             if (session?.user?.email) {
                 fetchCourses()
             }
-        }, [session,loading])
+        }, [phd_candidates,session,loading])
     
 
     const handleEdit = (candidate) => {
@@ -544,9 +544,9 @@ export default function PhdCandidateManagement() {
                 if (!response.ok) throw new Error('Failed to delete')
                 
                 // Update local state and context
-                const updatedCandidates = candidates.filter(candidate => candidate.id !== id);
+                const updatedCandidates = phd_candidates.filter(c => c.id !== id)
                 setCandidates(updatedCandidates);
-                updateFacultySection('phdCandidates', updatedCandidates);
+                updateFacultySection('phd_candidates', updatedCandidates);
             } catch (error) {
                 console.error('Error:', error)
             }

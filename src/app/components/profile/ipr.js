@@ -364,7 +364,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
                     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={enGB}>
                         <DatePicker
                             label="Registration Date"
-                            value={new Date(content.registration_date)}
+                            value={content.registration_date ? new Date(content.registration_date) : null}
                             onChange={(newValue) => 
                                 setContent({ ...content, registration_date: newValue })
                             }
@@ -375,7 +375,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
                         />
                         <DatePicker
                             label="Publication Date"
-                            value={new Date(content.publication_date)}
+                            value={content.publication_date ? new Date(content.publication_date) : null}
                             onChange={(newValue) => 
                                 setContent({ ...content, publication_date: newValue })
                             }
@@ -386,7 +386,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
                         />
                         <DatePicker
                             label="Grant Date"
-                            value={new Date(content.grant_date)}
+                            value={content.grant_date ? new Date(content.grant_date) : null}
                             onChange={(newValue) => 
                                 setContent({ ...content, grant_date: newValue })
                             }
