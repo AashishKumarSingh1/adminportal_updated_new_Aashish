@@ -57,7 +57,7 @@ export function AddClub({ open, onClose, onSuccess }) {
         <form onSubmit={handleSubmit}>
           <DialogTitle sx={{ backgroundColor: '#830001', color: 'white' }}>Add New Club</DialogTitle>
           <DialogContent sx={{ mt: 2 }}>
-            <ClubFormFields formData={formData} onChange={setFormData} showExtended />
+            <ClubFormFields formData={formData} onChange={setFormData} superAdminAdd={true} />
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
             <Button onClick={handleClose} disabled={loading}>Cancel</Button>

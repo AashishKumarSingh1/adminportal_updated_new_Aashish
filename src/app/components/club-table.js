@@ -33,7 +33,6 @@ const columns = [
   { id: 'email', label: 'Club Email', minWidth: 200 },
   { id: 'category', label: 'Category', minWidth: 110 },
   { id: 'pi', label: 'Club PI', minWidth: 160 },
-  { id: 'president', label: 'Club President', minWidth: 140 },
   { id: 'status', label: 'Status', minWidth: 100 },
   { id: 'actions', label: 'Actions', minWidth: 100 },
 ]
@@ -158,7 +157,6 @@ export function ClubTable() {
                   <TableCell>{row.email}</TableCell>
                   <TableCell>{row.category}</TableCell>
                   <TableCell>{getClubPiName(row)}</TableCell>
-                  <TableCell>{row.club_president || '—'}</TableCell>
                   <TableCell>
                     <Chip
                       label={row.status}

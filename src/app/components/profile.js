@@ -43,6 +43,7 @@ import SpecialLecturePage from "../components/profile/SpecialLecture"
 import VisitAbroadPage from "../components/profile/VisitAbroad"
 import EditorialBoardsPage from "../components/profile/EditorialPage" 
 import MoocCoursesPage from "../components/profile/nptel"
+import ClubProfileView from './club-profile-preview'
 
 const Profile = styled.div`
     font-family: 'Source Sans Pro';
@@ -251,6 +252,7 @@ export default function Profilepage() {
 
     if (status === "loading") return <Loading />
     if (!session) return null
+    if (session.user?.role === 'CLUB_ADMIN') return <ClubProfileView />
     if (loading) return <Loading />
 
     return (

@@ -42,8 +42,42 @@ function CampusPiFields({ label, value, onChange }) {
   )
 }
 
-export function ClubFormFields({ formData, onChange, showExtended = false }) {
+export function ClubFormFields({ formData, onChange, showExtended = false, superAdminAdd = false }) {
   const handle = (field) => (e) => onChange({ ...formData, [field]: e.target.value })
+
+  const categories = CLUB_CATEGORIES
+
+  if (superAdminAdd) {
+    return (
+      <>
+        <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#830001', mb: 1 }}>
+          Club Information
+        </Typography>
+        <Grid container spacing={2} sx={{ mb: 2 }}>
+          <Grid item xs={12}>
+            <TextField label="Club Name" required fullWidth value={formData.name} onChange={handle('name')} />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Club Email"
+              required
+              fullWidth
+              type="email"
+              value={formData.email}
+              onChange={handle('email')}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField select label="Category" required fullWidth value={formData.category} onChange={handle('category')}>
+              {categories.map((c) => (
+                <MenuItem key={c} value={c}>{c}</MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+        </Grid>
+      </>
+    )
+  }
 
   return (
     <>

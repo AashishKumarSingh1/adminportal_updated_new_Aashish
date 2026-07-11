@@ -33,16 +33,38 @@ export function stringifyJsonField(value) {
 
 export function formatClubRow(row) {
   if (!row) return row
-  return {
+  const formatted = {
     ...row,
     pictures: parseJsonField(row.pictures, []),
     patna_campus_pi: parseJsonField(row.patna_campus_pi, null),
     bihta_campus_pi: parseJsonField(row.bihta_campus_pi, null),
+    social_links: parseJsonField(row.social_links, { website: '', linkedin: '', instagram: '', twitter: '' }),
+    members: parseJsonField(row.sessions, {}),
   }
+  delete formatted.sessions
+  delete formatted.description
+  
+  // Remove top-level legacy properties to avoid duplicate data (already inside members)
+  delete formatted.patna_campus_pi
+  delete formatted.bihta_campus_pi
+  delete formatted.club_president
+  delete formatted.club_secretary
+  return formatted
 }
 
 /** Primary PI label for super-admin table column */
 export function getClubPiName(club) {
+  if (club?.members && typeof club.members === 'object') {
+    const sessionKeys = Object.keys(club.members).sort().reverse()
+    if (sessionKeys.length > 0) {
+      const latest = club.members[sessionKeys[0]]
+      const patna = latest?.patna_campus_pi
+      const bihta = latest?.bihta_campus_pi
+      if (patna?.name) return patna.name
+      if (bihta?.name) return bihta.name
+    }
+  }
+  // Fallback to legacy fields if present
   const patna = club?.patna_campus_pi
   const bihta = club?.bihta_campus_pi
   if (patna?.name) return patna.name
@@ -62,3 +84,4 @@ export function inputToPictures(value) {
     .map((s) => s.trim())
     .filter(Boolean)
 }
+

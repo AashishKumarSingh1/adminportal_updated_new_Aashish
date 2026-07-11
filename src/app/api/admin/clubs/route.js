@@ -5,6 +5,7 @@ import { query } from '@/lib/db'
 import { ROLES } from '@/lib/roles'
 import { CLUB_CATEGORIES, CLUB_STATUSES } from '@/lib/clubConstants'
 import { formatClubRow, stringifyJsonField } from '@/lib/clubUtils'
+import { populateClubsWithPiDetails } from '@/lib/clubDbUtils'
 import { resolveUniqueClubLoginId } from '@/lib/clubLoginId'
 
 function unauthorized() {
@@ -95,7 +96,9 @@ export async function GET(request) {
       if (!rows.length) {
         return NextResponse.json({ error: 'Club not found' }, { status: 404 })
       }
-      return NextResponse.json(formatClubRow(rows[0]))
+      const formatted = formatClubRow(rows[0])
+      const populated = await populateClubsWithPiDetails(formatted)
+      return NextResponse.json(populated)
     }
 
     let sql = 'SELECT * FROM clubs WHERE 1=1'
@@ -111,7 +114,9 @@ export async function GET(request) {
     sql += ' ORDER BY name ASC'
 
     const rows = await query(sql, values)
-    return NextResponse.json(rows.map(formatClubRow))
+    const formatted = rows.map(formatClubRow)
+    const populated = await populateClubsWithPiDetails(formatted)
+    return NextResponse.json(populated)
   } catch (err) {
     console.error('GET /api/admin/clubs:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -124,16 +129,28 @@ export async function POST(request) {
     if (error) return error
 
     const body = await request.json()
-    const validationError = validateClubPayload(body, { requireAll: true })
+    const { name, email, category } = body
+
+    if (!name?.trim()) {
+      return NextResponse.json({ error: 'Club name is required' }, { status: 400 })
+    }
+    if (!email?.trim()) {
+      return NextResponse.json({ error: 'Club email is required' }, { status: 400 })
+    }
+    if (!category) {
+      return NextResponse.json({ error: 'Club category is required' }, { status: 400 })
+    }
+    if (category && !CLUB_CATEGORIES.includes(category)) {
+      return NextResponse.json({ error: 'Invalid category' }, { status: 400 })
+    }
+
+    const validationError = validateClubPayload(body, { requireAll: false })
     if (validationError) {
       return NextResponse.json({ error: validationError }, { status: 400 })
     }
 
     const {
-      name,
-      email,
       club_login_id,
-      category,
       status = 'Active',
       description,
       logo,
@@ -155,16 +172,15 @@ export async function POST(request) {
 
     const result = await query(
       `INSERT INTO clubs (
-        club_login_id, name, email, category, status, description, logo, about,
+        club_login_id, name, email, category, status, logo, about,
         pictures, patna_campus_pi, bihta_campus_pi, club_president, club_secretary
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         loginId,
         name.trim(),
         normalizedEmail,
         category,
         status,
-        description || null,
         logo || null,
         about || null,
         stringifyJsonField(pictures),
@@ -185,7 +201,9 @@ export async function POST(request) {
     })
 
     const created = await query('SELECT * FROM clubs WHERE id = ?', [clubId])
-    return NextResponse.json({ club: formatClubRow(created[0]), credentials })
+    const formatted = formatClubRow(created[0])
+    const populated = await populateClubsWithPiDetails(formatted)
+    return NextResponse.json({ club: populated, credentials })
   } catch (err) {
     console.error('POST /api/admin/clubs:', err)
     return NextResponse.json(
@@ -240,7 +258,7 @@ export async function PUT(request) {
     await query(
       `UPDATE clubs SET
         club_login_id = ?, name = ?, email = ?, category = ?, status = ?,
-        description = ?, logo = ?, about = ?,
+        logo = ?, about = ?,
         pictures = ?, patna_campus_pi = ?, bihta_campus_pi = ?,
         club_president = ?, club_secretary = ?,
         updated_at = CURRENT_TIMESTAMP
@@ -251,7 +269,6 @@ export async function PUT(request) {
         email,
         category,
         status,
-        fields.description !== undefined ? fields.description : current.description,
         fields.logo !== undefined ? fields.logo : current.logo,
         fields.about !== undefined ? fields.about : current.about,
         fields.pictures !== undefined
@@ -289,7 +306,9 @@ export async function PUT(request) {
     )
 
     const updated = await query('SELECT * FROM clubs WHERE id = ?', [id])
-    return NextResponse.json({ club: formatClubRow(updated[0]) })
+    const formatted = formatClubRow(updated[0])
+    const populated = await populateClubsWithPiDetails(formatted)
+    return NextResponse.json({ club: populated })
   } catch (err) {
     console.error('PUT /api/admin/clubs:', err)
     return NextResponse.json(

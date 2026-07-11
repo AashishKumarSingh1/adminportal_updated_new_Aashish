@@ -80,7 +80,7 @@ export function EditClub({ open, club, onClose, onSuccess }) {
             Edit Club — {club?.name}
           </DialogTitle>
           <DialogContent sx={{ mt: 2, maxHeight: '70vh', overflowY: 'auto' }}>
-            <ClubFormFields formData={formData} onChange={setFormData} showExtended />
+            <ClubFormFields formData={formData} onChange={setFormData} superAdminAdd={true} />
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
             <Button onClick={onClose} disabled={loading}>Cancel</Button>

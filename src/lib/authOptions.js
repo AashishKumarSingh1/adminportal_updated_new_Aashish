@@ -30,6 +30,10 @@ export const authOptions = {
           }
   
           const userData = results[0]
+          if (userData.is_deleted) {
+            console.log("User is marked as deleted/inactive")
+            return false
+          }
           const numericRole = parseInt(userData.role)
           user.numericRole = numericRole
           user.role = Object.keys(ROLES).find((key) => ROLES[key] === numericRole)

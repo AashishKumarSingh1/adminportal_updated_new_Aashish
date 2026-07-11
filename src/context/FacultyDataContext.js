@@ -47,7 +47,7 @@ export function FacultyDataProvider({ children }) {
   }, [autoRefreshInterval])
 
   useEffect(() => {
-    if (!session?.user?.email) {
+    if (!session?.user?.email || session.user.role === 'CLUB_ADMIN') {
       setLoading(false)
       return
     }
@@ -189,7 +189,7 @@ export function FacultyDataProvider({ children }) {
 
   // Function to refresh faculty data (force reload)
   const refreshFacultyData = async () => {
-    if (!session?.user?.email) return
+    if (!session?.user?.email || session.user.role === 'CLUB_ADMIN') return
     
     const userEmail = session.user.email
     // Clear caches
