@@ -308,7 +308,7 @@ export function EditStaff({ open, faculty, onClose, onSuccess, onDelete }) {
                         <MenuItem value="Technical Assistant">Technical Assistant</MenuItem>
                         <MenuItem value="Technical Assistant (SG-I)">Technical Assistant (SG-I)</MenuItem>
                         <MenuItem value="Technical Assistant (SG-II)">Technical Assistant (SG-II)</MenuItem>
-                        <MenuItem value="Sr Technical Assistant (SG-II)">Sr Technical Assistant</MenuItem>
+                        <MenuItem value="Sr Technical Assistant">Sr Technical Assistant</MenuItem>
                         <MenuItem value="Technician">Technician</MenuItem>
                         <MenuItem value="Technician (SG-I)">Technician (SG-I)</MenuItem>
                         <MenuItem value="Technician (SG-II)">Technician (SG-II)</MenuItem>
@@ -345,7 +345,7 @@ export function EditStaff({ open, faculty, onClose, onSuccess, onDelete }) {
                     <MenuItem value="Technical Lower">Technical Lower</MenuItem>
                     <MenuItem value="Supporting Staff">Supporting Staff</MenuItem>
                     <MenuItem value="Ministerial Higher">Ministerial Higher</MenuItem>
-                    <MenuItem value="Ministerial Higher">Ministerial Lower</MenuItem>
+                    <MenuItem value="Ministerial Lower">Ministerial Lower</MenuItem>
                   </TextField>
                 </Grid>
                 <Grid item xs={12} sm={6}>
