@@ -17,6 +17,7 @@ import LightbulbIcon from '@mui/icons-material/Lightbulb'
 import GroupIcon from '@mui/icons-material/Group'
 import SettingsIcon from '@mui/icons-material/Settings'
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings'
+import GroupsIcon from '@mui/icons-material/Groups'
 import { ROLES } from '@/lib/roles'
 import { useFacultyData } from '@/context/FacultyDataContext'
 
@@ -128,7 +129,12 @@ const menuItems = {
     { text: 'Innovation', href: '/innovation', icon: <LightbulbIcon /> },
     {text: 'Staff Management', href: '/staff-management', icon: <GroupIcon />},
     { text: 'Faculty Management', href: '/faculty-management', icon: <GroupIcon /> },
-    { text: 'Role Management', href: '/role-management', icon: <AdminPanelSettingsIcon /> }
+    { text: 'Role Management', href: '/role-management', icon: <AdminPanelSettingsIcon /> },
+    { text: 'Club Management', href: '/club-management', icon: <GroupsIcon /> }
+  ],
+  [ROLES.CLUB_ADMIN]: [
+    { text: 'Profile', href: '/', icon: <AccountCircleIcon /> },
+    { text: 'Club Admin Dashboard', href: '/club-admin-dashboard', icon: <GroupsIcon /> }
   ],
   [ROLES.ACADEMIC_ADMIN]: [
     { text: 'Profile', href: '/', icon: <AccountCircleIcon /> },
