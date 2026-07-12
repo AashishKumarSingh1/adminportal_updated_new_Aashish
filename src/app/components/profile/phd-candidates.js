@@ -22,6 +22,7 @@ import { useSession } from 'next-auth/react'
 import { useFacultyData, useFacultySection } from '../../../context/FacultyDataContext'
 import React, { useState } from 'react'
 import { enGB } from 'date-fns/locale';
+import { format } from "date-fns";
 
 import useRefreshData from '@/custom-hooks/refresh'
 import EditIcon from '@mui/icons-material/Edit'
@@ -73,7 +74,7 @@ export const AddForm = ({ handleClose, modal }) => {
         try {
             const adjustedContent = {
                 ...content,
-                completion_year: content.completion_year ? new Date(content.completion_year).toISOString().split('T')[0] : null,
+                // completion_year: content.completion_year ? new Date(content.completion_year).toISOString().split('T')[0] : null,
             };
 
             const newCandidate = {
@@ -156,7 +157,7 @@ export const AddForm = ({ handleClose, modal }) => {
                             onChange={(date) => handleChange({ 
                                 target: { 
                                     name: "registration_date", 
-                                    value: date ? date.toLocaleDateString('en-CA') : null
+                                    value: date ? format(date, "yyyy-MM-dd") : null
                                 } 
                             })}
                             format="dd/MM/yyyy"
@@ -249,7 +250,7 @@ export const AddForm = ({ handleClose, modal }) => {
     onChange={(date) => handleChange({ 
         target: { 
             name: "completion_year", 
-            value: date.toLocaleDateString('en-CA')
+            value: date ? format(date, "yyyy-MM-dd") : null
         } 
     })}
     format="dd/MM/yyyy"
@@ -312,7 +313,7 @@ export const EditForm = ({ handleClose, modal, values }) => {
         try {
             const adjustedContent = {
                 ...content,
-                completion_year: content.completion_year ? new Date(content.completion_year).toISOString().split('T')[0] : '',
+                // completion_year: content.completion_year ? new Date(content.completion_year).toISOString().split('T')[0] : '',
             };
             
             const updatedCandidate = {
@@ -467,7 +468,14 @@ export const EditForm = ({ handleClose, modal, values }) => {
                        <DatePicker
                            label="Completion Year"
                            value={content.completion_year ? parseISO(content.completion_year) : null}
-                           onChange={(date) => handleChange({ target: { name: "completion_year", value: date.toISOString().split("T")[0] } })}
+                            onChange={(date) =>
+                            handleChange({
+                                target: {
+                                name: "completion_year",
+                                value: date ? format(date, "yyyy-MM-dd") : null,
+                                },
+                            })
+                            }
                            renderInput={(params) => (
                                <TextField
                                    {...params}
