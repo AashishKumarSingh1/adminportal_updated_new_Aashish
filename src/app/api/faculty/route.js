@@ -4,7 +4,7 @@ import { depList, facultyTables } from '@/lib/const'
 import { getCachedUserProfile, cacheUserProfile, refreshProfileCacheTTL } from '@/lib/profileCache';
 
 const allowedOrigins = [
-  "https://adminportal-updated-new.vercel.app/",  
+  "https://adminportal-updated-new.vercel.app/",
   'http://localhost:3000',
   'https://faculty-performance-appraisal-performa.vercel.app/',
   // Add other allowed domains
@@ -14,7 +14,7 @@ export async function GET(request) {
   try {
     // Add CORS headers
     const response = NextResponse
-    
+
     // Handle preflight requests
     if (request.method === 'OPTIONS') {
       return new NextResponse(null, {
@@ -28,8 +28,8 @@ export async function GET(request) {
 
     const { searchParams } = new URL(request.url)
 
-    const page = Math.max(1,parseInt(searchParams.get('page')) || 1);
-    const limit = Math.min(50,parseInt(searchParams.get('limit')) || 20);
+    const page = Math.max(1, parseInt(searchParams.get('page')) || 1);
+    const limit = Math.min(50, parseInt(searchParams.get('limit')) || 20);
     const offset = (page - 1) * limit;
     const type = searchParams.get('type')
     let results = []
@@ -38,7 +38,7 @@ export async function GET(request) {
     const origin = request.headers.get('origin')
     const isAllowedOrigin = allowedOrigins.includes(origin)
 
-     const facultyTables = [
+    const facultyTables = [
       'about_me',
       'book_chapters',
       'conference_papers',
@@ -78,19 +78,19 @@ export async function GET(request) {
     ];
 
     let subqueries = facultyTables.map(
-            (table) => `(SELECT COUNT(*) FROM ${table} WHERE email = u.email) AS ${table}_count`
-          );
+      (table) => `(SELECT COUNT(*) FROM ${table} WHERE email = u.email) AS ${table}_count`
+    );
 
     switch (type) {
-      case 'all':{
+      case 'all': {
         const name = searchParams.get('name') || '';
         const email = searchParams.get('email') || '';
         const countRes = await query(
-          `SELECT COUNT(*) as count
-          FROM user 
-          WHERE is_deleted = 0
-          AND name LIKE ?
-          AND email LIKE ?`,
+          `SELECT COUNT(*) as count 
+           FROM user 
+           WHERE is_deleted = 0 AND role <> 8
+           AND name LIKE ?
+           AND email LIKE ?`,
           [`%${name}%`,`%${email}%`]
         )
         total = Number(countRes[0].count)
@@ -109,7 +109,7 @@ export async function GET(request) {
             END as role_name,
             ${subqueries.join(',\n    ')}
               FROM user u 
-              WHERE u.is_deleted = 0
+              WHERE u.is_deleted = 0 AND u.role <> 8
                AND u.name LIKE ?
                AND u.email LIKE ?
                 ORDER BY u.name ASC, u.email ASC
@@ -129,14 +129,14 @@ export async function GET(request) {
           }))
         })
       }
-    
-      case 'faculties':{
+
+      case 'faculties': {
         const departments = [...depList.values()]
-        
-        // Fetch faculty from each department
+
+        // Fetch faculty from each department (excluding club admin)
         for (let i = 0; i < departments.length; i++) {
           const data = await query(
-            `SELECT * FROM user WHERE department = ? AND is_deleted = 0 ORDER BY name ASC, email ASC`,
+            `SELECT * FROM user WHERE department = ? AND is_deleted = 0 AND role <> 8 ORDER BY name ASC, email ASC`,
             [departments[i]]
           )
           results = [...results, ...data]
@@ -156,21 +156,21 @@ export async function GET(request) {
           totalPages: Math.ceil(total / limit),
           data: paginated
         })
-      
+
       }
-      case 'count':{
+      case 'count': {
         const countResult = await query(
-          `SELECT COUNT(*) as count FROM user WHERE is_deleted = 0`
+          `SELECT COUNT(*) as count FROM user WHERE is_deleted = 0 AND role <> 8`
         )
-        return NextResponse.json({ 
-          facultyCount: countResult[0].count 
+        return NextResponse.json({
+          facultyCount: countResult[0].count
         })
       }
       default:
         // Check if it's a department query
         if (depList.has(type)) {
           const countRes = await query(
-            `SELECT COUNT(*) as count FROM user WHERE department = ? AND is_deleted = 0`,
+            `SELECT COUNT(*) as count FROM user WHERE department = ? AND is_deleted = 0 AND role <> 8`,
             [depList.get(type)]
           )
           total = Number(countRes[0].count)
@@ -180,7 +180,7 @@ export async function GET(request) {
             u.*, 
             ${subqueries.join(',\n    ')}
               FROM user u
-              where department = ? AND u.is_deleted = 0
+              where department = ? AND u.is_deleted = 0 AND u.role <> 8
               ORDER BY u.name ASC, u.email ASC
               LIMIT ${limit} OFFSET ${offset}`,
             [depList.get(type)]
@@ -200,12 +200,12 @@ export async function GET(request) {
         const startTime = Date.now()
         // FIRST CHECK CACHE
         let profileData = await getCachedUserProfile(type);
-         if (profileData) {
+        if (profileData) {
           // Cache hit! Return immediately
           const cacheTime = Date.now() - startTime;
           console.log(`[Faculty API] Cache hit - returned in ${cacheTime}ms`);
-           refreshProfileCacheTTL(type).catch(e => console.error('TTL refresh error:', e));
-           return NextResponse.json(profileData, {
+          refreshProfileCacheTTL(type).catch(e => console.error('TTL refresh error:', e));
+          return NextResponse.json(profileData, {
             headers: {
               'X-Cache': 'HIT',
               'X-Response-Time': `${cacheTime}ms`,
@@ -215,7 +215,7 @@ export async function GET(request) {
         console.log(`[Faculty API] Cache miss for ${type}, fetching from database...`);
         // Get user profile data first
         const profileResult = await query(
-            `SELECT * FROM user WHERE email = ? AND is_deleted = 0`,
+          `SELECT * FROM user WHERE email = ? AND is_deleted = 0`,
           [type]
         )
 
@@ -262,8 +262,8 @@ export async function GET(request) {
                     GROUP BY jp.id
                     ORDER BY jp.publication_year DESC`
           },
-          { 
-            table: 'conference_papers', 
+          {
+            table: 'conference_papers',
             query: `SELECT 
                 cp.*,
                 GROUP_CONCAT(cpc.email) as collaboraters
@@ -272,7 +272,7 @@ export async function GET(request) {
             WHERE cp.email = ? OR cp.id IN (
                 SELECT conference_papers_id FROM conference_papers_collaborater WHERE email = ?
             )
-            GROUP BY cp.id` 
+            GROUP BY cp.id`
           },
           { table: 'book_chapters', query: `SELECT bc.* FROM book_chapters bc WHERE bc.email = ? OR bc.id IN (SELECT book_chapters_id FROM book_chapters_collaborater WHERE email = ?)` },
           { table: 'edited_books', query: `SELECT eb.* FROM edited_books eb WHERE eb.email = ? OR eb.id IN (SELECT edited_books_id FROM edited_books_collaborater WHERE email = ?)` },
@@ -294,19 +294,19 @@ export async function GET(request) {
           { table: 'international_journal_reviewers', query: 'SELECT * FROM international_journal_reviewers WHERE email = ?' },
           { table: 'talks_and_lectures', query: 'SELECT * FROM talks_and_lectures WHERE email = ?' },
 
-          {table:"honours_awards",query:"SELECT * FROM honours_awards WHERE email = ?"},
-          {table:"special_lectures",query:"SELECT * FROM special_lectures WHERE email = ?"},
-          {table:"visits_abroad",query:"SELECT * FROM visits_abroad WHERE email = ?"},
-          {table:"editorial_boards",query:"SELECT * FROM editorial_boards WHERE email = ?"},
-          {table:"mooc_courses",query:"SELECT * FROM mooc_courses WHERE email = ?"},
+          { table: "honours_awards", query: "SELECT * FROM honours_awards WHERE email = ?" },
+          { table: "special_lectures", query: "SELECT * FROM special_lectures WHERE email = ?" },
+          { table: "visits_abroad", query: "SELECT * FROM visits_abroad WHERE email = ?" },
+          { table: "editorial_boards", query: "SELECT * FROM editorial_boards WHERE email = ?" },
+          { table: "mooc_courses", query: "SELECT * FROM mooc_courses WHERE email = ?" },
         ]
 
         try {
           // Execute ALL queries using a single connection from pool for better performance
           console.log(`[Faculty API] Executing ${dataQueries.length} queries with single connection...`)
-          
+
           // Use the new batchQuery function from db.js (single connection)
-          const collabTables = new Set(['journal_papers','book_chapters','edited_books','textbooks','sponsored_projects','consultancy_projects','workshops_conferences','ipr','startups','conference_papers']);
+          const collabTables = new Set(['journal_papers', 'book_chapters', 'edited_books', 'textbooks', 'sponsored_projects', 'consultancy_projects', 'workshops_conferences', 'ipr', 'startups', 'conference_papers']);
           const batchQueries = dataQueries.map(({ table, query: q }) => ({
             query: q,
             values: collabTables.has(table) ? [type, type] : [type],
@@ -379,7 +379,7 @@ export async function GET(request) {
               profileData[map.table] = []
             }
           }
-          
+
           const dbTime = Date.now() - startTime;
           console.log(`[Faculty API] Database queries completed in ${dbTime}ms`);
 
@@ -387,7 +387,7 @@ export async function GET(request) {
           console.log(`[Faculty API] Caching profile for ${type}...`);
           if (profileData?.profile) {
             cacheUserProfile(type, profileData).catch(console.error);
-      }
+          }
 
           return NextResponse.json(profileData, {
             headers: {
@@ -395,7 +395,7 @@ export async function GET(request) {
               'X-Response-Time': `${dbTime}ms`,
             }
           })
-          
+
         } catch (error) {
           console.error('[Faculty API] Query error:', error)
           return NextResponse.json(
@@ -409,7 +409,7 @@ export async function GET(request) {
     console.error('API Error:', error)
     return NextResponse.json(
       { message: error.message },
-      { 
+      {
         status: 500,
         headers: {
           'Access-Control-Allow-Origin': '*',
